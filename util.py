@@ -151,12 +151,6 @@ def client_ck(host=None,port=None, user=None, password=None, database=None,colle
     conn = Client(host=host, user=user,password=password, database=database)
     return conn
 
-def connect_ck_for_collect():
-    """链接ck数据库"""
-    conn = Client(host='10.12.6.116', user='membersbi',
-                  password='dangdangbi', database='default')
-    return conn
-
 
 def connect_sqlserver(db):
     """连接sql server数据库"""
@@ -165,7 +159,6 @@ def connect_sqlserver(db):
     return connect, cursor
 
 def request(url,data=None):
-
     headers={'Authorization':'Bearer MDAwMDAwMDAwMLGenKE'}
     textdata=requests.get(url,params=data,headers=headers)
 
@@ -173,7 +166,8 @@ def request(url,data=None):
         return json.loads(textdata.text)
 
     #请求失败
-    return 0
+    return -1
+
 
 @loadenv(db='db_hive')
 def connect_hive(host=None,port=None, user=None, password=None, database=None,collection=None):
@@ -209,7 +203,7 @@ def connect_mongodb(host=None,port=None, user=None, password=None, database=None
     coll = db[collection]
     return coll
 
-
-def get_redis():
-    r = redis.Redis(host='10.255.244.57', port='8391', db='0')
+@loadenv(db='db_redis')
+def get_redis(host=None,port=None, user=None, password=None, database=None,collection=None):
+    r = redis.Redis(host=host, port=port, db=database)
     return r

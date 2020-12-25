@@ -1,4 +1,4 @@
-from util import connect_mongodb,connect_mysql,connect_ck_for_collect,connect_hive,connect_clickhouse
+from util import connect_mongodb,connect_mysql,connect_hive,connect_clickhouse
 import logging.config
 
 logging.config.fileConfig("logging.conf")
@@ -9,7 +9,7 @@ def collect_realtime():
     #连接mysql
     mysqlcursor=connect_mysql()
     #ck
-    conn_ck=connect_ck_for_collect()
+    conn_ck=connect_clickhouse(host='10.12.6.116',database='default')
 
     fail=0
     success=0
@@ -56,67 +56,67 @@ def collect_offline():
 
     offline_sql='''
             SELECT
-	t.cust_id,
-	t.product_id,
-	t.shop_id,
-	t.brand,
-	t.category_path,
-	count(*) AS pv,
-	concat(t.data_date,' 00:00:00') AS creation_date,
-	t.supply_id,
-	t.data_date
-FROM
-	(
-	SELECT
-		t1.cust_id,
-		t1.product_id,
-		t1.shop_id,
-		t2.brand,
-		t2.category_path,
-		t3.last_supplier_id AS supply_id,
-		t1.data_date
-	FROM
-		(
-		SELECT
-			cust_id,
-			product_id,
-			shop_id,
-			data_date
-		FROM
-			ddclick_umt.product_wish_info
-		WHERE
-			data_date = '{}') t1
-	LEFT JOIN (
-		SELECT
-			product_id,
-			brand,
-			category_path
-		FROM
-			productdb.prod_basic) t2 ON
-		(t1.product_id = t2.product_id)
-	LEFT JOIN (
-		SELECT
-			item_id,
-			last_supplier_id
-		FROM
-			dw_ods.item_book
-		WHERE
-			trans_date = '{}'
-			AND item_id IS NOT NULL
-			AND last_supplier_id IS NOT NULL
-		GROUP BY
-			item_id,
-			last_supplier_id) t3 ON
-		(t1.product_id = t3.item_id)) t
-GROUP BY
-	t.cust_id,
-	t.product_id,
-	t.shop_id,
-	t.brand,
-	t.category_path,
-	t.supply_id,
-	t.data_date
-    '''.format(data_date,data_date)
+                t.cust_id,
+                t.product_id,
+                t.shop_id,
+                t.brand,
+                t.category_path,
+                count(*) AS pv,
+                concat(t.data_date,' 00:00:00') AS creation_date,
+                t.supply_id,
+                t.data_date
+            FROM
+                (
+                SELECT
+                    t1.cust_id,
+                    t1.product_id,
+                    t1.shop_id,
+                    t2.brand,
+                    t2.category_path,
+                    t3.last_supplier_id AS supply_id,
+                    t1.data_date
+                FROM
+                    (
+                    SELECT
+                        cust_id,
+                        product_id,
+                        shop_id,
+                        data_date
+                    FROM
+                        ddclick_umt.product_wish_info
+                    WHERE
+                        data_date = '{}') t1
+                LEFT JOIN (
+                    SELECT
+                        product_id,
+                        brand,
+                        category_path
+                    FROM
+                        productdb.prod_basic) t2 ON
+                    (t1.product_id = t2.product_id)
+                LEFT JOIN (
+                    SELECT
+                        item_id,
+                        last_supplier_id
+                    FROM
+                        dw_ods.item_book
+                    WHERE
+                        trans_date = '{}'
+                        AND item_id IS NOT NULL
+                        AND last_supplier_id IS NOT NULL
+                    GROUP BY
+                        item_id,
+                        last_supplier_id) t3 ON
+                    (t1.product_id = t3.item_id)) t
+            GROUP BY
+                t.cust_id,
+                t.product_id,
+                t.shop_id,
+                t.brand,
+                t.category_path,
+                t.supply_id,
+                t.data_date
+                '''.format(data_date,data_date)
     # 连接ck
     conn_ck = connect_clickhouse(host='10.12.6.116', database='ioc_mdata')
     #连接hive
