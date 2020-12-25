@@ -29,7 +29,7 @@ def get_sqlserver_data(start,end,filter_where_for_sqlserver,cursor_sqlserver):
     if len(temp)>0:
         data=list(temp[0])
         source=data[0]
-        a=source.encode('latin-1').decode('gbk')       #乱码解决
+        a=source.encode('latin-1').decode('gbk')              #乱码解决
         data[0]=a
         if a not in ['TM订单','拼多多','抖音订单']:
             data[0]='1'
@@ -87,10 +87,6 @@ def do_sqlserver_ck_job(start, end, conn_ck, cursor_sqlserver, ck_tables):
                 userlogger.info("  clickhouse: "+str(ck_data))
                 userlogger.info(' ')
                 pass
-
-
-        a=1
-
 
     pass
 
