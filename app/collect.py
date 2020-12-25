@@ -1,4 +1,3 @@
-import sys,os
 from util import connect_mongodb,connect_mysql,connect_ck_for_collect,connect_hive,connect_clickhouse
 import logging.config
 
@@ -7,7 +6,6 @@ collectlogger=logging.getLogger('collect')
 
 def collect_realtime():
     collection = connect_mongodb(database='interface', collection='item_book')
-
     #连接mysql
     mysqlcursor=connect_mysql()
     #ck
