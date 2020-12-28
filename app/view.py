@@ -97,10 +97,10 @@ select
 
 
 def offline():
-    cursor=util.connect_hive()
-    cursor.execute(offline_sql)
-    hive_data=cursor.fetchall()
-    # hive_data=[[100000467,23655301,2002]]
+    # cursor=util.connect_hive()
+    # cursor.execute(offline_sql)
+    # hive_data=cursor.fetchall()
+    hive_data=[[100000467,23655302,2002]]
 
     #
     conn_ck = util.connect_clickhouse()
@@ -122,11 +122,11 @@ def offline():
             ck_result=b[0]             #[(0, '2002', [107336669])]
 
             if ck_result[0] !=hivedata[3]:
-                diff_result.append({'shop_id':{'hive':hivedata[2],'ck':ck_result[0]}})
+                diff_result.append({'shop_id':{'hive':hivedata[3],'ck':ck_result[0]}})
             if ck_result[1] !=hivedata[4]:
-                diff_result.append({'supply_id': {'hive': hivedata[3], 'ck': ck_result[1]}})
+                diff_result.append({'supply_id': {'hive': hivedata[4], 'ck': ck_result[1]}})
             if ck_result[2] != hivedata[5]:
-                diff_result.append({'task_id': {'hive': hivedata[4], 'ck': ck_result[2]}})
+                diff_result.append({'task_id': {'hive': hivedata[5], 'ck': ck_result[2]}})
         else:
             diff_result.append('ck不存在' )
 
@@ -140,7 +140,7 @@ def offline():
 
 
 def realtime_mongo2ck():
-    conn_ck = util.connect_ck_for()
+    conn_ck = util.client_ck()
 
     #读mongo
     collection = connect_mongodb()
