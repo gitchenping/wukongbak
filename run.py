@@ -9,6 +9,7 @@ if __name__=="__main__":
    # ck_sqlserver.realtime_zf()
 
    # collect.collect_realtime()
+   view.offline()
    # view.realtime_mongo2ck()
    # view.realtime_mongo()
-    collect.collect_offline()
+   #  collect.collect_offline()

@@ -1,7 +1,7 @@
 import sys
 import util
 import logging.config
-from util import connect_mongodb,connect_mysql,connect_ck_for_collect
+from util import connect_mongodb,connect_mysql
 logging.config.fileConfig("logging.conf")
 viewlogger=logging.getLogger('view')
 
@@ -28,8 +28,16 @@ select
 			select 
 				a.cust_id,
 				nvl(cast(nvl(a.product_id,0)as bigint),0) as product_id,
-				(case when a.from_platform =='2' then '2002' when a.from_platform =='3' or a.from_platform =='7' then '2001' when a.from_platform =='0' then '1000' 
-				when a.from_platform =='12' then '3001' when a.from_platform =='21' then '2010'when a.from_platform =='20' then '1200' end) as from_platform ,
+				(case when a.from_platform =='2' then '2002' 
+				      when a.from_platform =='3' or a.from_platform =='7' then '2001' 
+				      when a.from_platform =='0' then '1000' 
+				      when a.from_platform =='12' then '3001' 
+				      when a.from_platform =='21' then '2010'
+				      when a.from_platform =='20' then '1200'
+				      when a.from_platform=='26' then '2015'
+				      when a.from_platform=='23' then '2011'
+				      else -1
+				 end) as from_platform ,
 				concat(a.creation_date,' 00:00:00') as creation_date,
 				a.shop_id
 			from (
