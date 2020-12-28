@@ -89,7 +89,7 @@ select
 		from
 			ods.ioc_auto_contact_pushid
 		where
-			trans_date = '2020-12-19'
+			trans_date = '2020-12-19' and send_time='2020-12-19' 
 			and reach_type = 2 ) b 
 	on
 		a.cust_id = b.cust_id 
@@ -132,7 +132,7 @@ def offline():
 
         if len(diff_result)>0:
             #写日志
-            viewlogger.info(str('cust_id:'+str(hivedata[0])+" "+"product_id:"+str(hivedata[1])+str(diff_result)))
+            viewlogger.info(str('cust_id='+str(hivedata[0])+" and "+"product_id="+str(hivedata[1])+str(diff_result)))
             fail+=1
         else:
             success+=1
