@@ -104,6 +104,8 @@ def offline():
     #
     conn_ck = util.connect_ck_for()
 
+    success=0
+    fail=0
     for hivedata in hive_data:
         cust_id=hivedata[0]
         product_id=hivedata[1]
@@ -129,6 +131,11 @@ def offline():
         if len(diff_result)>0:
             #写日志
             viewlogger.info(str('cust_id:'+str(hivedata[0])+" "+"product_id:"+str(hivedata[1])+str(diff_result)))
+            fail+=1
+        else:
+            success+=1
+    print('success:' + str(success) + " fail:" + str(fail))
+
 
 def realtime_mongo2ck():
     conn_ck = util.connect_ck_for()
