@@ -100,6 +100,7 @@ def offline():
     cursor=util.connect_hive()
     cursor.execute(offline_sql)
     hive_data=cursor.fetchall()
+    # hive_data=[[100000467,23655301,2002]]
 
     #
     conn_ck = util.connect_clickhouse()
@@ -114,9 +115,10 @@ def offline():
             continue
         ck_sql="select toString(shop_id),supply_id,arrayElement(task_id,1) from ioc_mdata.page_view_detail_all_v2 where cust_id={} and product_id={} and from_platform='{}'".format(cust_id,product_id,from_platform)
         ck_sql=ck_sql+" and creation_date='2020-12-20 00:00:00'"
-        b = conn_ck.execute(ck_sql)
+        conn_ck.execute(ck_sql)
+        b =conn_ck.fetchall()
         diff_result = []
-        if len(b):
+        if b is not None and len(b):
             ck_result=b[0]             #[(0, '2002', [107336669])]
 
             if ck_result[0] !=hivedata[3]:
