@@ -7,7 +7,6 @@ if __name__=="__main__":
 
    # ck_sqlserver.ck_sqlserver_diff()
    # ck_sqlserver.realtime_zf()
-
    # collect.collect_realtime()
    view.offline()
    # view.realtime_mongo2ck()
