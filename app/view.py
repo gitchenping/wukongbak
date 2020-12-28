@@ -102,7 +102,7 @@ def offline():
     hive_data=cursor.fetchall()
 
     #
-    conn_ck = util.connect_ck_for()
+    conn_ck = util.connect_clickhouse()
 
     success=0
     fail=0
@@ -205,7 +205,7 @@ def realtime_mongo():
         cust_id = item['cust_id']
         product_id = item['product_id']
         shop_id = item['shop_id']                 #整型
-        supply_id = item['supply_id']            #字符串
+        supply_id = item['supply_id']             #字符串
         task_id=item['task_id']                   #列表
 
         #读mongo 根据product_id获取supply_id
