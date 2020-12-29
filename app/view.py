@@ -1,7 +1,6 @@
-import sys
-import util
 import logging.config
-from util import connect_mongodb,connect_mysql
+from util import util
+
 logging.config.fileConfig("logging.conf")
 viewlogger=logging.getLogger('view')
 
@@ -97,10 +96,10 @@ select
 
 
 def offline():
-    # cursor=util.connect_hive()
-    # cursor.execute(offline_sql)
-    # hive_data=cursor.fetchall()
-    hive_data=[[100000467,23655302,2002]]
+    cursor=util.connect_hive()
+    cursor.execute(offline_sql)
+    hive_data=cursor.fetchall()
+    # hive_data=[[100000467,23655302,2002]]
 
     #
     conn_ck = util.connect_clickhouse()
@@ -132,7 +131,7 @@ def offline():
 
         if len(diff_result)>0:
             #写日志
-            viewlogger.info(str('cust_id='+str(hivedata[0])+" and "+"product_id="+str(hivedata[1])+str(diff_result)))
+            viewlogger.info(str('cust_id='+str(hivedata[0])+" and "+"product_id="+str(hivedata[1])+" "+str(diff_result)))
             fail+=1
         else:
             success+=1
@@ -143,7 +142,7 @@ def realtime_mongo2ck():
     conn_ck = util.client_ck()
 
     #读mongo
-    collection = connect_mongodb()
+    collection = util.connect_mongodb()
 
     start_date='2020-12-18 13:30:00'
     end_date='2020-12-18 13:59:59'
@@ -201,7 +200,7 @@ def realtime_mongo():
 
     #task_id
     redis_key='REACH_TASK_HAD_SENT_CUST_TASKID'
-    r=util.get_redis()
+    r= util.get_redis()
 
     for item in a:
         cust_id = item['cust_id']
