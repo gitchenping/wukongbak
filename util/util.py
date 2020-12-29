@@ -9,6 +9,7 @@ import configparser
 import pymongo
 import pymysql
 import redis
+import datetime
 
 
 '''数值转换'''
@@ -234,3 +235,60 @@ def do_log(s, user_name, passwd):
         return True, token
     else:
         return False, ''
+
+
+def get_day_mtd_qtd(date_type,start_date,end_date):
+    '''输入起始日期，返回在此范围内的所有日期'''
+
+    datelist=[]
+    start_date_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+    end_date_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+    if date_type == "day":
+        # 计算有多少天
+        delta = datetime.timedelta(days=1)
+        while start_date_datetime<=end_date_datetime:
+                datelist.append(start_date_datetime.strftime("%Y-%m-%d"))
+                start_date_datetime+=delta
+
+    elif date_type== "mtd":
+        # 计算有多
+        while start_date_datetime<=end_date_datetime:
+            datelist.append(start_date_datetime.strftime("%Y-M%m"))
+            start_date_datetime=start_date_datetime.replace(month=start_date_datetime.month + 1)
+        # delta=relativedelta(months=1)
+
+        pass
+    else:
+        # 计算有多少季
+        st=start_date.split('-')
+        et=end_date.split('-')
+
+        sq=math.ceil(int(st[1]) / 3)
+        eq= math.ceil(int(et[1]) /3)
+        while sq<=eq:
+            datelist.append(st[0]+"-Q"+str(sq))
+            sq+=1
+
+        pass
+    return datelist
+
+def get_shaixuantiaojian(data=None):
+
+    source={"all":"全部",'1': "主站", '2': "天猫", '3': "抖音", '4': "拼多多"}
+    parent_platform={"all":"全部",'1': 'APP', '2': '轻应用', '3': 'H5', "4": 'PC'}
+    platform={"all":"全部",'1': "安卓", '2': "iOS",'3': "快应用", '4': "微信", '5': '百度', '6': '头条', '7': '支付宝', '8': 'qq','9':'360'}
+
+    bd_id={"all":"全部","1":"出版物","2":"日百","4":"文创"}
+    shop_type={"all":"全部","1":"自营","2":"招商"}
+    eliminate_type={"all":"不剔除","1":"剔除建工"}
+    sale_type={"sd":"收订","zf":"支付","ck":"出库"}
+
+
+    rtnstr="平台来源："+source[data['source']]+"--"+parent_platform[data['parent_platform']]+"--"+platform[data['platform']]+\
+           "&"+"事业部："+bd_id[data['bd_id']]+\
+           "&"+"经营方式："+shop_type[data['shop_type']]+\
+           "&"+"剔除选项："+eliminate_type[data['eliminate_type']]+\
+           "&"+"销售类型："+sale_type[data['sale_type']]
+
+
+    return rtnstr
