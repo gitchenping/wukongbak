@@ -1,4 +1,4 @@
-import util
+from util import util
 import logging.config
 from . import api
 from . import sql
@@ -119,7 +119,7 @@ def jingying_zf_drill(data):
 
         diff_result={}
         for item in apidata.keys():
-            info,key_value_info=util.diff(apidata[item],sqldata[item])
+            info,key_value_info= util.diff(apidata[item], sqldata[item])
             if len(info)>0 and len(key_value_info)>0:
                 diff_result[item]=key_value_info
         if len(diff_result)>0:

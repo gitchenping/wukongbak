@@ -1,4 +1,4 @@
-import util
+from util import util
 
 conn_ck = util.connect_clickhouse()
 

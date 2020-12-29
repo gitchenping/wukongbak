@@ -1,6 +1,5 @@
 import util
 from app import ck_sqlserver
-from app import collect
 from app import view
 
 if __name__=="__main__":

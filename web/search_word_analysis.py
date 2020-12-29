@@ -1,6 +1,5 @@
 #encoding=utf-8
-import datetime
-from .. import util
+from util import util
 import math
 
 #口径定义
@@ -95,7 +94,7 @@ def searchword(s,token,data):
                 # key=item.pop('date_str')+"_"+item.pop('平台')+"_"+item.pop('search_word')
 
                 for _key,_value in item.items():
-                    item[_key]=util.format_precision(_value)
+                    item[_key]= util.format_precision(_value)
                 #传item去数据库查询
                 sql_item=filters.get_search_word_sql_content_2(item)
                 util.diff_search(item, sql_item)

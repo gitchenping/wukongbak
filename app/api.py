@@ -1,7 +1,6 @@
-import util
+from util import util
 
-
-cf=util.readini('./config.ini')
+cf= util.readini('./config.ini')
 url_host_jingyingfenxi_realtime=cf.get('api','jingying_realtime_api')
 
 def jingyingfenxi(data):
@@ -57,3 +56,45 @@ def jingyingfenxi(data):
         drill_data[item] = apiinfo
 
     return drill_data
+
+#异常数据提取
+def jingying_analysis(datetype, date, logger):
+    '''经营分析'''
+    for source in ['all','1','2','3','4']:   #平台来源      all-all 1主站 2天猫 3抖音 4拼多多
+        if source !='1':
+            parent_platformlist = ['all']
+        else:  # 点击主站可以下钻APP、轻应用、H5、PC
+            parent_platformlist = ['1', '2', '3', '4']
+
+        for parent_platform in parent_platformlist:
+
+            if parent_platform == '1':
+                platformlist = ['1', '2']  # android 、 ios
+
+            elif parent_platform == '2':
+                platformlist = ['all', '3', '4', '5', '6', '7', '8', '9']  # all、快应用、微信小程序、百度小程序、头条、qq、360
+            else:
+                platformlist = ['all']
+
+            for platform in platformlist:
+
+                for bd_id in ['all', '1', '2']:  # 事业部id：all-all 1-出版物事业部 2-日百服 3-数字业务事业部 4-文创
+
+                    for shop_type in ['all', '1', '2']:  # 经营方式 all-ALL 1-自营 2-招商
+
+                        for eliminate_type in ['all', '1']:  # 剔除选项 all-all 1-剔除建工
+
+                            for sale_type in ['sd', 'zf', 'ck']:  # 收订sd、支付zf、出库ck
+
+                                data = {'source': source, 'parent_platform': parent_platform, 'platform': platform,
+                                        'bd_id': bd_id, 'shop_type': shop_type, 'eliminate_type': eliminate_type,
+                                        'sale_type': sale_type, \
+                                        'date_type': datetype, 'date_str': date}
+                                # data={'source': '1', 'parent_platform': '5', 'platform': 'all',
+                                #     'bd_id': '4', 'shop_type': '2', 'eliminate_type': '1','sale_type':'zf' ,\
+                                #     'date_type':'d','date_str': '2020-11-03'}
+                                if data['source'] != '1' and data['shop_type'] == '2':
+                                    continue
+
+                                # 首页
+                                util.jingying_request(jingying_analysis_overview_api_url, data, logger)
