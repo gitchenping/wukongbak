@@ -1,7 +1,7 @@
 import configparser
 import logging
-from util import util
-from util import log
+from utils import util
+from utils import log
 
 
 

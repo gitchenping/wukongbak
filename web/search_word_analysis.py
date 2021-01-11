@@ -1,5 +1,5 @@
 #encoding=utf-8
-from util import util
+from utils import util
 import math
 
 #口径定义

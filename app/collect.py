@@ -1,4 +1,4 @@
-from util.util import connect_mongodb,connect_mysql,connect_hive,connect_clickhouse
+from utils.util import connect_mongodb,connect_mysql,connect_hive,connect_clickhouse
 import logging.config
 
 logging.config.fileConfig("logging.conf")

@@ -1,5 +1,5 @@
 import logging.config
-from util import util
+from utils import util
 
 logging.config.fileConfig("logging.conf")
 viewlogger=logging.getLogger('view')
