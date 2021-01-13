@@ -33,8 +33,9 @@ def jingyingfenxi_drill(jingying_analysis_api_path,data):
 
     a=1
     userlogger.info('筛选条件为: ' + str(data))
-    if apidata.__contains__('支付转化率'):
-        apidata.pop('支付转化率')
+    if apidata.__contains__('出库转化率'):
+        apidata.pop('出库转化率')
+
     for key in apidata.keys():
         #diff
         userlogger.info(key+"下钻")
@@ -43,7 +44,7 @@ def jingyingfenxi_drill(jingying_analysis_api_path,data):
 
 def jingyingfenxi_new(date_type,date):
     '''根据接口传参，从ck计算指标'''
-    for source in ['1','2', '3', '4','all']:  # 平台来源      all-all 1主站 2天猫 3抖音 4拼多多
+    for source in ['all','1','2', '3', '4']:  # 平台来源      all-all 1主站 2天猫 3抖音 4拼多多
         if source != '1':
             parent_platformlist = ['all']
         else:  # 点击主站可以下钻APP、轻应用、H5、PC
@@ -62,13 +63,13 @@ def jingyingfenxi_new(date_type,date):
 
             for platform in platformlist:
 
-                for bd_id in ['all']:  # 事业部id：all-all 1-出版物事业部 2-日百服 3-数字业务事业部 4-文创
+                for bd_id in ['1','2','4','all']:  # 事业部id：all-all 1-出版物事业部 2-日百服 3-数字业务事业部 4-文创
 
                     for shop_type in ['all', '1', '2']:  # 经营方式 all-ALL 1-自营 2-招商
 
                         for eliminate_type in ['all', '1']:  # 剔除选项 all-all 1-剔除建工
 
-                            for sale_type in [ 'zf']:  # 收订sd、支付zf、出库ck
+                            for sale_type in ['ck']:  # 收订sd、支付zf、出库ck
 
                                 data = {'source': source, 'parent_platform': parent_platform, 'platform': platform,
                                         'bd_id': bd_id, 'shop_type': shop_type, 'eliminate_type': eliminate_type,
@@ -83,8 +84,8 @@ def jingyingfenxi_new(date_type,date):
 
 
 def jingyingfenxi():
-    date = '2020-12-31'
-    date_type = ['qtd','day','wtd','mtd']                                 # 日、周、月、季度
+    date = '2021-01-12'
+    date_type = ['day','mtd','wtd','qtd']                                 # 日、周、月、季度
 
     for datetype in date_type:
 

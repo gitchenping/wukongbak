@@ -1,4 +1,5 @@
 from utils import util
+from utils import date
 from utils import variable
 
 cf= util.readini('./config.ini')
@@ -82,7 +83,7 @@ def api_jingyingfenxi_drill(jingying_analysis_api_path,data):
 
     # date_type、date_str键替换
     datetype = datacopy['date_type']
-    # date = util.datechange(datetype, datacopy['date_str'])
+    # date = date.datechange(datetype, datacopy['date_str'])
 
     datacopy['date'] = datacopy['date_str']
     # datacopy['date'] = '2020-07-31'
@@ -109,7 +110,7 @@ def api_jingyingfenxi_drill(jingying_analysis_api_path,data):
         drill_dict.update(variable.drill_zf_ck_dict)
 
     api_drill_data={}
-    drill_dict.pop('cancel_rate')
+
     for field in drill_dict.keys():
     # for field in ['cancel_rate']:
         datacopy['field_str']=field

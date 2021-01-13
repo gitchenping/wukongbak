@@ -1,4 +1,5 @@
 from utils import util,tb_hb
+from utils.date import *
 from utils import variable
 import datetime
 
@@ -40,13 +41,13 @@ def get_platform_where(data):
 def get_bd_where(data):
     '''获取bd对应的过滤条件'''
     bd = data['bd_id']
-    if bd == '1':
+    if bd == '1':                    #出版物
         bd_id = '(5,12)'
-    elif bd == '2':
-        bd_id = '(1,3,4,9,15,16)'
-    elif bd == '3':
+    elif bd == '2':                 #百货
+        bd_id = '(1,4,9,15,16)'
+    elif bd == '3':                 #数字
         bd_id = '(6)'
-    elif bd == '4':
+    elif bd == '4':                 #文创
         bd_id = '(20,21,23)'
     else:
         bd_id = 'all'
@@ -92,7 +93,7 @@ def get_time_where(data):
     date=data['date_str']
 
     datewhere=''
-    tb_hb_date = util.get_tb_hb_date(date, datetype)
+    tb_hb_date = get_tb_hb_date(date, datetype)
 
     if len(tb_hb_date)==4:     #天返回环比、周同比、年同比
 
@@ -108,7 +109,6 @@ def get_time_where(data):
 
         for ele in tb_hb_date:
             if ele[0] is not None:
-
                  datewhere+= " date_str between '"+ele[0]+"' and '"+ele[1]+"' or "
         datewhere=" and ("+datewhere.strip('or ')+" )"
     return datewhere
@@ -303,7 +303,7 @@ def sql_jingyingfenxi_drill(data,tabledict):
     drill_dict.pop('transRate')
 
     sql_drill_data = {}
-    drill_dict.pop('cancel_rate')
+
     for field in drill_dict.keys():
     # for field in ['cancel_rate']:
         datacopy['field_str']=field
@@ -362,7 +362,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
     if is_cal_trend:
         trend = {}  # 存放trend 结果
 
-        wheredata=util.get_trend_where_date(data)
+        wheredata=get_trend_where_date(data)
 
         trendsql=" select "+column+" from "+tabledict[sd_zf_ck]+" "+where+wheredata + _groupby
 
@@ -381,14 +381,14 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                 canceldate=ck_data_2[i][1]
                 for raw in ck_data:
                     if raw[1]==canceldate:
-                        if raw[1] != 0:
-                            temp.append([raw[0], ck_data_2[i][1] / raw[1] * 100, raw[-1]])
+                        if raw[0] != 0:
+                            temp.append([ck_data_2[i][0] / raw[0] * 100, raw[-1]])
                         break
         else:
             temp = ck_data
 
         if len(temp) > 0:
-            for raw in ck_data:
+            for raw in temp:
                 key=util.get_trendkey(datetype,raw[1])
                 if raw[0] is not None:
                     trend[key]=round(raw[0],2)
@@ -400,13 +400,20 @@ def jingyingfenxi_drill(data,tabledict,columndict):
     #bd分布
     if is_cal_bd:
         bd={}
-        if datacopy['bd_id']=='1':
-                column_bd='cat_id,'
-                group_by=" group by cat_id"
+        if datacopy['bd_id']!='all':
+                namedict = variable.catgory_path_dict
+                column_bd='case'
+                for key in namedict.keys():
+                    column_bd+=" when category_path3 in "+str(namedict[key])+" then '"+key+"'"
+                #others
+                column_bd+=" else '10' end as _bd_id,"
+                group_by=" group by _bd_id,date_str"
                 bdnamedict=variable.cat_name_dict
+
         else:
                 column_bd="CASE WHEN bd_id IN (5, 12) THEN 1 " \
-                          "WHEN bd_id IN (1, 3, 4, 9, 15, 16) THEN 2 " \
+                          "WHEN bd_id IN (1, 4, 9, 15, 16) THEN 2 " \
+                          "WHEN bd_id IN (3) THEN 6 "\
                           "WHEN bd_id IN (6) THEN 3 " \
                           "WHEN bd_id IN (20, 21, 23) THEN 4 ELSE 5 END AS _bd_id,"
 
@@ -622,7 +629,6 @@ def jingyingfenxi(data):
 
     #事业部分布
     bd={}
-
     if datacopy['bd_id']=='1':
         column_bd='cat_id,'
         group_by=" group by cat_id"
