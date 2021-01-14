@@ -28,7 +28,7 @@ def jingyingfenxi_overview(jingying_analysis_api_path,data):
     userlogger.info(' ')
 
 def jingyingfenxi_drill(jingying_analysis_api_path,data):
-    apidata=api.api_jingyingfenxi_drill(jingying_analysis_api_path,data)
+    # apidata=api.api_jingyingfenxi_drill(jingying_analysis_api_path,data)
     sqldata=sql.sql_jingyingfenxi_drill(data,table_dict)
 
     a=1
@@ -75,7 +75,7 @@ def jingyingfenxi_new(date_type,date):
                                         'bd_id': bd_id, 'shop_type': shop_type, 'eliminate_type': eliminate_type,
                                         'sale_type': sale_type, \
                                         'date_type': date_type, 'date_str': date}
-                                data={'source': '1', 'parent_platform': '2', 'platform': '5', 'bd_id': '1', 'shop_type': 'all', 'eliminate_type': 'all', 'sale_type': 'zf', 'date_type': 'qtd', 'date_str': '2021-01-13'}
+                                # data={'source': '1', 'parent_platform': '2', 'platform': '5', 'bd_id': 'all', 'shop_type': 'all', 'eliminate_type': 'all', 'sale_type': 'zf', 'date_type': 'qtd', 'date_str': '2021-01-13'}
                                 print(data)
                                 # if sale_type!='zf':
                                 #     jingyingfenxi_overview(jingying_analysis_api_path,data)

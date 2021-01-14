@@ -417,7 +417,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                           "WHEN bd_id IN (6) THEN 3 " \
                           "WHEN bd_id IN (20, 21, 23) THEN 4 ELSE 5 END AS _bd_id,"
 
-                group_by = " group by "+ column_bd +" date_str"
+                group_by = " group by "+ column_bd +"_date_str"
                 bdnamedict = variable.bd_id_dict
 
         order_by=" order by _bd_id,_date_str desc"
