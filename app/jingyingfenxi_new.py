@@ -33,8 +33,8 @@ def jingyingfenxi_drill(jingying_analysis_api_path,data):
 
 
     userlogger.info('筛选条件为: ' + str(data))
-    if apidata.__contains__('出库转化率'):
-        apidata.pop('出库转化率')
+    if apidata.__contains__('支付转化率'):
+        apidata.pop('支付转化率')
 
     for key in apidata.keys():
         #diff
@@ -44,7 +44,7 @@ def jingyingfenxi_drill(jingying_analysis_api_path,data):
 
 def jingyingfenxi_new(date_type,date):
     '''根据接口传参，从ck计算指标'''
-    for source in ['1','2', '3', '4','all']:  # 平台来源      all-all 1主站 2天猫 3抖音 4拼多多
+    for source in ['all','1','2', '3', '4']:  # 平台来源      all-all 1主站 2天猫 3抖音 4拼多多
         if source != '1':
             parent_platformlist = ['all']
         else:  # 点击主站可以下钻APP、轻应用、H5、PC
@@ -69,7 +69,7 @@ def jingyingfenxi_new(date_type,date):
 
                         for eliminate_type in ['all', '1']:  # 剔除选项 all-all 1-剔除建工
 
-                            for sale_type in ['ck']:  # 收订sd、支付zf、出库ck
+                            for sale_type in ['zf']:  # 收订sd、支付zf、出库ck
 
                                 data = {'source': source, 'parent_platform': parent_platform, 'platform': platform,
                                         'bd_id': bd_id, 'shop_type': shop_type, 'eliminate_type': eliminate_type,

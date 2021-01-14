@@ -473,7 +473,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                         platdict=variable.app_dict
 
                 if len(group_by)>0:
-                    order_by=" order by "+column_plat+","+"date_str desc"
+                    order_by=" order by "+column_plat+","+"_date_str desc"
                     platsql="select "+column_plat+","+column+ " from " +tabledict[sd_zf_ck]+" "+where + group_by+order_by
 
                     conn_ck.execute(platsql)

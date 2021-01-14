@@ -37,41 +37,6 @@ def tb_hb_format(data):
         return data
 
 
-def diff_sd(data1,data2,_logger):
-    # 字典比较
-    temp_data1 = dict(data1)
-    temp_data2 = dict(data2)
-
-    info = ''
-    key_value_info = ''
-    diff_key_values = []
-    if set(temp_data1.keys()) != set(temp_data2.keys()):
-        info = "键值不同"
-        diff_key_values.append((temp_data1.keys(),temp_data2.keys()))
-    else:
-        for item in temp_data1.keys():
-            for key in temp_data1[item].keys():
-                try:
-                    if temp_data1[item][key] != temp_data2[item][key]:
-                            diff_key_values.append({item + "->" + key: (temp_data1[item][key], temp_data2[item][key])})
-                except Exception as e:
-                    info = '出现异常，...'
-                    diff_key_values.append(repr(e))
-        if len(diff_key_values) > 0:
-            info = "键值对不同"
-            key_value_info = str(diff_key_values)
-
-    if len(info) > 0:
-        try:
-            _logger.info("diff info:" + info)
-            if key_value_info != '':
-                _logger.info(key_value_info)
-            _logger.info(
-                "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-Fail-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-        except Exception as e:
-            _logger.info(e)
-    _logger.info(
-        '==========================================================================================================')
 
 def diff(data1,data2,_logger):
     key_diff_dict=diff_dict(data1, data2)
@@ -93,8 +58,8 @@ def diff_dict(data1,data2,absvalue=0.5):
     # diff_key_value_list=[]
     diff_key_value={}
     for key in temp_data1.keys():
+        data1_value = temp_data1[key]
         try:
-            data1_value=temp_data1[key]
             data2_value=temp_data2[key]
             if isinstance(data1_value,dict):
                 # diff_key_value_list.extend(diff(temp_data1[key],temp_data2[key]))
@@ -108,10 +73,15 @@ def diff_dict(data1,data2,absvalue=0.5):
                 else:
                     if abs(data1_value-data2_value) > absvalue:
                         # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
-                        diff_key_value[key]=(data1_value, data2_value)
-        except Exception as e:
-            # print(e.__repr__())
+                        diff_key_value[key] = (data1_value, data2_value)
+        except KeyError as e:
             key_error_string=key+' 键值对不存在'
+            diff_key_value[key_error_string] = e.__repr__()
+        except TypeError as e:
+            key_error_string = key + ' 运算类型错误'
+            diff_key_value[key_error_string] = e.__repr__()
+        except Exception as e:
+            key_error_string = key + ' 其他错误'
             diff_key_value[key_error_string]=e.__repr__()
     return diff_key_value
 
