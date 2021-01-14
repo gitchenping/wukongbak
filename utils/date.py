@@ -183,6 +183,9 @@ def get_tb_hb_date(date,datetype):
         tb_hb_date = ((week_s,week_e),
                       (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d')),
                       (datetime.datetime.strftime(tb_year_date_s, '%Y-%m-%d'),datetime.datetime.strftime(tb_year_date_e, '%Y-%m-%d')))
+        tb_hb_date = ((week_s, week_e),
+                      (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d'))
+                      )
     elif datetype=='mtd' or datetype == 'm':
         # 本月
         month_s=date_s_str
@@ -274,7 +277,7 @@ def get_trend_where_date(data):
         wheredate=wheredate.strip(',')
         wheredata=' and date_str in ('+wheredate+")"
 
-    if datetype == 'wtd' or datetype == 'w':  # 最近七天
+    if datetype == 'wtd' or datetype == 'w':  # 最近七周
 
         end_date_datetime = datetime.datetime.strptime(datestr, '%Y-%m-%d')
         i=0
@@ -293,8 +296,10 @@ def get_trend_where_date(data):
     if datetype == 'mtd' or datetype == 'm':  # 最近七个月
         year=templist[0]
         month=templist[1]
+        _month=int(month)
+
         i=0
-        while i<7:
+        while i<min(7,_month):
             month_s_e=get_day2month(year,month)
 
             wheredate += " date_str between '" + month_s_e[0] + "' and '" +month_s_e[1] + "' or "
@@ -311,7 +316,7 @@ def get_trend_where_date(data):
         month = templist[1]
 
         i=0
-        while i< int(month)/3:
+        while i< math.ceil(int(month)/3+1)-1:
             a=int(month)-3*i
             q_s_e =get_day2q(a)
 

@@ -339,13 +339,13 @@ def jingyingfenxi_drill(data,tabledict,columndict):
         column += ',toString(date_str)'
         groupby_new_flag='day_new_flag'
     elif datetype == 'mtd' or datetype == 'm':
-        column += ',toString(toStartOfMonth(toDate(date_str)) as date_str) as _date_str'
+        column += ',toString(toStartOfMonth(toDate(date_str))) as _date_str'
         groupby_new_flag = 'month_new_flag'
     elif datetype == 'qtd' or datetype == 'q':
-        column += ',toString(toStartOfQuarter(toDate(date_str)) as date_str) as _date_str'
+        column += ',toString(toStartOfQuarter(toDate(date_str))) as _date_str'
         groupby_new_flag = 'quarter_new_flag'
     else:
-        column += ',toString(toStartOfWeek(toDate(date_str),1) as date_str) as _date_str'
+        column += ',toString(toStartOfWeek(toDate(date_str),1)) as _date_str'
         groupby_new_flag = 'week_new_flag'
 
     # 筛选条件
@@ -354,8 +354,8 @@ def jingyingfenxi_drill(data,tabledict,columndict):
         datacopy) + get_eliminate_where(datacopy)
     # where += get_time_where(data)
 
-    _groupby = " group by date_str"
-    _orderby=" order by date_str desc"
+    _groupby = " group by _date_str"
+    _orderby=" order by _date_str desc"
 
     drill_data={}                                          #存放当前下钻页所有指标数据
     # trend
@@ -407,7 +407,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                     column_bd+=" when category_path3 in "+str(namedict[key])+" then '"+key+"'"
                 #others
                 column_bd+=" else '10' end as _bd_id,"
-                group_by=" group by _bd_id,date_str"
+                group_by=" group by _bd_id,_date_str"
                 bdnamedict=variable.cat_name_dict
 
         else:
@@ -420,7 +420,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                 group_by = " group by "+ column_bd +" date_str"
                 bdnamedict = variable.bd_id_dict
 
-        order_by=" order by _bd_id,date_str desc"
+        order_by=" order by _bd_id,_date_str desc"
 
         where += get_time_where(data)
 
@@ -497,7 +497,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
     #新老客分布
     if is_cal_customer:
         customer = {}
-        order_by = " order by "+groupby_new_flag+"," + "date_str desc"
+        order_by = " order by "+groupby_new_flag+"," + "_date_str desc"
         group_by=_groupby+","+groupby_new_flag
         customersql = "select "+groupby_new_flag+"," +column+ " from " +tabledict[sd_zf_ck]+" "+where + group_by+order_by
 

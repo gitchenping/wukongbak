@@ -69,6 +69,7 @@ def diff_sd(data1,data2,_logger):
     diff_key_values = []
     if set(temp_data1.keys()) != set(temp_data2.keys()):
         info = "键值不同"
+        diff_key_values.append((temp_data1.keys(),temp_data2.keys()))
     else:
         for item in temp_data1.keys():
             for key in temp_data1[item].keys():
