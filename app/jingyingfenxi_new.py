@@ -69,7 +69,7 @@ def jingyingfenxi_new(date_type,date):
 
                         for eliminate_type in ['all', '1']:  # 剔除选项 all-all 1-剔除建工
 
-                            for sale_type in ['zf']:  # 收订sd、支付zf、出库ck
+                            for sale_type in ['ck']:  # 收订sd、支付zf、出库ck
 
                                 data = {'source': source, 'parent_platform': parent_platform, 'platform': platform,
                                         'bd_id': bd_id, 'shop_type': shop_type, 'eliminate_type': eliminate_type,
