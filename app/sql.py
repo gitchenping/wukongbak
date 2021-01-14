@@ -336,7 +336,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
     column=columndict[filedstr]
 
     if datetype == 'day' or datetype == 'd':
-        column += ',toString(date_str)'
+        column += ',toString(date_str) as _date_str'
         groupby_new_flag='day_new_flag'
     elif datetype == 'mtd' or datetype == 'm':
         column += ',toString(toStartOfMonth(toDate(date_str))) as _date_str'
