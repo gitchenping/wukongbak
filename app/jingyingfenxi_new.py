@@ -28,10 +28,10 @@ def jingyingfenxi_overview(jingying_analysis_api_path,data):
     userlogger.info(' ')
 
 def jingyingfenxi_drill(jingying_analysis_api_path,data):
-    # apidata=api.api_jingyingfenxi_drill(jingying_analysis_api_path,data)
+    apidata=api.api_jingyingfenxi_drill(jingying_analysis_api_path,data)
     sqldata=sql.sql_jingyingfenxi_drill(data,table_dict)
 
-    a=1
+
     userlogger.info('筛选条件为: ' + str(data))
     if apidata.__contains__('支付转化率'):
         apidata.pop('支付转化率')
@@ -39,7 +39,7 @@ def jingyingfenxi_drill(jingying_analysis_api_path,data):
     for key in apidata.keys():
         #diff
         userlogger.info(key+"下钻")
-        util.diff_sd(apidata[key],sqldata[key],userlogger)
+        util.diff(apidata[key], sqldata[key], userlogger)
 
 
 def jingyingfenxi_new(date_type,date):
@@ -84,8 +84,8 @@ def jingyingfenxi_new(date_type,date):
 
 
 def jingyingfenxi():
-    date = '2021-01-13'
-    date_type = ['qtd','day','wtd','mtd']                                 # 日、周、月、季度
+    date = '2021-01-10'
+    date_type = ['wtd','qtd','day','mtd']                                 # 日、周、月、季度
 
     for datetype in date_type:
 

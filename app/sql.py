@@ -295,7 +295,7 @@ def sql_jingyingfenxi_drill(data,tabledict):
             'create_parent_amt': "groupBitmapMerge( parent_id_state) as create_parent_amt",
             'out_profit': "sumMerge(out_profit_state) as out_profit",
             'gross_profit': "sumMerge(gross_profit_state) as gross_profit",
-            'gross_profit_rate': "sumMerge(gross_profit_state)/sumMerge(out_profit_state) as gross_profit_rate",
+            'gross_profit_rate': "sumMerge(gross_profit_state)/sumMerge(out_profit_state)*100 as gross_profit_rate",
             'cancel_rate': "groupBitmapMerge( parent_id_state) as create_parent_amt"
     }
 

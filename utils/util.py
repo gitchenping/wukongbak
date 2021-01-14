@@ -36,28 +36,6 @@ def tb_hb_format(data):
     else:
         return data
 
-'''单字典比较'''
-def diff_s(data1,data2,_logger):
-    '''
-    :param data1:
-    :param data2:
-    :param _log:  自定义logger
-    :return:
-    '''
-    # 字典比较
-    rtn=diff(data1,data2)
-    if rtn!=1:
-        info=rtn[0]
-        diff_value=rtn[1]
-
-        try:
-            _logger.info("diff info:"+ info[2])
-            _logger.info(str(diff_value))
-
-            _logger.info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-Fail-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-        except Exception as e:
-            _logger.info(e)
-    _logger.info('==========================================================================================================')
 
 def diff_sd(data1,data2,_logger):
     # 字典比较
@@ -95,79 +73,48 @@ def diff_sd(data1,data2,_logger):
     _logger.info(
         '==========================================================================================================')
 
-
-'''两重嵌套字典比较'''
-def diff_d(data1,data2,_logger):
-    '''
-    :param data1:
-    :param data2:
-    :param _log:  自定义logger
-    :return:
-    '''
-    # 字典比较
-    temp_data1 = dict(data1)
-    temp_data2 = dict(data2)
-
-    info=''
-    key_value_info=''
-    diff_key_values = []
-    if set(temp_data1.keys())!=set(temp_data2.keys()):
-        info="键值不同"
-    else:
-        for item in temp_data1.keys():
-            for key in temp_data1[item].keys():
-                try :
-                    if temp_data1[item][key] != temp_data2[item][key]:
-                        if not isinstance(temp_data1[item][key],str) and not isinstance(temp_data2[item][key],str):
-                            if abs(temp_data1[item][key]-temp_data2[item][key])>0.5:
-                                diff_key_values.append({item+"->"+key: (temp_data1[item][key], temp_data2[item][key])})
-                        else:
-                            diff_key_values.append({item+"->"+key: (temp_data1[item][key], temp_data2[item][key])})
-                except Exception as e:
-                    info='出现异常，...'
-                    diff_key_values.append(repr(e))
-        if len(diff_key_values) > 0:
-            info = "键值对不同"
-            key_value_info=str(diff_key_values)
-
-    if len(info)>0:
+def diff(data1,data2,_logger):
+    key_diff_dict=diff_dict(data1, data2)
+    if key_diff_dict!={}:
         try:
-            _logger.info("diff info:"+ info)
-            if key_value_info !='':
-                _logger.info(key_value_info)
-            _logger.info("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-Fail-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+            _logger.info("diff info:" + str(key_diff_dict))
+            _logger.info(
+                "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-Fail-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
         except Exception as e:
             _logger.info(e)
-    _logger.info('==========================================================================================================')
+    _logger.info(
+        '==========================================================================================================')
 
 
-'''输出两个简单字典的不同'''
-def diff(data1,data2,absvalue=0.5):
-    '''
-    :param data1:
-    :param data2:
-    :param _log:  自定义logger
-    :return:
-    '''
-    # 字典比较
+'''两个字典的比较'''
+def diff_dict(data1,data2,absvalue=0.5):
     temp_data1 = dict(data1)
     temp_data2 = dict(data2)
+    # diff_key_value_list=[]
+    diff_key_value={}
+    for key in temp_data1.keys():
+        try:
+            data1_value=temp_data1[key]
+            data2_value=temp_data2[key]
+            if isinstance(data1_value,dict):
+                # diff_key_value_list.extend(diff(temp_data1[key],temp_data2[key]))
+                diff_key_value[key]=diff_dict(data1_value,data2_value)
+                if diff_key_value[key]=={}:
+                    diff_key_value.pop(key)
+            else:
+                if isinstance(data1_value,str) and isinstance(data2_value,str):
+                    if data1_value!=data2_value:
+                        diff_key_value[key] = (data1_value, data2_value)
+                else:
+                    if abs(data1_value-data2_value) > absvalue:
+                        # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
+                        diff_key_value[key]=(data1_value, data2_value)
+        except Exception as e:
+            # print(e.__repr__())
+            key_error_string=key+' 键值对不存在'
+            diff_key_value[key_error_string]=e.__repr__()
+    return diff_key_value
 
-    info={}
-    diff_key_values = []
-    if set(temp_data1.keys())!=set(temp_data2.keys()):
-        info={1:"键值不同"}
-        diff_key_values.append([set(temp_data1.keys()),set(temp_data2.keys())])
-    else:
-        for key in temp_data1.keys():
-            if abs(temp_data1[key]-temp_data2[key])>absvalue:
-                diff_key_values.append({key: (temp_data1[key], temp_data2[key])})
-        if len(diff_key_values) > 0:
-            info = {2:"键值对不同"}
-        else:
-            return 1          #相等 返回1
-
-    return info,diff_key_values
 
 '''重试'''
 def retry(maxretry=3):
