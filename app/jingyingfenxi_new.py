@@ -33,8 +33,8 @@ def jingyingfenxi_drill(jingying_analysis_api_path,data):
 
 
     userlogger.info('筛选条件为: ' + str(data))
-    if apidata.__contains__('支付转化率'):
-        apidata.pop('支付转化率')
+    if apidata.__contains__('出库转化率'):
+        apidata.pop('出库转化率')
 
     for key in apidata.keys():
         #diff
