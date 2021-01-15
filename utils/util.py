@@ -11,7 +11,7 @@ import pymysql
 import redis
 import datetime
 import time
-from .variable import *
+from .map import *
 
 
 '''数值转换'''
@@ -43,12 +43,10 @@ def diff(data1,data2,_logger):
     if key_diff_dict!={}:
         try:
             _logger.info("diff info:" + str(key_diff_dict))
-            _logger.info(
-                "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-Fail-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+            _logger.info("xx"*10+'--Fail--'+"xx"*10)
         except Exception as e:
             _logger.info(e)
-    _logger.info(
-        '==========================================================================================================')
+    _logger.info('=='*24)
 
 
 '''两个字典的比较'''
@@ -75,11 +73,11 @@ def diff_dict(data1,data2,absvalue=0.5):
                         # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
                         diff_key_value[key] = (data1_value, data2_value)
         except KeyError as e:
-            key_error_string=key+' 键值对不存在'
+            key_error_string=key+' 键值对不匹配'
             diff_key_value[key_error_string] = e.__repr__()
         except TypeError as e:
             key_error_string = key + ' 运算类型错误'
-            diff_key_value[key_error_string] = e.__repr__()
+            diff_key_value[key_error_string] = (data1_value,data2_value)
         except Exception as e:
             key_error_string = key + ' 其他错误'
             diff_key_value[key_error_string]=e.__repr__()
@@ -228,49 +226,13 @@ def do_log(s, user_name, passwd):
     else:
         return False, ''
 
-
-def get_day_mtd_qtd(date_type,start_date,end_date):
-    '''输入起始日期，返回在此范围内的所有日期'''
-
-    datelist=[]
-    start_date_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
-    end_date_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
-    if date_type == "day":
-        # 计算有多少天
-        delta = datetime.timedelta(days=1)
-        while start_date_datetime<=end_date_datetime:
-                datelist.append(start_date_datetime.strftime("%Y-%m-%d"))
-                start_date_datetime+=delta
-
-    elif date_type== "mtd":
-        # 计算有多
-        while start_date_datetime<=end_date_datetime:
-            datelist.append(start_date_datetime.strftime("%Y-M%m"))
-            start_date_datetime=start_date_datetime.replace(month=start_date_datetime.month + 1)
-        # delta=relativedelta(months=1)
-
-        pass
-    else:
-        # 计算有多少季
-        st=start_date.split('-')
-        et=end_date.split('-')
-
-        sq=math.ceil(int(st[1]) / 3)
-        eq= math.ceil(int(et[1]) /3)
-        while sq<=eq:
-            datelist.append(st[0]+"-Q"+str(sq))
-            sq+=1
-
-        pass
-    return datelist
-
 def get_shaixuantiaojian(data=None):
 
-    rtnstr="平台来源："+source[data['source']]+"--"+parent_platform[data['parent_platform']]+"--"+platform[data['platform']]+\
-           "&"+"事业部："+bd_id[data['bd_id']]+\
+    rtnstr="平台来源："+source_dict[data['source']]+"--"+parent_platform_dict[data['parent_platform']]+"--"+platform_dict[data['platform']]+\
+           "&"+"事业部："+bd_id_dict[data['bd_id']]+\
            "&"+"经营方式："+shop_type[data['shop_type']]+\
-           "&"+"剔除选项："+eliminate_type[data['eliminate_type']]+\
-           "&"+"销售类型："+sale_type[data['sale_type']]
+           "&"+"剔除选项："+eliminate_type_dict[data['eliminate_type']]+\
+           "&"+"销售类型："+sale_type_dict[data['sale_type']]
     return rtnstr
 
 def request(url,data=None):
@@ -284,11 +246,13 @@ def request(url,data=None):
     return -1
 
 
-
-
-
-
+'''传入日期返回对应日周月季的key'''
 def get_trendkey(datetype,date):
+    '''
+    :param datetype:
+    :param date: '2020-12-21'
+    :return:
+    '''
 
     templist=date.split('-')
     if datetype == 'day' or datetype=='d':
@@ -309,22 +273,3 @@ def get_trendkey(datetype,date):
 
 
 
-def tb_hb_cal(rawdata):
-    '''同比、环比计算，返回一个二维列表'''
-    newdata=[]
-    if len(rawdata)==1:
-        return  [[]]
-    currentvaluelist = list(rawdata[0])
-    newdata.append(currentvaluelist)
-    for raw in rawdata[1:]:
-        tempdata = []
-        for i in range(len(raw) - 1):
-            if raw[i] is not None and raw[i] != 0:
-                tempdata.append(round((currentvaluelist[i] - raw[i]) / raw[i] * 100, 2))
-            else:
-                tempdata.append('--')
-        tempdata.append(raw[-1])
-        newdata.append(tempdata)
-    newdata[0] = [round(ele, 2) for ele in currentvaluelist[:-1] if ele is not None]+[currentvaluelist[-1]]
-
-    return newdata

@@ -25,7 +25,6 @@ def get_startdate_in_w_m_q(date,datetype):
     templist=date.split('-')
     year=templist[0]
     m=templist[1]
-    d=templist[2]
 
     startdate=None
     _date = datetime.datetime.strptime(date, '%Y-%m-%d')
@@ -326,3 +325,38 @@ def get_trend_where_date(data):
         wheredata = ' and (' + wheredate.strip('or ')+")"
 
     return wheredata
+
+def get_day_mtd_qtd(date_type,start_date,end_date):
+    '''输入起始日期，返回在此范围内的所有日期'''
+
+    datelist=[]
+    start_date_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+    end_date_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+    if date_type == "day":
+        # 计算有多少天
+        delta = datetime.timedelta(days=1)
+        while start_date_datetime<=end_date_datetime:
+                datelist.append(start_date_datetime.strftime("%Y-%m-%d"))
+                start_date_datetime+=delta
+
+    elif date_type== "mtd":
+        # 计算有多
+        while start_date_datetime<=end_date_datetime:
+            datelist.append(start_date_datetime.strftime("%Y-M%m"))
+            start_date_datetime=start_date_datetime.replace(month=start_date_datetime.month + 1)
+        # delta=relativedelta(months=1)
+
+        pass
+    else:
+        # 计算有多少季
+        st=start_date.split('-')
+        et=end_date.split('-')
+
+        sq=math.ceil(int(st[1]) / 3)
+        eq= math.ceil(int(et[1]) /3)
+        while sq<=eq:
+            datelist.append(st[0]+"-Q"+str(sq))
+            sq+=1
+
+        pass
+    return datelist

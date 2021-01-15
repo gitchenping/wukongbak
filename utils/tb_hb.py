@@ -20,6 +20,8 @@ def tb_hb_cal(rawdata):
     newdata[0] = [round(ele, 2) for ele in currentvaluelist[:-1] if ele is not None]+[currentvaluelist[-1]]   #首行处理
     return newdata
 
+
+
 '''获取同比、环比key'''
 def get_tb_hb_key(data,date,datetype):
     '''

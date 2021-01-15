@@ -24,7 +24,7 @@ def jingyingfenxi_overview(jingying_analysis_api_path,data):
 
     #diff
     userlogger.info('筛选条件为: '+ str(data))
-    util.diff_d(apidata,sqldata,userlogger)
+    util.diff(apidata,sqldata,userlogger)
     userlogger.info(' ')
 
 def jingyingfenxi_drill(jingying_analysis_api_path,data):

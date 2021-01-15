@@ -1,6 +1,6 @@
 from utils import util,tb_hb
 from utils.date import *
-from utils import variable
+from utils import map
 import datetime
 
 conn_ck = util.connect_clickhouse()
@@ -114,6 +114,7 @@ def get_time_where(data):
     return datewhere
 
 
+'''下钻页各指标同比环比计算'''
 def get_drill_tb_hb(ck_data,name_dict,date,datetype):
     tempdict={}
     temp = []
@@ -275,16 +276,17 @@ def sql_jingyingfenxi_drill(data,tabledict):
         name = "支付"
     else:
         name = "出库"
+    shoptype=datacopy['shop_type']
 
     # 所有首页可以下钻的指标
     drill_dict = {}
-    drill_dict.update(variable.drill_common_dict)
+    drill_dict.update(map.drill_common_dict)
     if sd_zf_ck != 'ck':  # 收订和支付有取消率
-        drill_dict.update(variable.drill_cancel_dict)
+        drill_dict.update(map.drill_cancel_dict)
     else:
-        drill_dict.update(variable.drill_ck)
+        drill_dict.update(map.drill_ck)
     if sd_zf_ck != 'sd':
-        drill_dict.update(variable.drill_zf_ck_dict)
+        drill_dict.update(map.drill_zf_ck_dict)
     #各指标下钻的计算逻辑
     columndict = {
             'create_price': "sumMerge(prod_sale_amt_state) as create_price",
@@ -303,6 +305,10 @@ def sql_jingyingfenxi_drill(data,tabledict):
     drill_dict.pop('transRate')
 
     sql_drill_data = {}
+
+    if sd_zf_ck == 'ck' and shoptype == '2':
+        drill_dict.pop('gross_profit')
+        drill_dict.pop('gross_profit_rate')
 
     for field in drill_dict.keys():
     # for field in ['cancel_rate']:
@@ -401,14 +407,14 @@ def jingyingfenxi_drill(data,tabledict,columndict):
     if is_cal_bd:
         bd={}
         if datacopy['bd_id']!='all':
-                namedict = variable.catgory_path_dict
+                namedict = map.catgory_path_dict
                 column_bd='case'
                 for key in namedict.keys():
                     column_bd+=" when category_path3 in "+str(namedict[key])+" then '"+key+"'"
                 #others
                 column_bd+=" else '10' end as _bd_id,"
                 group_by=" group by _bd_id,_date_str"
-                bdnamedict=variable.cat_name_dict
+                bdnamedict=map.cat_name_dict
 
         else:
                 column_bd="CASE WHEN bd_id IN (5, 12) THEN 1 " \
@@ -479,8 +485,26 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                     conn_ck.execute(platsql)
                     ck_data =conn_ck.fetchall()
 
-                    if len(ck_data) > 0 :                                               # key值换算
-                        platform = get_drill_tb_hb(ck_data, platdict,date,datetype)
+                    temp = []
+                    if cal_zf_cancel_need:
+                        trendsql = " select " + column_plat + "," + column + " from " + "bi_mdata.dm_order_cancel_day" + " " + where + group_by + order_by
+                        conn_ck.execute(trendsql)
+                        ck_data_2 = conn_ck.fetchall()
+
+                        ck_data = [list(raw) for raw in ck_data]
+
+                        for i in range(len(ck_data_2)):
+                            canceldate = ck_data_2[i][2]
+                            for raw in ck_data:
+                                if raw[-1] == canceldate and raw[0] == ck_data_2[i][0]:
+                                    if raw[1] != 0:
+                                        temp.append([raw[0], ck_data_2[i][1] / raw[1] * 100, raw[-1]])
+                                    break
+                    else:
+                        temp = ck_data
+
+                    if len(temp) > 0 :                                               # key值换算
+                        platform = get_drill_tb_hb(temp, platdict,date,datetype)
 
             else:
                  show_platform=False
