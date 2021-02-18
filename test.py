@@ -33,7 +33,7 @@ data={
                                 'platform': '',
                                 'fromPlatform': '',
                                 'mgtType': 0,
-                                'categoryPath': '01.43.18.00.00.00',
+                                'categoryPath': '59.17.00.00.00.00',
                                 'startTime':'00:00',
                                 'endTime':'12:00'
 

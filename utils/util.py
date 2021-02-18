@@ -54,8 +54,8 @@ def diff(data1,data2,_logger=None):
     if key_diff_dict!={}:
         if _logger is not None:
             try:
-                _logger.info("diff info:" + str(key_diff_dict))
-                _logger.info("xx"*10+'--Fail--'+"xx"*10)
+                _logger.info("diff info:" + str(key_diff_dict)+"-*-Fail-*-")
+                # _logger.info("xx"*10+''+"xx"*10)
             except Exception as e:
                 _logger.info(e)
             _logger.info('=='*24)
