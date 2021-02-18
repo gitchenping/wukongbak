@@ -284,7 +284,7 @@ def get_uv_sql_for_report(data,tablename):
 
     order_by=" order by category,date_str desc"
 
-    sql=" select "+column+" from "+tablename+" where "+uvwhere+" group by category,date_str "+order_by+" limit 4"
+    sql=" select "+column+" from "+tablename+" where "+uvwhere+" group by category,date_str "+order_by
     return sql
 
 sd_zf_report_map={

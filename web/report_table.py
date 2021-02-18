@@ -83,7 +83,7 @@ def report_product():
     date='2021-02-06'
 
     for source_platform_fromPlatform in platform_list:      #平台来源
-            for bizType in [0,1,2,3,4,5,6]:                     #事业部
+            for bizType in [1,2,3,4,5,6,0]:                     #事业部
                 for mgtType in [0,2,1]:                        #经营方式
                     for categorypath in category_list:
                             data={
