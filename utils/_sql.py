@@ -276,7 +276,10 @@ def get_where_for_report(data,uv=True):
 def get_uv_sql_for_report(data,tablename):
     '''实时报表-uv'''
     where,column_category=get_where_for_report(data)
-    uvwhere=where+" and category != '"+data['categoryPath']+"'"
+    if 'category_path2' not in where:
+        uvwhere = where
+    else:
+        uvwhere=where+" and category != '"+data['categoryPath']+"'"+" and category !='' "
     column=column_category+" as category,"+"COUNT(DISTINCT device_id) AS UV,toString(date_str) as date_str"
 
     order_by=" order by category,date_str desc"

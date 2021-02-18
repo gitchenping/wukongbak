@@ -27,15 +27,15 @@ def post(data):
     return apidata
 
 data={
-                                'queryDate': '2021-02-06',
+                                'queryDate': '2021-02-05',
                                 'bizType': 0,
-                                'source': '1',
-                                'platform': '20',
-                                'fromPlatform': '20',
+                                'source': '0',
+                                'platform': '',
+                                'fromPlatform': '',
                                 'mgtType': 0,
-                                'categoryPath': '01.00.00.00.00.00',
+                                'categoryPath': '01.43.18.00.00.00',
                                 'startTime':'00:00',
-                                'endTime':'11:00'
+                                'endTime':'12:00'
 
 }
 
@@ -67,7 +67,7 @@ def get_all_platform_list(level,parentid):
 # print(platform_list)
 # sql.report_sql_sdzf_info(data)
 apidata=api.report_api_post(data)
-UV_sqldata=sql.report_sql_uv(data)
+# UV_sqldata=sql.report_sql_uv(data)
 sqldata=sql.report_sql(data)
 diff_key_value=util.diff_dict(apidata,sqldata)
 print(diff_key_value)
