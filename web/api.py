@@ -16,15 +16,20 @@ def report_api_post(data):
     #post处理
     apidata={}
     rtnapidata={}
+    count=0
     if len(apiresult_list_sort)>0:
         #指标键值对集合
-        for ele in apiresult_list_sort[:2]:         #取前两个key-value对
+        for ele in apiresult_list_sort:         #取前两个key-value对
             # key=ele['name']+"_"+ele['path']
-            key=ele['path']
-            ele.pop('children')
-            ele.pop('name')
-            ele.pop('path')
-            value=util.json_format(ele,'-')
-            rtnapidata[key]=value
+            if ele['subsAmount'] !='0.00' :
+                key=ele['path']
+                ele.pop('children')
+                ele.pop('name')
+                ele.pop('path')
+                value=util.json_format(ele,'-')
+                rtnapidata[key]=value
+                count+=1
+            if count==2:
+                break
 
     return rtnapidata
