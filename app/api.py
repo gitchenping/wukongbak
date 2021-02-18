@@ -1,9 +1,114 @@
 from utils import util
 from utils import date
-from utils import variable
+from utils import map
+from utils._api import *
+
+#
+tb_hb_name_dict = {
+    'value_ori': 'value',
+    'value':'value',
+    'tb_week': '同比上周',
+    'tb_year': '同比去年',
+    'value_hb': '环比'
+}
 
 cf= util.readini('./config.ini')
+#经营分析
 url_host_jingyingfenxi_realtime=cf.get('api','jingying_realtime_api')
+#用户分析
+url_host_user_analysis=cf.get('api','user_analysis_api')
+
+
+def api_user_analysis_overview(data,zhibiao_dict=None):
+    '''用户分析首页'''
+    datacopy=dict(data)
+    # datacopy['date']=datacopy['date_str']
+    datacopy.pop('date_str')                #可以免传时间参数
+
+    data['view']='core_index'
+    # api requests
+    rawdata = util.request(url_host_user_analysis, data)
+
+    # 取list
+    overviewinfo = {}
+    try:
+        datalist = rawdata['data']['list']
+    except Exception as e:
+        print(e)
+        return
+
+    # 取活跃用户中的收订、支付和出库
+    keys=zhibiao_dict.keys()
+    if len(datalist)>0:
+        for ele in datalist[1]['sub']:
+
+            valuedict={}
+            if zhibiao_dict is not None:
+                if ele.__contains__('ename') and ele['ename'] in keys:
+                    name = ele['name']
+                    if ele.__contains__('value_ori') :
+                        if  ele['value_ori']!=0:
+                            _value_ori = ele['value_ori']
+                            valuedict[tb_hb_name_dict['value_ori']]=util.format_precision(_value_ori,selfdefine='--')
+                        else:
+                            valuedict[tb_hb_name_dict['value_ori']] = '--'
+                    #同环比项
+                    valuedict.update(get_tb_hb_item(ele))
+                    overviewinfo[name] = valuedict
+    else:
+        for ele in zhibiao_dict.keys():
+            overviewinfo[ele]={}
+    return overviewinfo
+
+def api_user_analysis_drill(data,zhibiao_dict=None):
+    '''用户分析下钻页'''
+    datacopy = dict(data)
+    datacopy['date']=datacopy['date_str']
+    datacopy.pop('date_str')
+
+    api_drill_data = {}
+
+    for field in zhibiao_dict.keys():
+
+        datacopy['field_str'] = field
+        fieldinfo={}
+        for item in item_drillpage(datacopy):
+            datacopy['view']=item
+            apiinfo={}
+            datadict = util.request(url_host_user_analysis, datacopy)
+
+            if datadict!=-1:
+                if item == 'trend':
+                    # 取value
+                    try:
+                        datalist = datadict['data'][0]['values']           #取当日数据
+                        for ele in datalist:
+                            apiinfo[ele[0]] = round(float(ele[1]), 2)
+                    except Exception as e:
+                        apiinfo = {}
+                else:
+
+                    # 取data
+                    if item == 'app':
+                        datalist = datadict['data'][0:10]
+                    else:
+                        datalist = datadict['data']
+
+                    for ele in datalist:
+                        valuedict = {}
+                        name = ele['name']
+
+                        if ele.__contains__('value'):
+                            valuedict[tb_hb_name_dict['value']] = util.format_precision(ele['value'],selfdefine='--')
+                        #获取同环比项
+                        valuedict.update(get_tb_hb_item(ele))
+                        apiinfo[name] = valuedict
+                fieldinfo[item]=apiinfo
+
+        api_drill_data[zhibiao_dict[field]] = fieldinfo
+
+    return api_drill_data
+
 
 def api_jingyingfenxi_overview(jingying_analysis_api_path,data):
     '''首页'''
@@ -68,14 +173,13 @@ def api_jingyingfenxi_overview(jingying_analysis_api_path,data):
                 overviewinfo[name] = valuedict
         overviewinfo.pop('出库用户转化率')
     else:
-        for ele in variable.zf_zhibiao:
+        for ele in map.zf_zhibiao:
             overviewinfo[ele]={}
         if datacopy['shop_type']=='2':
             overviewinfo.pop('毛利率')
             overviewinfo.pop('毛利额')
 
     return overviewinfo
-
 
 def api_jingyingfenxi_drill(jingying_analysis_api_path,data):
     '''下钻页'''
@@ -100,7 +204,7 @@ def api_jingyingfenxi_drill(jingying_analysis_api_path,data):
 
     #所有首页指标
     drill_dict={}
-    drill_dict.update(variable.drill_common_dict)
+    drill_dict.update(map.drill_common_dict)
 
     if sd_zf_ck!='ck':     #收订和支付有取消率
         drill_dict.update(variable.drill_cancel_dict)
@@ -141,12 +245,6 @@ def jingyingfenxi(jingying_analysis_api_path,data):
     drill_data={}
     # itemslist = ['trend']
     #
-    tb_hb_name_dict = {
-        'value': 'value',
-        'tb_week': '同比上周',
-        'tb_year': '同比去年',
-        'value_hb': '环比'
-    }
 
     for item in itemslist:
         datacopy['view']=item

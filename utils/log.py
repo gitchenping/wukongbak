@@ -4,6 +4,7 @@ import time
 
 '''详细日志记录'''
 # logging初始化工作
+'''
 filetime=time.strftime('%m-%d-%H', time.localtime())
 myapp = logging.getLogger()
 myapp.setLevel(logging.DEBUG)
@@ -11,6 +12,10 @@ formatter = logging.Formatter('%(asctime)s==> %(message)s')
 filehandler = logging.handlers. RotatingFileHandler(filetime+"detail_log.txt", mode='a', maxBytes=1024*1024*10,backupCount=10)#20M,分文件大小
 filehandler.setFormatter(formatter)
 myapp.addHandler(filehandler)
+def log(*args,**kwargs):
+    myapp.info(*args,**kwargs)
+'''
+
 
 '''自定义日志配置'''
 '''
@@ -39,11 +44,21 @@ log_config = {
             'class': 'logging.handlers.RotatingFileHandler',#日志打印到文件的类。
             'maxBytes': 1024 * 1024 * 10,             #单个文件最大内存
             'backupCount': 10,                       #备份的文件个数
-            'filename': "logger_test.txt", #日志文件名
+            'filename': "logs/logger_test.txt", #日志文件名
             'level': 'INFO',# 日志等级
             'formatter': 'detail', #调用上面的哪个格式
             'encoding': 'utf-8', #编码
         },
+        'reco_web': {
+            'class': 'logging.handlers.RotatingFileHandler',#日志打印到文件的类。
+            'maxBytes': 1024 * 1024 * 10,             #单个文件最大内存
+            'backupCount': 10,                       #备份的文件个数
+            'filename': "logs/logger_reco.txt", #日志文件名
+            'level': 'INFO',# 日志等级
+            'formatter': 'detail', #调用上面的哪个格式
+            'encoding': 'utf-8', #编码
+        }
+
     },
     'loggers': {
         'crawler': {
@@ -54,8 +69,12 @@ log_config = {
             'handlers': ['console', 'file'],
             'level': 'INFO',
         },
-        'storage': {
+        'file': {
             'handlers': ['file'],
+            'level': 'INFO',
+        },
+        'reco': {
+            'handlers': ['reco_web'],
             'level': 'INFO',
         }
     }
@@ -74,6 +93,5 @@ def setLogName(_logger,filename):
     _logger.addHandler(handler)
 
 
-def log(*args,**kwargs):
-    myapp.info(*args,**kwargs)
+
 

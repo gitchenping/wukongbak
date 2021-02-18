@@ -2,8 +2,14 @@ import time
 import datetime
 from .date import *
 
+def tb_hb_format(data):
+    if isinstance(data,str) and data.endswith('%'):
+        return float(data.strip('%'))
+    else:
+        return data
+
 '''计算同环比'''
-def tb_hb_cal(rawdata):
+def tb_hb_cal(rawdata,misskeyvalue='--'):
     '''同比、环比计算，返回一个二维列表'''
     newdata=[]
     currentvaluelist = list(rawdata[0])
@@ -11,10 +17,13 @@ def tb_hb_cal(rawdata):
     for raw in rawdata[1:]:
         tempdata = []
         for i in range(len(raw) - 1):
-            if raw[i] is not None and raw[i] != 0:
+            if raw[i] is not None and raw[i] != 0 and currentvaluelist[i] is not None:
                 tempdata.append(round((currentvaluelist[i] - raw[i]) / raw[i] * 100, 2))
-            else:
-                tempdata.append('--')
+            else:             #
+                if currentvaluelist[i] is  None:
+                    tempdata.append(-100)
+                else:
+                    tempdata.append(misskeyvalue)
         tempdata.append(raw[-1])
         newdata.append(tempdata)
     newdata[0] = [round(ele, 2) for ele in currentvaluelist[:-1] if ele is not None]+[currentvaluelist[-1]]   #首行处理
@@ -35,13 +44,15 @@ def get_tb_hb_key(data,date,datetype):
     lastestdate = get_startdate_in_w_m_q(date,datetype)
 
     #默认keylist
-    keylist = ['value', '环比', '同比去年']
-    if datetype == 'day' or datetype == 'd':
-        keylist = ['value', '环比', "同比上周", '同比去年']
+    defaultkeylist = ['value', '环比', '同比去年']
+    if datetype == 'day' or datetype == 'd' or datetype=='h':
+        defaultkeylist = ['value', '环比', "同比上周", '同比去年']
 
     length_raw = len(data)
     data_datelist = [ele[-1] for ele in data]
-    if length_raw !=len(keylist):                               # 说明有同比或环比忽略
+
+    keylist = []
+    if length_raw !=len(defaultkeylist):                               # 说明有同比或环比忽略
 
         if lastestdate > data[0][-1] :                            # 如果没有最近日期的数据，无法计算同比、环比
             keylist=[]                                           #keylist为空，说明不能进行同比、环比计算
@@ -57,7 +68,7 @@ def get_tb_hb_key(data,date,datetype):
 
                 deltadays = (begindate_date - next_date).days
 
-                if datetype == 'day' or datetype == 'd':
+                if datetype == 'day' or datetype == 'd' or datetype=='h':
                     if deltadays == 1:
                         keylist.append('环比')
                     elif deltadays > 1 and deltadays < 8:
@@ -77,10 +88,14 @@ def get_tb_hb_key(data,date,datetype):
                     else:
                         keylist = ['value', '环比']
 
-                else:
-                    if deltadays > 92 and (datetype == 'qtd' or datetype == 'q'):
+                elif datetype == 'qtd' or datetype == 'q':
+                    if deltadays > 92 :
                         keylist = ['value', '同比去年']
                     else:
                         keylist = ['value', '环比']
+                else:
+                        keylist = ['value', '同比去年']
+    else:
+        keylist=list(defaultkeylist)
 
-    return keylist
+    return keylist,defaultkeylist

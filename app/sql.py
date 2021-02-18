@@ -1,163 +1,177 @@
 from utils import util,tb_hb
 from utils.date import *
 from utils import map
-import datetime
+from utils._sql import *
+
 
 conn_ck = util.connect_clickhouse()
 
-def get_platform_where(data):
-    '''获取platform对应的过滤条件'''
-    '''获取过滤条件 where'''
-    source = data['source']
-    parentplatform = data['parent_platform']
-    platform = data['platform']
-    #
-    sourcewhere = ''
-    if source == 'all':
-        sourcewhere = "(1,2,3,4)"
-    else:
-        sourcewhere = "(" + source + ")"
-    #
-    platformwhere = ''
-    if source == '1' and parentplatform == '3':
-        platformwhere = "(12,20)"
-    elif source == '1' and parentplatform == '4':
-        platformwhere = "(0)"
-    elif source == '1' and parentplatform == '1' and platform == 'all':  #
-        platformwhere = "(1,2)"
-    elif source == '1' and parentplatform == '2' and platform == 'all':
-        platformwhere = "(3,4,5,6,7,8,9)"
-    else:
-        platformwhere = "(" + platform + ")"
+def sql_user_analysis_overview(data,ck_tables,data_type_dict):
 
-    if source=='1':
-        platformwhere=" and platform in "+platformwhere
-    else:
-        platformwhere = ''
-
-
-    return " source in "+sourcewhere+platformwhere
-
-def get_bd_where(data):
-    '''获取bd对应的过滤条件'''
-    bd = data['bd_id']
-    if bd == '1':                    #出版物
-        bd_id = '(5,12)'
-    elif bd == '2':                 #百货
-        bd_id = '(1,4,9,15,16)'
-    elif bd == '3':                 #数字
-        bd_id = '(6)'
-    elif bd == '4':                 #文创
-        bd_id = '(20,21,23)'
-    else:
-        bd_id = 'all'
-    bdwhere=''
-    if bd_id !='all':
-        bdwhere=" and bd_id in" +bd_id
-    return bdwhere
-
-def get_shoptype_where(data):
-    '''获取shoptype对应的过滤条件'''
-    shoptype= data['shop_type']
-
-    if shoptype == '1':
-        shop_type = '(1)'
-    elif shoptype == '2':
-        shop_type = '(2)'
-    else:
-        shop_type = 'all'
-
-    shoptypewhere=''
-    if shop_type!='all':
-        shoptypewhere = " and shop_type in " + shop_type
-    return shoptypewhere
-
-def get_eliminate_where(data):
-    '''获取shoptype对应的过滤条件'''
-    jianggong= data['eliminate_type']
-
-    if jianggong == '1':
-        jianggong_type = '(1)'
-    elif jianggong == '2':
-        jianggong_type = '(1)'
-    else:
-        jianggong_type = 'all'
-
-    jianggongwhere=''
-    if jianggong_type!='all':
-        jianggongwhere = " and is_jiangong in " + jianggong_type
-    return jianggongwhere
-
-def get_time_where(data):
+    date=data['date_str'].split(' ')[0]
     datetype=data['date_type']
-    date=data['date_str']
 
-    datewhere=''
-    tb_hb_date = get_tb_hb_date(date, datetype)
+    hour_str=data['date_str'].split(' ')[-1]
+    where=" data_type in ('1','2','3') and hour_str<= "+"'"+hour_str+"' and "
+    where+=get_platform_where(data, yinhao=True)
+    where+=get_time_where(data)
 
-    if len(tb_hb_date)==4:     #天返回环比、周同比、年同比
+    groupby=" group by date_str,data_type"
+    orderby=" order by data_type,date_str desc"
+    sql=" select data_type,count(distinct cust_id) AS create_parent_uv,date_str from "\
+        +ck_tables+" where "+where+groupby+orderby
 
-        yesterday=tb_hb_date[1]
-        last_week_day=tb_hb_date[2]
-        last_year_day=tb_hb_date[3]
+    conn_ck.execute(sql)
+    rawdata=conn_ck.fetchall()
 
-        datewhere += ' and date_str in ' + "('" + date+"','"+yesterday+"','"+last_week_day+"','"+last_year_day+"')"
+    sqldata={}
+    if len(rawdata) > 0:
+        sqldata = get_drill_tb_hb(rawdata, data_type_dict, date, datetype)
 
-    else:      #周、月、季返回环比、同比
-        hb_date=tb_hb_date[0]
-        tb_date=tb_hb_date[1]
+    return sqldata
 
-        for ele in tb_hb_date:
-            if ele[0] is not None:
-                 datewhere+= " date_str between '"+ele[0]+"' and '"+ele[1]+"' or "
-        datewhere=" and ("+datewhere.strip('or ')+" )"
-    return datewhere
+def sql_user_analysis_drill(datacopy, ck_tables,zhibiao_dict, data_type_dict):
+    '''用户分析下钻页'''
+    sql_data = {}
+    date = datacopy['date_str'].split(' ')[0]
+    datetype = datacopy['date_type']
 
+    source=datacopy['source']
+    parentplatform=datacopy['parent_platform']
+    platform=datacopy['platform']
 
-'''下钻页各指标同比环比计算'''
-def get_drill_tb_hb(ck_data,name_dict,date,datetype):
-    tempdict={}
-    temp = []
-    i = 0
-    begin_index = ck_data[i][0]
+    hour_str = datacopy['date_str'].split(' ')[-1]
 
-    is_need_cal = False
-    length = len(ck_data)
-    while i <= length - 1:
+    where="hour_str<= " + "'" + hour_str + "' and "
+    where += get_platform_where(datacopy, yinhao=True)
+    where+=get_time_where(datacopy)
 
-        if begin_index == ck_data[i][0]:
-            temp.append(ck_data[i][1:])  # 取值和时间
-            key = str(begin_index)
-            i += 1
+    column='count(distinct cust_id) as create_parent_uv,date_str'
+    for zhibiao in zhibiao_dict.keys():
+
+        drill_data={}
+        if zhibiao=='create_parent_uv_sd':
+            datatype='1'
+        elif zhibiao=='create_parent_uv_zf':
+            datatype = '2'
         else:
-            begin_index = ck_data[i][0]
-            is_need_cal = True
+            datatype = '3'
 
-        if i == length:
-            is_need_cal = True
+        newwhere=where+" and  data_type in ('"+datatype+"')"
 
-        if is_need_cal:
-            # 计算环比、同比
-            tb_hb_key_list = tb_hb.get_tb_hb_key(temp, date, datetype)
+        # trend
+        trend = {}  # 存放trend 结果
+        trenwhere=newwhere+" and date_str='"+date+"'"
+        trendsql = " select  hour_str," + column + " from " + ck_tables+\
+               " where " + trenwhere + " group by hour_str,date_str "
 
-            if len(tb_hb_key_list) > 0:  # 可以进行同环比计算
-                newdata = tb_hb.tb_hb_cal(temp)
+        conn_ck.execute(trendsql)
+        ck_data=conn_ck.fetchall()
 
-                temp_2 = []
-                for col in range(len(newdata[0])-1):
+        if len(ck_data) > 0 and ck_data[0][0] is not None:  # key值换算
+            for ele in ck_data:
+                key = ele[0] + "点"
+                value = ele[1]
+                trend[key] = round(value, 2)
+        drill_data['trend'] = trend
+        #
+        # 事业部分布
+        bd = {}
+        bdnamedict = map.bd_id_dict
+        column_bd = "(case  when info_bd_id in('5','12') then '1' " \
+                    "when info_bd_id in('1','3','4','9','15','16') then '2' " \
+                    "when info_bd_id IN ('3') THEN '6' " \
+                    "when info_bd_id in('20','21','23') then '4' " \
+                    "else '5' end ) as _bd_id,"
 
-                    for raw in newdata:
-                        temp_2.append(raw[col])
+        group_by = " group by _bd_id,date_str"
+        order_by = " order by _bd_id ,date_str desc"
+        bdsql = " select  " + column_bd + column + " from " + ck_tables+ \
+                " where " + newwhere + group_by+ order_by
 
-                name = name_dict[key]
-                tempdict[name] = dict(zip(tb_hb_key_list, temp_2))
+        conn_ck.execute(bdsql)
+        ck_data = conn_ck.fetchall()
+        if len(ck_data) > 0:  # key值换算
+            bd=get_drill_tb_hb(ck_data, bdnamedict,date,datetype)
+        drill_data['bd'] = bd
+        #
+        #平台分布
+        group_by = " group by date_str,"
+        plat= {}
 
-                temp = []
-                is_need_cal = False
-            else:
-                temp=[]
-                is_need_cal = False
-    return tempdict
+        if source == '1' and parentplatform == 'all':
+            p_newwhere =" where "+ newwhere.replace("source in ('1') and", '')
+
+            #下钻app的时候子类分别去重再加和
+            '''
+            column = 'sum(create_parent_uv) as _create_parent_uv,date_str'
+            column_plat_inner_sql = "select " + "  source,platform,count(distinct cust_id) AS create_parent_uv,date_str " + \
+                                    " from " + ck_tables + p_newwhere + " group by source,platform,date_str"
+            ck_tables = "(" + column_plat_inner_sql + ")"
+            p_newwhere = ''
+            '''
+
+        else:
+            p_newwhere = " where "+newwhere
+
+        if is_platform_show(datacopy):
+            if source == 'all':
+                column_plat = 'source,'
+                platdict = map.source_dict
+
+                group_by = group_by + "source "
+                order_by = 'order by source'
+            elif source=='1' and parentplatform=='all':     #1-all-all
+                column_plat ="(case when platform in ('0') then '4' " \
+                             "when source='1' and platform in ('12','20') then '3' " \
+                             "when source='1' and platform in ('1','2') then '1' else '2' end) as _platform,"
+
+                platdict = map.parent_platform_dict
+
+                group_by = group_by + "_platform "
+                order_by = ' order by _platform'
+
+            else:                                     #1-1-all
+                column_plat = 'platform,'
+                platdict = map.app_dict
+
+                group_by = group_by + "platform "
+                order_by = ' order by platform'
+
+            order_by+=',date_str desc'
+
+
+            platsql = " select  " + column_plat + column + " from " + ck_tables + \
+                         p_newwhere + group_by + order_by
+
+            conn_ck.execute(platsql)
+            ck_data = conn_ck.fetchall()
+            if len(ck_data) > 0:  # key值换算
+                plat = get_drill_tb_hb(ck_data, platdict, date, datetype)
+
+            drill_data['platform'] = plat
+
+        #
+        #新老客
+        customer = {}
+        customerdict=map.customer_dict
+        groupby_new_flag="new_id"
+        order_by = " order by " + groupby_new_flag + "," + "date_str desc"
+        group_by = " group by date_str"+ "," + groupby_new_flag
+
+        customersql = "select " + groupby_new_flag + "," + column + " from " + ck_tables\
+                      + " where " + newwhere + group_by + order_by
+
+        conn_ck.execute(customersql)
+        ck_data = conn_ck.fetchall()
+        if len(ck_data) > 0:  # key值换算
+            customer = get_drill_tb_hb(ck_data, customerdict, date, datetype)
+        drill_data['customer'] = customer
+
+        #
+        sql_data[zhibiao_dict[zhibiao]]=drill_data
+
+    return sql_data
 
 def sql_jingyingfenxi_overview(data,table_dict):
     '''
@@ -424,7 +438,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                           "WHEN bd_id IN (20, 21, 23) THEN 4 ELSE 5 END AS _bd_id,"
 
                 group_by = " group by "+ column_bd +"_date_str"
-                bdnamedict = variable.bd_id_dict
+                bdnamedict = map.bd_id_dict
 
         order_by=" order by _bd_id,_date_str desc"
 
@@ -469,14 +483,14 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                 if parentplatform=='all':
                     column_plat='source'
                     group_by=_groupby+",source"
-                    platdict=variable.source_dict
+                    platdict=map.source_dict
                 else:
                     if platform not in ['1', '2']:  # 安卓、IOS没有平台分布
                         group_by=''
                     else:
                         column_plat = 'platform'
                         group_by=_groupby+",platform"
-                        platdict=variable.app_dict
+                        platdict=map.app_dict
 
                 if len(group_by)>0:
                     order_by=" order by "+column_plat+","+"_date_str desc"
@@ -552,7 +566,6 @@ def jingyingfenxi_drill(data,tabledict,columndict):
 
     return drill_data
     pass
-
 
 def jingyingfenxi(data):
 

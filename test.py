@@ -1,75 +1,74 @@
-from utils import date
-from utils import util
-from utils.log import log,myapp
-from utils import map
+import requests
+import json
+from utils import util,_sql
+from web import sql,api
 
-num=0
-for source in ['all', '1', '2', '3', '4']:  # 平台来源      all-all 1主站 2天猫 3抖音 4拼多多
-    if source != '1':
-        parent_platformlist = ['all']
-    else:  # 点击主站可以下钻APP、轻应用、H5、PC
-        parent_platformlist = ['2', '3', '4']
+def post(data):
+    # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
+    searchword_api = "http://10.4.32.223:8085/api/v3/reportForm/realtime/category"
+    temp_data = dict(data)
+    s = requests.Session()
+    req = s.post(url=searchword_api, json=temp_data)
+    apiresult = json.loads(req.content.decode('utf-8'))
+    apiresult_list = apiresult['payload']['modelList']
 
-    for parent_platform in parent_platformlist:
+    apidata = {}
+    if len(apiresult_list) > 0:
+        # 指标键值对集合
 
-        if parent_platform == '1':
-            platformlist = ['1', '2']  # android 、 ios
+        for ele in apiresult_list:
+            key=ele['name']+"_"+ele['path']
+            ele.pop('children')
+            ele.pop('name')
+            ele.pop('path')
+            value=util.json_format(ele,'-')
+            apidata[key]=value
 
-        elif parent_platform == '2':
-            platformlist = ['5', 'all', '3', '4', '6', '7', '8', '9']  # all、3-快应用、4-微信小程序、5-百度小程序、6-头条、7-qq、8-360
+    return apidata
 
-        else:
-            platformlist = ['all']
+data={
+                                'queryDate': '2021-02-06',
+                                'bizType': 0,
+                                'source': '1',
+                                'platform': '20',
+                                'fromPlatform': '20',
+                                'mgtType': 0,
+                                'categoryPath': '01.00.00.00.00.00',
+                                'startTime':'00:00',
+                                'endTime':'11:00'
 
-        for platform in platformlist:
+}
 
-            for bd_id in ['1', '2', '4', 'all']:  # 事业部id：all-all 1-出版物事业部 2-日百服 3-数字业务事业部 4-文创
+def get_all_platform_list(level,parentid):
+    api = "http://10.4.32.223:8085/api/v3/reportForm/platformList?level={}&parentId={}".format(level, parentid)
+    s = requests.Session()
 
-                for shop_type in ['all', '1', '2']:  # 经营方式 all-ALL 1-自营 2-招商
+    req = s.get(url=api)
+    apiresult = json.loads(req.content.decode('utf-8'))
+    apiresult_list = apiresult['payload']['list']
 
-                    for eliminate_type in ['all', '1']:  # 剔除选项 all-all 1-剔除建工
+    platform = []
 
-                        for sale_type in ['ck',]:  # 收订sd、支付zf、出库ck
-                            num+=1
+    if apiresult_list == [] or level >= 4:
+        return []
 
-
-print(num)
-mydate='2021-01-06'
-data1={'a':123,'b':134.6,'c':100}
-data2={'a':124,'b':135.7,'c':100}
-
-data3={'a':123,'b':{'bb1':236,'bb2':90},'c':{'cc1':{'cc11':3458,'cc22':200}},'d':{'dd1':236,'dd2':90}}
-data4={'a':123,'b':{'bb1':236,'bb2':90},'c':{'cc1':{'cc11':3458,'cc22':200}},'d':{'dd1':236,'dd2':90}}
-apidata={'支付金额': {'trend':
-                      {'W48': 771732.08, 'W49': 627223.67, 'W50': 969113.61,
-                       'W51': 714615.62, 'W52': 799648.44, 'W53': 716077.3, 'W1': 670073.85}
-}}
-sqldata={'支付金额': {'trend': {'W48': 771742.08, 'W49': 627223.67, 'W50': 969113.61,
-                            'W51': 714615.62, 'W52': 799649.44, 'W53': 716077.3, 'W1': 670073.85}}}
-
-def diff(data1,data2,absvalue=0.5):
-    # 字典比较
-    temp_data1 = dict(data1)
-    temp_data2 = dict(data2)
-    # diff_key_value_list=[]
-    diff_key_value={}
-    for key in temp_data1.keys():
-        try:
-            data1_value=temp_data1[key]
-            data2_value=temp_data2[key]
-            if isinstance(data1_value,dict):
-                # diff_key_value_list.extend(diff(temp_data1[key],temp_data2[key]))
-                diff_key_value[key]=diff(data1_value,data2_value)
-                if diff_key_value[key]=={}:
-                    diff_key_value.pop(key)
+    for ele in apiresult_list:
+        # for source in ele['source']:
+            source=ele['source']
+            if len(source)>1:
+                source='2'
             else:
-                if abs(data1_value-data2_value) > absvalue:
-                    # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
-                    diff_key_value[key]=(data1_value, data2_value)
-        except Exception as e:
-            # print(e.__repr__())
-            key_error_string=key+' 键值对不存在'
-            diff_key_value[key_error_string]=e.__repr__()
-    return diff_key_value
+                platform.append((source, ele['platform'], ele['fromPlatform']))
+            templist = get_all_platform_list(level + 1, ele['id'])
+            platform.extend(templist)
 
-myapp.info({'a':1234})
+    return platform
+# platform_list=get_all_platform_list(1,'')
+# print(platform_list)
+# sql.report_sql_sdzf_info(data)
+apidata=api.report_api_post(data)
+UV_sqldata=sql.report_sql_uv(data)
+sqldata=sql.report_sql(data)
+diff_key_value=util.diff_dict(apidata,sqldata)
+print(diff_key_value)
+a=1

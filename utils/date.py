@@ -29,7 +29,7 @@ def get_startdate_in_w_m_q(date,datetype):
     startdate=None
     _date = datetime.datetime.strptime(date, '%Y-%m-%d')
 
-    if datetype.startswith('d'):                            #datetype='day' or 'd'
+    if datetype.startswith('d') or datetype.startswith('h'):                            #datetype='day' or 'd'
         startdate = date
     elif datetype.startswith('w'):
         a=_date.weekday()
@@ -120,11 +120,17 @@ def get_enddate_in_w_m_q(date,datetype):
 def get_tb_hb_date(date,datetype):
     tb_hb_date=None
 
+    if datetype=='h':
+        date=date.split(' ')[0]
     datelist=date.split('-')
 
-    year=int(datelist[0])
-    month=int(datelist[1])
-    day=int(datelist[2])
+    _year=datelist[0]
+    _month=datelist[1]
+    _day=datelist[2]
+
+    year=int(_year)
+    month=int(_month)
+    day=int(_day)
 
     _date = datetime.datetime.strptime(date, '%Y-%m-%d')                      #hb\tb往前推
 
@@ -146,7 +152,7 @@ def get_tb_hb_date(date,datetype):
     #时间范围内有多少天
     delta_day=final_date_e-date_s_date
 
-    if datetype == 'day' or datetype == 'd':
+    if datetype == 'day' or datetype == 'd' or datetype=='h':     #时、天
         #今天
 
         # 昨天
@@ -155,7 +161,7 @@ def get_tb_hb_date(date,datetype):
         tb_week_date = datetime.datetime.strftime(_date - datetime.timedelta(days=7),'%Y-%m-%d')
         # 去年今天
         tmp_year=year-1
-        tb_year_date=str(tmp_year)+"-"+str(month)+"-"+str(day)
+        tb_year_date=str(tmp_year)+"-"+_month+"-"+(len(str(day))<2 and '0'+str(day) or str(day))
 
         #合并
         tb_hb_date=(date,hb_date,tb_week_date,tb_year_date)

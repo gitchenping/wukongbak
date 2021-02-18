@@ -10,43 +10,55 @@ import pymongo
 import pymysql
 import redis
 import datetime
-import time
+import re
 from .map import *
 
 
 '''数值转换'''
-def format_precision(data):
-    if type(data)!=str and math.isnan(data):       #无穷大
-        date=0
-    elif isinstance(data,float):                   #浮点型
-        date=round(data,2)
-    elif type(data)==str and data.isdigit():      #整数型字符串
-        date=int(data)
-    return date
-
-def format_trans(data):
-    if data !='--':
-        return round(float(data),2)
+def format_precision(data,selfdefine=0):
+    newdata=None
+    pattern = re.compile("-?[0-9]+(\.?[0-9]+)?$")         #由数字构成
+    if isinstance(data,float):
+        newdata = round(data, 2)
+    elif pattern.match(str(data)):
+        newdata=round(float(data),2)
+    elif data.endswith('%') or data.endswith('万') or data.endswith('元'):                            #如 '-23.56%'
+        newdata=float(data.strip('%|万|元'))
     else:
-        return data
-
-def tb_hb_format(data):
-    if isinstance(data,str) and data.endswith('%'):
-        return float(data.strip('%'))
-    else:
-        return data
+        newdata=selfdefine
+    return newdata
 
 
+'''字典数据类型数值格式化'''
+def json_format(data,selfdefine):
+    '''
 
-def diff(data1,data2,_logger):
+    :param data: 嵌套字典
+    :return:
+    '''
+    newdata={}
+    if not isinstance(data,dict):
+       return format_precision(data,selfdefine)
+    for key in data.keys():
+            value = data[key]
+            if isinstance(value, dict):
+                newdata[key] = json_format(value,selfdefine)
+            else:
+                #
+                newdata[key]=format_precision(value,selfdefine)
+    return newdata
+
+def diff(data1,data2,_logger=None):
+    '''两字典比较，并输出不一样的字典键值对'''
     key_diff_dict=diff_dict(data1, data2)
     if key_diff_dict!={}:
-        try:
-            _logger.info("diff info:" + str(key_diff_dict))
-            _logger.info("xx"*10+'--Fail--'+"xx"*10)
-        except Exception as e:
-            _logger.info(e)
-    _logger.info('=='*24)
+        if _logger is not None:
+            try:
+                _logger.info("diff info:" + str(key_diff_dict))
+                _logger.info("xx"*10+'--Fail--'+"xx"*10)
+            except Exception as e:
+                _logger.info(e)
+            _logger.info('=='*24)
 
 
 '''两个字典的比较'''
@@ -202,7 +214,7 @@ def get_redis(host=None,port=None, user=None, password=None, database=None,colle
 #davinci
 def login_davinci():
     user_name = "chenping"
-    passwd = "Ddmymm1234"
+    passwd = "Ddmymm4321"
     s = requests.Session()
     flag, token = do_log(s, user_name, passwd)
     # headers = {"Content-Type": "application/json", "Authorization":"Bearer " + token}
