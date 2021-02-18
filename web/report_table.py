@@ -43,7 +43,8 @@ def get_all_path_list():
     for path2_value in path2_list:
         path3_list += get_pathlist(level=3, parentid=path2_value)[:5]
 
-    return categorylist+path2_list+path3_list
+    # return categorylist+
+    return path2_list+path3_list
 
 '''
 [('0', '', ''), ('1', '', ''), ('1', '1,2', '2,3,7'), ('1', '1', '2'), ('1', '2', '3,7'), ('1', '12,20', '12,20'), 
@@ -82,7 +83,7 @@ platform_list=get_all_platform_list(1,'')
 def report_product():
     date='2021-02-06'
 
-    for source_platform_fromPlatform in platform_list:      #平台来源
+    for source_platform_fromPlatform in platform_list[1:]:      #平台来源
             for bizType in [1,2,3,4,5,6,0]:                     #事业部
                 for mgtType in [0,2,1]:                        #经营方式
                     for categorypath in category_list:

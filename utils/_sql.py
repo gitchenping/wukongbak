@@ -246,13 +246,13 @@ def get_where_for_report(data,uv=True):
 
     if uv:
         fromplatform=data['fromPlatform']
-        if fromplatform not in ['','0']:
+        if fromplatform not in ['']:
             temp = ','.join(["'" + str(ele) + "'" for ele in fromplatform.split(',')])
             where+=' and from_platform in ('+temp+")"
 
     else:
         platform=data['platform']
-        if platform not in ['0','']:
+        if platform not in ['']:
             temp=','.join(["'"+str(ele)+"'" for ele in platform.split(',')])
             where+=' and platform in ('+temp+")"
 
