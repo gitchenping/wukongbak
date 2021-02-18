@@ -298,6 +298,13 @@ sd_zf_report_map={
 def get_sd_info_sql_for_report(data,tablename):
     '''实时报表收订-其他指标'''
     where, column_category = get_where_for_report(data,False)
+
+    where += " and data_type in ('1','4')"
+    if 'category_path2' not in where:
+        sdwhere=where
+    else:
+        sdwhere = where + " and category != '" + data['categoryPath'] + "'" + " and category !='' "
+
     sd_zf_category = column_category + " as category"
 
     column=sd_zf_category+","
@@ -312,7 +319,6 @@ def get_sd_info_sql_for_report(data,tablename):
     sd_cancel_rate="(case when order_sum!=0 then order_cancel /order_sum *100 else null end ) as sd_cancel_rate"
 
     column+=sd_cancel_rate+",date_str,"+sd_zf_order+","+sd_cancel
-    sdwhere=where+" and data_type in ('1','4')"
 
     sd_sql="select "+column+ \
            " from "+tablename+ \
@@ -323,6 +329,13 @@ def get_sd_info_sql_for_report(data,tablename):
 def get_zf_info_sql_for_report(data,tablename):
     '''实时报表支付-其他指标'''
     where, column_category = get_where_for_report(data,False)
+
+    where += " and data_type in ('2','4')"
+    if 'category_path2' not in where:
+        zfwhere = where
+    else:
+        zfwhere = where + " and category != '" + data['categoryPath'] + "'" + " and category !='' "
+
     sd_zf_category = column_category + " as category"
 
     column = sd_zf_category + ","
@@ -334,7 +347,6 @@ def get_zf_info_sql_for_report(data,tablename):
 
     # 支付
     column += "date_str," + sd_zf_order
-    zfwhere = where + " and data_type in ('2','4')"
 
     a_sql=" select "+column+" from "+tablename+" where "+zfwhere+ " group by " + "category,date_str"
 

@@ -27,13 +27,13 @@ def post(data):
     return apidata
 
 data={
-                                'queryDate': '2021-02-05',
+                                'queryDate': '2021-02-06',
                                 'bizType': 0,
                                 'source': '0',
                                 'platform': '',
                                 'fromPlatform': '',
                                 'mgtType': 0,
-                                'categoryPath': '59.17.00.00.00.00',
+                                'categoryPath': '99.00.00.00.00.00',
                                 'startTime':'00:00',
                                 'endTime':'12:00'
 
