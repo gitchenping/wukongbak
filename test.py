@@ -28,12 +28,12 @@ def post(data):
 
 data={
                                 'queryDate': '2021-02-06',
-                                'bizType': 5,
+                                'bizType': 0,
                                 'source': '1',
-                                'platform': '1,2',
-                                'fromPlatform': '2,3,7',
+                                'platform': '1',
+                                'fromPlatform': '2',
                                 'mgtType': 0,
-                                'categoryPath': '93.16.00.00.00.00',
+                                'categoryPath': '58.31.00.00.00.00',
                                 'startTime':'00:00',
                                 'endTime':'12:00'
 

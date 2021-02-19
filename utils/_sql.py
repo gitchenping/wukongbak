@@ -83,7 +83,7 @@ def get_bd_where(data):
     elif bd == '4':                 #文创
         bd_id = '(20,21,23)'
     elif bd=='5':                   #其他
-        bd_id = '(0)'
+        bd_id = '(0,13,19)'
     elif bd=='6':                   #服装
         bd_id = '(3)'
     else:
@@ -91,6 +91,8 @@ def get_bd_where(data):
     bdwhere=''
     if bd_id !='all':
         bdwhere=" and bd_id in " +bd_id
+    else:
+        bdwhere = " and bd_id in " + "( 1, 3, 4, 5,6, 9, 12, 15, 16, 20, 21, 23)"
     return bdwhere
 
 def get_shoptype_where(data):

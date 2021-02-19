@@ -38,7 +38,7 @@ def get_all_path_list():
         else:
             categorylist.append(path1_value)
             # print(path1_value)
-            path2_list+= get_pathlist(level=2,parentid=path1_value)[:10]
+            path2_list+= get_pathlist(level=2,parentid=path1_value)[:5]
 
     for path2_value in path2_list:
         path3_list += get_pathlist(level=3, parentid=path2_value)[:2]
