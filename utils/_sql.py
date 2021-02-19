@@ -82,6 +82,10 @@ def get_bd_where(data):
         bd_id = '(6)'
     elif bd == '4':                 #文创
         bd_id = '(20,21,23)'
+    elif bd=='5':                   #其他
+        bd_id = '(0)'
+    elif bd=='6':                   #服装
+        bd_id = '(3)'
     else:
         bd_id = 'all'
     bdwhere=''
