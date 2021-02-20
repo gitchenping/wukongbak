@@ -1,13 +1,16 @@
 import requests,json
 from utils import util,log
 
+'''品类报表api'''
 @util.retry(2)
-def report_api_post(data):
+def report_api_category_post(data):
     # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    searchword_api = "http://10.4.32.223:8085/api/v3/reportForm/realtime/category"
+    # report_api = "http://10.4.32.223:8085/api/v3/reportForm/realtime/category"
+    report_api="http://10.4.32.223:8085/api/v3/reportForm/realtime/business"
+
     temp_data = dict(data)
     s = requests.Session()
-    req = s.post(url=searchword_api, json=temp_data)
+    req = s.post(url=report_api, json=temp_data)
     apiresult = json.loads(req.content.decode('utf-8'))
     apiresult_list = apiresult['payload']['modelList']
 
@@ -31,5 +34,32 @@ def report_api_post(data):
                 count+=1
             if count==2:
                 break
+    return rtnapidata
+
+'''事业部报表api'''
+@util.retry(2)
+def report_api_bussiness_post(data):
+    # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
+    report_api="http://10.4.32.223:8085/api/v3/reportForm/realtime/business"
+
+    temp_data = dict(data)
+    s = requests.Session()
+    req = s.post(url=report_api, json=temp_data)
+    apiresult = json.loads(req.content.decode('utf-8'))
+    apiresult_list = apiresult['payload']['modelList']
+
+    #post处理
+    apidata={}
+    rtnapidata={}
+    if len(apiresult_list)>0:
+        #指标键值对集合
+        for ele in apiresult_list:
+            if ele['pymtAmount']!='0.00' and ele['subsAmount']!='0.00':
+                key=ele['name']
+                ele.pop('name')
+                ele.pop('children')
+                ele.pop('path')
+                value=util.json_format(ele,'-')
+                rtnapidata[key]=value
 
     return rtnapidata

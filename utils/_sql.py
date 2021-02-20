@@ -279,18 +279,36 @@ def get_where_for_report(data,uv=True):
     return where,column_category
 
 
-def get_uv_sql_for_report(data,tablename):
+def get_uv_sql_for_report(data,tablename,reportname='category'):
     '''实时报表-uv'''
     where,column_category=get_where_for_report(data)
-    if 'category_path2' not in where:
-        uvwhere = where
+
+    if reportname=='category':
+        if 'category_path2' not in where:
+            uvwhere = where
+        else:
+            uvwhere=where+" and category != '"+data['categoryPath']+"'"+" and category !='' "
     else:
-        uvwhere=where+" and category != '"+data['categoryPath']+"'"+" and category !='' "
-    column=column_category+" as category,"+"COUNT(DISTINCT device_id) AS UV,toString(date_str) as date_str"
+        uvwhere = where
 
-    order_by=" order by category,date_str desc"
+    column=''
+    orderbyname=''
+    if reportname=='bussiness':
+        orderbyname="_bd_id"
+        column="case when bd_id_prod in (5,12) then '1'" \
+               " when bd_id_prod in (1,4,9,15,16) then '2'" \
+               " when bd_id_prod in (3) then '6'" \
+               " when bd_id_prod in (20,21,23) then '4'" \
+               " when bd_id_prod in (6) then '3'" \
+               " else '5' end "+ " as "+orderbyname
+    else:
+        orderbyname="category"
+        column=column_category+" as "+orderbyname
+    column+=',COUNT(DISTINCT device_id) AS UV,toString(date_str) as date_str'
 
-    sql=" select "+column+" from "+tablename+" where "+uvwhere+" group by category,date_str "+order_by
+    order_by=" order by "+ orderbyname+",date_str desc"
+
+    sql=" select "+column+" from "+tablename+" where "+uvwhere+" group by "+orderbyname+",date_str "+order_by
     return sql
 
 sd_zf_report_map={
@@ -301,19 +319,27 @@ sd_zf_report_map={
     'sd_zf_new_customer':"COUNT(DISTINCT CASE WHEN data_type='{}' and new_id = '1' then cust_id else null end) AS new_customer" #新客
 }
 
-def get_sd_info_sql_for_report(data,tablename):
+def get_sd_info_sql_for_report(data,tablename,reportname):
     '''实时报表收订-其他指标'''
     where, column_category = get_where_for_report(data,False)
 
     where += " and data_type in ('1','4')"
-    if 'category_path2' not in where:
-        sdwhere=where
+
+
+    if reportname!='bussiness':       #品类
+        if 'category_path2' not in where:
+            sdwhere = where
+        else:
+            sdwhere = where + " and category != '" + data['categoryPath'] + "'" + " and category !='' "
+
+        sd_zf_category = column_category + " as category"
+        column=sd_zf_category+","
+        groupby_orderby=" group by "+"category,date_str"+" order by category,date_str desc limit 4"
     else:
-        sdwhere = where + " and category != '" + data['categoryPath'] + "'" + " and category !='' "
+        sdwhere = where
 
-    sd_zf_category = column_category + " as category"
-
-    column=sd_zf_category+","
+        column = "bd_id" + ","
+        groupby_orderby = " group by " + "bd_id,date_str" + " order by bd_id,date_str desc"
 
     for cloumn_key in sd_zf_report_map.keys():
         column+=sd_zf_report_map[cloumn_key].format('1')+","
@@ -328,42 +354,58 @@ def get_sd_info_sql_for_report(data,tablename):
 
     sd_sql="select "+column+ \
            " from "+tablename+ \
-           " where "+sdwhere+" group by "+"category,date_str"+" order by category,date_str desc limit 4"
+           " where "+sdwhere+groupby_orderby
     return sd_sql
 
 
-def get_zf_info_sql_for_report(data,tablename):
+def get_zf_info_sql_for_report(data,tablename,reportname):
     '''实时报表支付-其他指标'''
     where, column_category = get_where_for_report(data,False)
 
     where += " and data_type in ('2','4')"
-    if 'category_path2' not in where:
-        zfwhere = where
-    else:
-        zfwhere = where + " and category != '" + data['categoryPath'] + "'" + " and category !='' "
-
-    sd_zf_category = column_category + " as category"
-
-    column = sd_zf_category + ","
-
-    for cloumn_key in sd_zf_report_map.keys():
-        column += sd_zf_report_map[cloumn_key].format('2') + ","
 
     sd_zf_order = "COUNT(DISTINCT case when data_type = '2' then  parent_id else null end) AS order_sum"
+    if reportname != 'bussiness':  # 品类
+        if 'category_path2' not in where:
+            zfwhere = where
+        else:
+            zfwhere = where + " and category != '" + data['categoryPath'] + "'" + " and category !='' "
 
-    # 支付
-    column += "date_str," + sd_zf_order
+        sd_zf_category = column_category + " as category"
+        column = sd_zf_category + ","
 
-    a_sql=" select "+column+" from "+tablename+" where "+zfwhere+ " group by " + "category,date_str"
+        for cloumn_key in sd_zf_report_map.keys():
+            column += sd_zf_report_map[cloumn_key].format('2') + ","
+        column += "date_str," + sd_zf_order
 
-    b_sql=" select COUNT(DISTINCT parent_id) as cancel_num,date_str,category from ("+ \
-            "select parent_id,COUNT(DISTINCT data_type ) AS num,date_str,"+column_category+ " as category"+ \
-            " from "+tablename+" where "+zfwhere+" group by parent_id,date_str,category having num>1) a"+ \
-            " group by category,date_str"
+        a_sql = " select " + column + " from " + tablename + " where " + zfwhere + " group by " + "category,date_str"
 
-    zf_sql = "select " +" category,amount,package,customer,new_customer, " + \
+        b_sql = " select COUNT(DISTINCT parent_id) as cancel_num,date_str,category from (" + \
+                "select parent_id,COUNT(DISTINCT data_type ) AS num,date_str," + column_category + " as category" + \
+                " from " + tablename + " where " + zfwhere + " group by parent_id,date_str,category having num>1) a" + \
+                " group by category,date_str"
+        groupbyname = "category"
+        groupby_orderby = " order by category,date_str desc limit 4"
+    else:
+        zfwhere = where
+        column = "bd_id" + ","
+
+        for cloumn_key in sd_zf_report_map.keys():
+            column += sd_zf_report_map[cloumn_key].format('2') + ","
+        column += "date_str," + sd_zf_order
+
+        a_sql = " select " + column + " from " + tablename + " where " + zfwhere + " group by " + "bd_id,date_str"
+
+        b_sql = " select COUNT(DISTINCT parent_id) as cancel_num,date_str,bd_id from (" + \
+                "select parent_id,COUNT(DISTINCT data_type ) AS num,date_str," + " bd_id" + \
+                " from " + tablename + " where " + zfwhere + " group by parent_id,date_str,bd_id having num>1) a" + \
+                " group by bd_id,date_str"
+        groupbyname="bd_id"
+        groupby_orderby=" order by bd_id,date_str desc"
+
+    zf_sql = "select " +groupbyname+" ,amount,package,customer,new_customer, " + \
             "case when a.order_sum!=0 then b.cancel_num /a.order_sum* 100 else null end as zf_cancel_rate,date_str "+ \
              " from (" +a_sql  +") a left join ("+ \
-             b_sql+") b"+" on a.category = b.category and a.date_str = b.date_str order by category,date_str desc limit 4 "
+             b_sql+") b"+" on a."+groupbyname+" = b."+groupbyname+" and a.date_str = b.date_str"+ groupby_orderby
 
     return zf_sql

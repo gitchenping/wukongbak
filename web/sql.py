@@ -1,6 +1,7 @@
 from utils import util
 from utils._sql import get_uv_sql_for_report,get_sd_info_sql_for_report,get_zf_info_sql_for_report
 from  utils._sql import get_drill_tb_hb
+from utils.map import bd_id_dict
 
 app_id={'全部':"('2','3')",'IOS':"('2')",'安卓':"('3')"}
 product_is_merchant={'自营':'(1)','招商':'(2)','全部':'(1,2)'}
@@ -76,17 +77,20 @@ def get_sql_data_reco(data,indicator_cal_map,filters):
 
     return sqldata
 
-def report_sql_uv(data):
+def report_sql_uv(data,reportname):
     # uv table
     uv_table = 'bi_mdata.mdata_flows_user_realtime_all'
     datacopy=dict(data)
 
-    sql=get_uv_sql_for_report(datacopy,uv_table)
+    sql=get_uv_sql_for_report(datacopy,uv_table,reportname)
     conn_ck.execute(sql)
     ck_data = conn_ck.fetchall()
     sqldata = {}
     if len(ck_data) > 0:
-        namedict={ ele[0]:ele[0] for ele in ck_data}
+        if reportname=="category":
+            namedict = {ele[0]: ele[0] for ele in ck_data}
+        else:
+            namedict={key:value+"事业部" for key,value in bd_id_dict.items()}
         uv=get_drill_tb_hb(ck_data, namedict, data['queryDate'], '',misskeyshow=True,misskeyvalue='-')
 
         for key, value in uv.items():
@@ -102,7 +106,7 @@ def report_sql_uv(data):
             sqldata[key]=atemp
     return sqldata
 
-def report_sql_sdzf_info(data):
+def report_sql_sdzf_info(data,reportname):
     # sd zf table
     sd_zf_indicator_table = 'bi_mdata.kpi_order_info_all_v2'
     sd_zhibiao_list=['subsAmount','subsPackages','subsCustomer','subsNewCustomer','subsCxlRate']
@@ -110,13 +114,16 @@ def report_sql_sdzf_info(data):
     datacopy = dict(data)
 
     #收订
-    sql = get_sd_info_sql_for_report(datacopy, sd_zf_indicator_table)
+    sql = get_sd_info_sql_for_report(datacopy, sd_zf_indicator_table,reportname)
 
     conn_ck.execute(sql)
     ck_data = conn_ck.fetchall()
     sd_sqldata = {}
     if len(ck_data) > 0:
-        namedict = {ele[0]: ele[0] for ele in ck_data}
+        if reportname=="category":
+            namedict = {ele[0]: ele[0] for ele in ck_data}
+        else:
+            namedict={key:value+"事业部" for key,value in bd_id_dict.items()}
 
         #逐列进行处理
         for eachzhibiao in range(0,5):
@@ -145,13 +152,16 @@ def report_sql_sdzf_info(data):
                 else:
                     sd_sqldata[key].update(atemp)
     #支付
-    sql = get_zf_info_sql_for_report(datacopy, sd_zf_indicator_table)
+    sql = get_zf_info_sql_for_report(datacopy, sd_zf_indicator_table,reportname)
 
     conn_ck.execute(sql)
     ck_data = conn_ck.fetchall()
     zf_sqldata = {}
     if len(ck_data) > 0:
-        namedict = {ele[0]: ele[0] for ele in ck_data}
+        if reportname=="category":
+            namedict = {ele[0]: ele[0] for ele in ck_data}
+        else:
+            namedict={key:value+"事业部" for key,value in bd_id_dict.items()}
 
         # 逐列进行处理
         for eachzhibiao in range(0, 5):
@@ -182,7 +192,7 @@ def report_sql_sdzf_info(data):
     i=0
     rtn_sqldata={}
     for key in sd_sqldata.keys():
-        if i==2:                     #只取两个key
+        if i==4:                     #只取两个key
             break
         rtn_sqldata[key]=sd_sqldata[key]
         if key in zf_sqldata.keys():
@@ -194,11 +204,10 @@ def report_sql_sdzf_info(data):
     return rtn_sqldata
 
 
-
-def report_sql(data):
+def report_sql(data,reportname='category'):
     '''web悟空实时报表-sql'''
-    uv_info=report_sql_uv(data)
-    sd_zf_info=report_sql_sdzf_info(data)
+    uv_info=report_sql_uv(data,reportname)
+    sd_zf_info=report_sql_sdzf_info(data,reportname)
 
     for key in sd_zf_info.keys():
         if key in uv_info.keys():
