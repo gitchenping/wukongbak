@@ -56,7 +56,9 @@ def ck_vs_davi(webdata,filters):
         filterdict.update({ele['name']: ele['value'].strip("'")})
 
     if len(webdata)>0:
+        i=0
         for data in webdata:
+            i+=1
             if data['商品ID']=='-1':
                 continue
             if data.__contains__('商品PV点击率') and data['商品PV点击率'] is not None :
@@ -65,6 +67,8 @@ def ck_vs_davi(webdata,filters):
                 data['商品UV点击率']=data['商品UV点击率']*100
             if data.__contains__('收订转化率') and data['收订转化率'] is not None :
                 data['收订转化率']=data['收订转化率']*100
+        if i<2 and data['商品ID']=='-1':
+            data={}
     else:
         data={}
 
@@ -101,9 +105,9 @@ def product_analysis(s,token,requestload):
                         for module in module_list:
 
                             #debug params
-                            # platform='全部';shoptype='全部';
-                            # bd_value='全部';pathname='全部';
-                            # page_value='当当首页';module='feed流'
+                            platform='全部';shoptype='全部';
+                            bd_value='全部';pathname='全部';
+                            page_value='分类页';module='猜您喜欢'
 
                             #参数组合
                             params=[
