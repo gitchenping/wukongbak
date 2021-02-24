@@ -9,8 +9,6 @@ product_is_merchant={'自营':'(1)','招商':'(2)','全部':'(1,2)'}
 bd_id={'出版物':'(1)','日百服':'(2)','数字':'(3)','文创':'(4)','其他':'(5)','全部':'(1,2,4,5)'}
 
 
-conn_ck = util.connect_clickhouse(host='10.7.30.148')
-
 def get_filters_where_for_reco(filters):
     '''推荐-单品分析筛选条件'''
 
@@ -27,7 +25,7 @@ def get_filters_where_for_reco(filters):
     where+="product_is_merchant"+shoptype+ " and "
     #事业部
     bd =" in " +bd_id[wheredict['bd_name']]
-    where+="bd_id "+bd+" and "
+    where+="bd_id "+bd+' and '
     #二级品类
 
     path2_name=wheredict['path2_name']
@@ -43,19 +41,20 @@ def get_filters_where_for_reco(filters):
     #模块
     module_name=wheredict['model_cn_name']
     if module_name != '全部':
-        where+="model_cn_name='"+module_name+"'"
+        where+="model_cn_name='"+module_name+"'"+ " and "
 
-    return where
+    return where.rstrip('and ')
     pass
 
-def get_sql_data_reco(data,indicator_cal_map,filters):
+'''推荐sql data'''
+def get_sql_data_reco(data,indicator_cal_map,filters,conn_ck=None):
     # 获取筛选条件
     where = get_filters_where_for_reco(filters)
-
-    date=data['日期']
-    product_id = data['商品ID']
-    product_name = data['商品名称']
-    where += ' and product_id= ' + str(product_id) + " and product_name= '" + str(product_name) + "'"
+    if data!={}:
+        date=data['日期']
+        product_id = data['商品ID']
+        product_name = data['商品名称']
+        where += ' and product_id= ' + str(product_id) + " and product_name= '" + str(product_name) + "'"
 
     # sql
     column_all = ''
@@ -71,13 +70,14 @@ def get_sql_data_reco(data,indicator_cal_map,filters):
     sqldata={}
     if len(ck_data)>0:
         sqldata=dict(zip(indicator_cal_map.keys(),ck_data[0]))
+    if data!={}:
         sqldata['日期']=date
         sqldata['商品ID']=product_id
         sqldata['商品名称']=product_name
 
     return sqldata
 
-def report_sql_uv(data,reportname):
+def report_sql_uv(data,reportname,conn_ck):
     # uv table
     uv_table = 'bi_mdata.mdata_flows_user_realtime_all'
     datacopy=dict(data)
@@ -106,7 +106,7 @@ def report_sql_uv(data,reportname):
             sqldata[key]=atemp
     return sqldata
 
-def report_sql_sdzf_info(data,reportname):
+def report_sql_sdzf_info(data,reportname,conn_ck):
     # sd zf table
     sd_zf_indicator_table = 'bi_mdata.kpi_order_info_all_v2'
     sd_zhibiao_list=['subsAmount','subsPackages','subsCustomer','subsNewCustomer','subsCxlRate']
@@ -204,10 +204,10 @@ def report_sql_sdzf_info(data,reportname):
     return rtn_sqldata
 
 
-def report_sql(data,reportname='category'):
+def report_sql(data,reportname='category',conn_ck=None):
     '''web悟空实时报表-sql'''
-    uv_info=report_sql_uv(data,reportname)
-    sd_zf_info=report_sql_sdzf_info(data,reportname)
+    uv_info=report_sql_uv(data,reportname,conn_ck)
+    sd_zf_info=report_sql_sdzf_info(data,reportname,conn_ck)
 
     for key in sd_zf_info.keys():
         if key in uv_info.keys():

@@ -3,9 +3,6 @@ import json
 from utils.recommend_map import *
 from utils import util,log
 from .sql import get_filters_where_for_reco,get_sql_data_reco
-from logging import config
-import logging
-
 
 # ck和达芬奇比较
 '''
@@ -33,33 +30,51 @@ indicator_cal_map={
     '商品曝光uv':"COUNT(DISTINCT CASE WHEN model_type = 1 THEN udid ELSE NULL END) AS product_expose_uv",
     '商品点击pv':"COUNT(CASE WHEN model_type = 3 THEN udid ELSE NULL END) AS product_click_pv",
     '商品点击uv':"COUNT(DISTINCT CASE WHEN model_type = 3 THEN udid ELSE NULL END) AS product_click_uv",
-    '商品UV点击率':'case when product_expose_uv>0 then round(product_click_uv / product_expose_uv,2) else null end as uv_ctr',
-    '商品PV点击率':'case when product_expose_pv>0 then round(product_click_pv / product_expose_pv,2) else null end as pv_ctr',
+    '商品UV点击率':'case when product_expose_uv>0 then round(product_click_uv / product_expose_uv*100,2) else null end as uv_ctr',
+    '商品PV点击率':'case when product_expose_pv>0 then round(product_click_pv / product_expose_pv*100,2) else null end as pv_ctr',
     '原始订单行数':'COUNT(CASE WHEN order_id = -1 THEN NULL ELSE order_id END) AS create_hang_num',
     '收订单量':'COUNT(DISTINCT CASE WHEN order_id = -1 THEN NULL ELSE order_id END) AS create_parent_num',
     '收订金额':'SUM(bargin_price * order_quantity) AS create_sale_amt',
     '收订顾客数':'COUNT(DISTINCT CASE WHEN order_id = -1 THEN NULL ELSE order_cust_id END) AS create_cust_num',
-    '收订转化率':'case when product_expose_uv>0 then round(create_cust_num / product_expose_uv,2) else null end as create_trans_rate',
+    '收订转化率':'case when product_expose_uv>0 then round(create_cust_num / product_expose_uv*100,2) else null end as create_trans_rate',
     '最大曝光位置':'MAX(CASE WHEN model_type = 1 AND position > 0 THEN position ELSE 0 END) AS max_expose_location',
-    # '平均曝光位置':'',
+    '平均曝光位置':'ROUND(AVG(CASE WHEN model_type = 1 AND `position` > 0 THEN `position` ELSE 0 END)) AS avg_expose_deepth',
     '最大点击位置':'MAX(CASE WHEN model_type = 3 AND position > 0 THEN position ELSE 0 END) AS max_click_location',
-    # '平均点击位置':'',
+    '平均点击位置':'ROUND(AVG(CASE WHEN model_type = 3 AND `position` > 0 THEN `position` ELSE null END)) AS avg_click_deepth',
     '人均点击次数':'case when product_click_uv>0 then round(product_click_pv / product_click_uv,2) else null end as avg_click_num'
 }
 
-config.dictConfig(log.log_config)
-reco = logging.getLogger('reco')
+#日志设置
+reco = log.set_logger('reco.txt')
+#推荐conn
+conn_ck = util.connect_clickhouse(host='10.7.30.177')
 
-def ck_vs_davi(webdata,filters,_logger=reco):
+def ck_vs_davi(webdata,filters):
     '''达芬奇数据和ck数据比对'''
     filterdict = {}
     for ele in filters:
         filterdict.update({ele['name']: ele['value'].strip("'")})
 
-    sqldata=get_sql_data_reco(webdata,indicator_cal_map,filterdict)
+    if len(webdata)>0:
+        for data in webdata:
+            if data['商品ID']=='-1':
+                continue
+            if data.__contains__('商品PV点击率') and data['商品PV点击率'] is not None :
+                data['商品PV点击率']=data['商品PV点击率']*100
+            if data.__contains__('商品UV点击率') and data['商品UV点击率'] is not None :
+                data['商品UV点击率']=data['商品UV点击率']*100
+            if data.__contains__('收订转化率') and data['收订转化率'] is not None :
+                data['收订转化率']=data['收订转化率']*100
+    else:
+        data={}
+
+    sqldata=get_sql_data_reco(data,indicator_cal_map,filterdict,conn_ck)
+
+    davi_data = util.json_format(data, selfdefine='')
+    sql_data = util.json_format(sqldata, selfdefine='')
 
     reco.info('筛选条件：'+str(filterdict))
-    util.diff(webdata,sqldata,_logger=reco)
+    util.diff(davi_data,sql_data,reco)
 
 
 @util.retry(2)
@@ -72,12 +87,11 @@ def post(s,token,data):
 
 def product_analysis(s,token,requestload):
     '''单品分析'''
-    start_date_str = '2021-01-31'
-    end_date_str = '2021-01-31'
+    start_date_str = '2021-02-01'
+    end_date_str = '2021-02-01'
 
     for _,platform in platform_name.items():
         for _,shoptype in shop_type_name.items():
-
             for bd_key,bd_value in bd_name.items():
                 pathname_list = path2_name[bd_key]
                 for  pathname in pathname_list:
@@ -86,10 +100,10 @@ def product_analysis(s,token,requestload):
                         module_list = module_name[page_key]
                         for module in module_list:
 
-                            #debug
-                            platform='全部';shoptype='全部';
-                            bd_value='全部';pathname='全部';
-                            page_value='当当首页';module='今日秒杀'
+                            #debug params
+                            # platform='全部';shoptype='全部';
+                            # bd_value='全部';pathname='全部';
+                            # page_value='当当首页';module='feed流'
 
                             #参数组合
                             params=[
@@ -126,11 +140,9 @@ def product_analysis(s,token,requestload):
                                 except Exception as e:
                                     print(e)
                                     print(filters)
-                                    break
-                                if len(rawdata)>0:
-                                    ck_vs_davi(rawdata[0],params)
-                                else:
-                                    ck_vs_davi({}, params)
+                                    continue
+                                ck_vs_davi(rawdata,params)
+
 
 
 
@@ -163,7 +175,7 @@ def reco_test():
         'nativeQuery':True,
         "orders": [],
         'pageNo':1,
-        'pageSize':1
+        'pageSize':2
     }
 
     product_analysis(s,token,requests_load)

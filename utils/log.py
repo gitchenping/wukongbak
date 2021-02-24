@@ -48,17 +48,7 @@ log_config = {
             'level': 'INFO',# 日志等级
             'formatter': 'detail', #调用上面的哪个格式
             'encoding': 'utf-8', #编码
-        },
-        'reco_web': {
-            'class': 'logging.handlers.RotatingFileHandler',#日志打印到文件的类。
-            'maxBytes': 1024 * 1024 * 10,             #单个文件最大内存
-            'backupCount': 10,                       #备份的文件个数
-            'filename': "logs/logger_reco.txt", #日志文件名
-            'level': 'INFO',# 日志等级
-            'formatter': 'detail', #调用上面的哪个格式
-            'encoding': 'utf-8', #编码
         }
-
     },
     'loggers': {
         'crawler': {
@@ -71,10 +61,6 @@ log_config = {
         },
         'file': {
             'handlers': ['file'],
-            'level': 'INFO',
-        },
-        'reco': {
-            'handlers': ['reco_web'],
             'level': 'INFO',
         }
     }
@@ -92,6 +78,11 @@ def setLogName(_logger,filename):
     handler.setFormatter(formatter)
     _logger.addHandler(handler)
 
-
+'''日志文件路径设置'''
+def set_logger(logpath='logs/'):
+    log_config['handlers']['file']['filename'] = 'logs/'+logpath
+    config.dictConfig(log_config)
+    report = logging.getLogger('file')
+    return report
 
 

@@ -18,14 +18,19 @@ from .map import *
 def format_precision(data,selfdefine=0):
     newdata=None
     pattern = re.compile("-?[0-9]+(\.?[0-9]+)?$")         #由数字构成
-    if isinstance(data,float):
+    if data is None:
+        newdata=0
+    elif isinstance(data,float):
         newdata = round(data, 2)
     elif pattern.match(str(data)):
         newdata=round(float(data),2)
     elif data.endswith('%') or data.endswith('万') or data.endswith('元'):                            #如 '-23.56%'
         newdata=float(data.strip('%|万|元'))
     else:
-        newdata=selfdefine
+        if selfdefine=='':
+            newdata=data
+        else:
+            newdata=selfdefine
     return newdata
 
 
@@ -48,8 +53,8 @@ def json_format(data,selfdefine):
                 newdata[key]=format_precision(value,selfdefine)
     return newdata
 
+'''两字典比较，并输出不一样的字典键值对'''
 def diff(data1,data2,_logger=None):
-    '''两字典比较，并输出不一样的字典键值对'''
     key_diff_dict=diff_dict(data1, data2)
     if key_diff_dict!={}:
         if _logger is not None:

@@ -5,12 +5,11 @@ from utils import util,log
 from utils.report_map import path1_name
 from .api import report_api_bussiness_post,report_api_category_post
 from .sql import report_sql
-from logging import config
-import logging
 
-log.log_config['handlers']['file']['filename']='logs/report.txt'
-config.dictConfig(log.log_config)
-report = logging.getLogger('file')
+#日志logger
+report=log.set_logger('report.txt')
+#sql 链接
+conn_ck = util.connect_clickhouse(host='10.7.30.148')
 
 @util.retry(2)
 def get_pathlist(level=1,parentid=0):
@@ -82,6 +81,7 @@ platform_list=[('0', '', ''), ('1', '', ''), ('1', '1,2', '2,3,7'), ('1', '1', '
 ('2', '101', '101'), ('2', '102', '102'), ('2', '103', '103'), ('3', '104', ''), ('4', '105', '')]
 '''
 def report_product():
+
     date='2021-02-06'
 
     for source_platform_fromPlatform in platform_list[0:]:      #平台来源
@@ -100,21 +100,22 @@ def report_product():
                                 'endTime': '12:00'
                             }
                             #debug
-                            # data = {
-                            #     # 'queryDate': '2021-02-09',
-                            #     # 'bizType': 0,
-                            #     # 'source': '0',
-                            #     # 'platform': '0',
-                            #     # 'fromPlatform': '0',
-                            #     # 'mgtType': 0,
-                            #     # 'categoryPath': '01.00.00.00.00.00',
-                            #     # 'startTime': '00:00',
-                            #     # 'endTime': '11:00'
-                            #
-                            # }
+                            data = {
+                                'queryDate': '2021-02-06',
+                                'bizType': 4,
+                                'source': '0',
+                                'platform': '',
+                                'fromPlatform': '',
+                                'mgtType': 0,
+                                'categoryPath': '99.04.00.00.00.00',
+                                'startTime': '00:00',
+                                'endTime': '12:00'
 
-                            apidata=report_api_category_post(data)
-                            sqldata=report_sql(data,reportname='bussiness')
+                            }
+
+                            # apidata=report_api_category_post(data)
+                            apidata=report_api_bussiness_post(data)
+                            sqldata=report_sql(data,reportname='bussiness',sqlconn=conn_ck)
 
                             #diff
                             report.info('筛选条件：' + str(data))

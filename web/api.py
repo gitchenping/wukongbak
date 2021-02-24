@@ -5,8 +5,8 @@ from utils import util,log
 @util.retry(2)
 def report_api_category_post(data):
     # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    # report_api = "http://10.4.32.223:8085/api/v3/reportForm/realtime/category"
-    report_api="http://10.4.32.223:8085/api/v3/reportForm/realtime/business"
+    report_api = "http://10.4.32.223:8085/api/v3/reportForm/realtime/category"
+    # report_api="http://10.4.32.223:8085/api/v3/reportForm/realtime/business"
 
     temp_data = dict(data)
     s = requests.Session()
