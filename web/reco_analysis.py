@@ -93,6 +93,7 @@ def post(s,token,data):
     req = s.post(url=searchword_api, json=temp_data, headers=headers)
     return req
 
+
 def product_analysis(s,token,requestload):
     '''单品分析'''
     start_date_str = '2021-02-01'
@@ -109,9 +110,9 @@ def product_analysis(s,token,requestload):
                         for module in module_list:
 
                             #debug params
-                            platform='全部';shoptype='全部';
-                            bd_value='出版物';pathname='历史';
-                            page_value='全部';module='全部'
+                            # platform='全部';shoptype='全部';
+                            # bd_value='出版物';pathname='历史';
+                            # page_value='全部';module='全部'
 
                             #参数组合
                             params=[
