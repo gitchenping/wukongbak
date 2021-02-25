@@ -1,6 +1,6 @@
 #推荐
 #-平台
-platform_name={'all':'全部','2':'ios','3':'安卓'}
+platform_name={'all':'全部','2':'IOS','3':'安卓'}
 #-经营方式
 shop_type_name={'all':'全部','1':'自营','2':'招商'}
 #-事业部

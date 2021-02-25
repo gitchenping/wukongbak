@@ -72,6 +72,23 @@ def get_sql_data_reco(data,indicator_cal_map,filters,conn_ck=None):
         sqldata=dict(zip(indicator_cal_map.keys(),ck_data[0]))
         if sqldata['商品曝光pv']==0 and sqldata['商品点击pv']==0 and sqldata['收订金额']==0:
             sqldata={}
+    #平均曝光、平均点击
+    expose_click_column="count(DISTINCT CASE WHEN model_type = 1 THEN udid ELSE NULL END) as expose_uv," \
+                        "count(DISTINCT CASE WHEN model_type = 3 THEN udid ELSE NULL END) as click_uv," \
+                        "round(case when expose_uv!=0 then sum(max_expose_location) /expose_uv else null end) as avg_expose_location," \
+                        "round(case when click_uv!=0 then sum(max_click_location) /click_uv else null end) as avg_click_location"
+    expose_click_inner_sql=" select model_type,udid,MAX(CASE WHEN model_type = 1 then position else 0 end) AS max_expose_location," \
+                           "MAX(CASE WHEN model_type = 3 then position else 0 end) AS max_click_location from dm_report.reco_order_detail" \
+                           " where "+ where+ " and model_type in (1,3) and position>0 group by udid,model_type"
+
+    expose_click_sql=" select "+expose_click_column+ " from ("+expose_click_inner_sql+") a"
+
+    conn_ck.execute(expose_click_sql)
+    ck_data = conn_ck.fetchall()
+    if len(ck_data) > 0:
+        sqldata['平均曝光位置']=ck_data[0][-2]
+        sqldata['平均点击位置']=ck_data[0][-1]
+
     if data!={}:
         sqldata['日期']=date
         sqldata['商品ID']=product_id

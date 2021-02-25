@@ -38,9 +38,9 @@ indicator_cal_map={
     '收订顾客数':'COUNT(DISTINCT CASE WHEN order_id = -1 THEN NULL ELSE order_cust_id END) AS create_cust_num',
     '收订转化率':'case when product_expose_uv>0 then round(create_cust_num / product_expose_uv*100,2) else null end as create_trans_rate',
     '最大曝光位置':'MAX(CASE WHEN model_type = 1 AND position > 0 THEN position ELSE 0 END) AS max_expose_location',
-    '平均曝光位置':'ROUND(AVG(CASE WHEN model_type = 1 AND `position` > 0 THEN `position` ELSE 0 END)) AS avg_expose_deepth',
+    # '平均曝光位置':'ROUND(AVG(CASE WHEN model_type = 1 AND `position` > 0 THEN `position` ELSE null END)) AS avg_expose_deepth',
     '最大点击位置':'MAX(CASE WHEN model_type = 3 AND position > 0 THEN position ELSE 0 END) AS max_click_location',
-    '平均点击位置':'ROUND(AVG(CASE WHEN model_type = 3 AND `position` > 0 THEN `position` ELSE null END)) AS avg_click_deepth',
+    # '平均点击位置':'ROUND(AVG(CASE WHEN model_type = 3 AND `position` > 0 THEN `position` ELSE null END)) AS avg_click_deepth',
     '人均点击次数':'case when product_click_uv>0 then round(product_click_pv / product_click_uv,2) else null end as avg_click_num'
 }
 
@@ -77,7 +77,11 @@ def ck_vs_davi(webdata,filters):
     davi_data = util.json_format(data, selfdefine='')
     sql_data = util.json_format(sqldata, selfdefine='')
 
-    reco.info('筛选条件：'+str(filterdict))
+    if data !={}:
+        filterdict['商品ID'] = data['商品ID']
+    filter=str(filterdict)
+
+    reco.info('筛选条件：'+filter)
     util.diff(davi_data,sql_data,reco)
 
 
@@ -106,8 +110,8 @@ def product_analysis(s,token,requestload):
 
                             #debug params
                             platform='全部';shoptype='全部';
-                            bd_value='全部';pathname='全部';
-                            page_value='分类页';module='猜您喜欢'
+                            bd_value='出版物';pathname='历史';
+                            page_value='全部';module='全部'
 
                             #参数组合
                             params=[
