@@ -51,24 +51,21 @@ conn_ck = util.connect_clickhouse(host='10.7.30.177')
 
 def ck_vs_davi(webdata,filters):
     '''达芬奇数据和ck数据比对'''
-    filterdict = {}
-    for ele in filters:
-        filterdict.update({ele['name']: ele['value'].strip("'")})
-
+    filterdict=dict(filters)
+    data={}
     if len(webdata)>0:
         i=0
         for data in webdata:
-            i+=1
             if data['商品ID']=='-1':
                 continue
+
             if data.__contains__('商品PV点击率') and data['商品PV点击率'] is not None :
                 data['商品PV点击率']=data['商品PV点击率']*100
             if data.__contains__('商品UV点击率') and data['商品UV点击率'] is not None :
                 data['商品UV点击率']=data['商品UV点击率']*100
             if data.__contains__('收订转化率') and data['收订转化率'] is not None :
                 data['收订转化率']=data['收订转化率']*100
-        if i<2 and data['商品ID']=='-1':
-            data={}
+            break
     else:
         data={}
 
@@ -111,28 +108,28 @@ def product_analysis(s,token,requestload):
 
                             #debug params
                             # platform='全部';shoptype='全部';
-                            # bd_value='全部';pathname='全部';
-                            # page_value='当当首页';module='品牌秒杀'
+                            # bd_value='出版物';pathname='医学';
+                            # page_value='当当首页';module='今日秒杀'
 
                             #参数组合
                             params=[
                                     {'name': "start", 'value': "'"+start_date_str+"'"},
                                     {'name': "end", 'value': "'"+end_date_str+"'"},
-                                    {'name': "platform_name", 'value':"'"+platform+"'"},
-                                    {'name': "shop_type_name", 'value':"'"+shoptype+"'"},
-                                    {'name': "bd_name", 'value': "'" + bd_value + "'"},
+                                    {'name': "platform", 'value':"'"+platform+"'"},
+                                    # {'name': "shop_type_name", 'value':"'"+shoptype+"'"},
+                                    {'name': "bd_id", 'value': "'" + bd_value + "'"},
                                     {'name': "path2_name", 'value': "'" + pathname + "'"},
                                     {'name': "page_name", 'value': "'" + page_value + "'"},
                                     {'name': "model_cn_name", 'value': "'" + module + "'"}
                                     ]
 
                             filters=[
-                                {'name': "平台", 'type': "filter", 'value':"'"+platform+"'", 'sqlType': "STRING", 'operator': "="},
+                                # {'name': "平台", 'type': "filter", 'value':"'"+platform+"'", 'sqlType': "STRING", 'operator': "="},
                                 {'name': "经营方式", 'type': "filter", 'value':"'"+shoptype+"'", 'sqlType': "STRING",'operator': "="},
-                                {'name': "事业部", 'type': "filter", 'value': "'" + bd_value + "'", 'sqlType': "STRING",'operator': "="},
-                                {'name': "二级分类", 'type': "filter", 'value': "'" + pathname + "'", 'sqlType': "STRING",'operator': "="},
-                                {'name': "页面", 'type': "filter", 'value': "'" + page_value + "'", 'sqlType': "STRING", 'operator': "="},
-                                {'name': "模块名称", 'type': "filter", 'value': "'" + module + "'", 'sqlType': "STRING", 'operator': "="}
+                                # {'name': "事业部", 'type': "filter", 'value': "'" + bd_value + "'", 'sqlType': "STRING",'operator': "="},
+                                # {'name': "二级分类", 'type': "filter", 'value': "'" + pathname + "'", 'sqlType': "STRING",'operator': "="},
+                                # {'name': "页面", 'type': "filter", 'value': "'" + page_value + "'", 'sqlType': "STRING", 'operator': "="},
+                                # {'name': "模块名称", 'type': "filter", 'value': "'" + module + "'", 'sqlType': "STRING", 'operator': "="}
                             ]
 
                             requestload['filters']=filters
@@ -150,7 +147,11 @@ def product_analysis(s,token,requestload):
                                     print(e)
                                     print(filters)
                                     continue
-                                ck_vs_davi(rawdata,params)
+                                filterdict = {}
+                                for ele in params:
+                                    filterdict.update({ele['name']: ele['value'].strip("'")})
+                                filterdict['shop_type_name']=filters[0]['value'].strip("'")
+                                ck_vs_davi(rawdata,filterdict)
 
 
 
@@ -178,13 +179,13 @@ def reco_test():
                         {'column': "平均点击位置", 'func': "sum"},
                         {'column': "人均点击次数", 'func': "sum"},
                         ],
-        "cache": "false", "expired": 300, "flush": "false", "nativeQuery": "false",
+        "cache": False, "expired": 300, "flush": False, "nativeQuery": False,
         "groups": ["日期",'商品ID','商品名称'],
         'limit':'',
         'nativeQuery':True,
         "orders": [],
         'pageNo':1,
-        'pageSize':2
+        'pageSize':20
     }
 
     product_analysis(s,token,requests_load)

@@ -6,7 +6,7 @@ from utils.map import bd_id_dict
 app_id={'全部':"('2','3')",'IOS':"('2')",'安卓':"('3')"}
 product_is_merchant={'自营':'(1)','招商':'(2)','全部':'(1,2)'}
 
-bd_id={'出版物':'(1)','日百服':'(2)','数字':'(3)','文创':'(4)','其他':'(5)','全部':'(1,2,4,5)'}
+bd_id={'出版物':'(1)','日百服':'(2)','数字':'(3)','文创':'(4)','其他':'(5)','全部':'(1,2,3,4,5)'}
 
 
 def get_filters_where_for_reco(filters):
@@ -18,13 +18,13 @@ def get_filters_where_for_reco(filters):
     data_date=wheredict['start']
     where += "data_date='" + data_date + "'"+" and "
     #平台
-    appid=" in "+app_id[wheredict['platform_name']]
+    appid=" in "+app_id[wheredict['platform']]
     where+="app_id "+ appid+ " and "
     #经营方式
     shoptype=" in "+product_is_merchant[wheredict['shop_type_name']]
     where+="product_is_merchant"+shoptype+ " and "
     #事业部
-    bd =" in " +bd_id[wheredict['bd_name']]
+    bd =" in " +bd_id[wheredict['bd_id']]
     where+="bd_id "+bd+' and '
     #二级品类
 
