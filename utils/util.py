@@ -67,11 +67,15 @@ def diff(data1,data2,_logger=None):
 
 
 '''两个字典的比较'''
-def diff_dict(data1,data2,absvalue=0.5):
-    temp_data1 = dict(data1)
-    temp_data2 = dict(data2)
+def diff_dict_2(data1,data2,absvalue=0.5):
     # diff_key_value_list=[]
     diff_key_value={}
+    if data1=={}:
+        temp_data1=dict(data2)
+        temp_data2 = {}
+    else:
+        temp_data1 = dict(data1)
+        temp_data2 = dict(data2)
     for key in temp_data1.keys():
         data1_value = temp_data1[key]
         try:
@@ -100,6 +104,48 @@ def diff_dict(data1,data2,absvalue=0.5):
             diff_key_value[key_error_string]=e.__repr__()
     return diff_key_value
 
+'''两个字典比较'''
+def diff_dict(data1, data2, absvalue=0.5):
+
+    diff_key_value = {}
+    temp_data1 = dict(data1)
+    temp_data2 = dict(data2)
+    set_data1 = set(temp_data1.keys())
+    set_data2 = set(temp_data2.keys())
+    set_all = set_data1.union(set_data2)
+
+    for key in set_all:
+        skip = False                          #是否需要比较,键值对不匹配的跳过比较逻辑
+        try:
+            data1_value = temp_data1[key]
+        except KeyError as e:
+            diff_key_value[key + ' 键不匹配'] = ('',key)
+            skip=True
+        try:
+            data2_value = temp_data2[key]
+        except KeyError as e:
+            diff_key_value[key + ' 键不匹配'] = ( key,'')
+            skip=True
+        if skip is False:
+            try:
+                if isinstance(data1_value, dict) or isinstance(data2_value, dict):
+                    # diff_key_value_list.extend(diff(temp_data1[key],temp_data2[key]))
+                    diff_key_value[key] = diff_dict(data1_value, data2_value)
+                    if diff_key_value[key] == {}:
+                        diff_key_value.pop(key)
+                else:
+                    if isinstance(data1_value, str) and isinstance(data2_value, str):
+                        if data1_value != data2_value:
+                            diff_key_value[key] = (data1_value, data2_value)
+                    else:
+                        if abs(data1_value - data2_value) > absvalue:
+                            # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
+                            diff_key_value[key] = (data1_value, data2_value)
+            except TypeError as e:
+                diff_key_value[key + ' 运算类型错误'] = (data1_value, data2_value)
+            except Exception as e:
+                diff_key_value[key + ' 其他错误'] = e.__repr__()
+    return diff_key_value
 
 '''重试'''
 def retry(maxretry=3):

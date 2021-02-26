@@ -90,7 +90,7 @@ def get_sql_data_reco(data,indicator_cal_map,filters,conn_ck=None):
 
         if sqldata['商品曝光pv']==0 and sqldata['商品点击pv']==0 and sqldata['收订金额']==0:
             sqldata={}
-    
+
     if data!={}:
         sqldata['日期']=date
         sqldata['商品ID']=product_id
