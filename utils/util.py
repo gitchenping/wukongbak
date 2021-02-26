@@ -18,19 +18,22 @@ from .map import *
 def format_precision(data,selfdefine=0):
     newdata=None
     pattern = re.compile("-?[0-9]+(\.?[0-9]+)?$")         #由数字构成
-    if data is None:
-        newdata=0
-    elif isinstance(data,float):
-        newdata = round(data, 2)
-    elif pattern.match(str(data)):
-        newdata=round(float(data),2)
-    elif data.endswith('%') or data.endswith('万') or data.endswith('元'):                            #如 '-23.56%'
-        newdata=float(data.strip('%|万|元'))
-    else:
-        if selfdefine=='':
-            newdata=data
+    try:
+        if data is None:
+            newdata=0
+        elif isinstance(data,float):
+            newdata = round(data, 2)
+        elif pattern.match(str(data)):
+            newdata=round(float(data),2)
+        elif data.endswith('%') or data.endswith('万') or data.endswith('元'):                            #如 '-23.56%'
+            newdata=float(data.strip('%|万|元'))
         else:
-            newdata=selfdefine
+            if selfdefine=='':
+                newdata=data
+            else:
+                newdata=selfdefine
+    except Exception:
+        newdata=data
     return newdata
 
 
