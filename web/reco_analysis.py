@@ -28,7 +28,7 @@ UV订单转化率：指当前查询的模块，带来的订单行数占推荐商
 indicator_cal_map={
     '商品曝光pv':"COUNT(CASE WHEN model_type = 1 THEN udid ELSE null END) AS product_expose_pv",
     '商品曝光uv':"COUNT(DISTINCT CASE WHEN model_type = 1 THEN udid ELSE NULL END) AS product_expose_uv",
-    '商品点击pv':"COUNT(DISTINCT CASE WHEN model_type = 3 THEN (udid,creation_date,main_product_id) ELSE (NULL,NULL,NULL) END) AS product_click_pv",
+    '商品点击pv':"COUNT(DISTINCT CASE WHEN model_type = 3 THEN concat(udid,creation_date,toString(main_product_id)) ELSE NULL END) AS product_click_pv",
     '商品点击uv':"COUNT(DISTINCT CASE WHEN model_type = 3 THEN udid ELSE NULL END) AS product_click_uv",
     '商品UV点击率':'case when product_expose_uv>0 then round(product_click_uv / product_expose_uv*100,2) else null end as uv_ctr',
     '商品PV点击率':'case when product_expose_pv>0 then round(product_click_pv / product_expose_pv*100,2) else null end as pv_ctr',
@@ -111,8 +111,8 @@ def product_analysis(s,token,requestload):
 
                             #debug params
                             # platform='全部';shoptype='全部';
-                            # bd_value='出版物';pathname='历史';
-                            # page_value='全部';module='全部'
+                            # bd_value='全部';pathname='全部';
+                            # page_value='当当首页';module='品牌秒杀'
 
                             #参数组合
                             params=[

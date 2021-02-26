@@ -55,6 +55,8 @@ def get_sql_data_reco(data,indicator_cal_map,filters,conn_ck=None):
         product_id = data['商品ID']
         product_name = data['商品名称']
         where += ' and product_id= ' + str(product_id) + " and product_name= '" + str(product_name) + "'"
+    else:
+        where+=" and product_id != -1 group by product_id"
 
     # sql
     column_all = ''
@@ -70,6 +72,11 @@ def get_sql_data_reco(data,indicator_cal_map,filters,conn_ck=None):
     sqldata={}
     if len(ck_data)>0:
         sqldata=dict(zip(indicator_cal_map.keys(),ck_data[0]))
+
+        if sqldata['商品曝光pv']==0 and sqldata['商品点击pv']==0 and sqldata['收订金额']==0:
+            return {}
+        if data=={}:
+            return sqldata
 
         # 平均曝光、平均点击
         expose_click_column = "count(DISTINCT CASE WHEN model_type = 1 THEN udid ELSE NULL END) as expose_uv," \
@@ -87,9 +94,6 @@ def get_sql_data_reco(data,indicator_cal_map,filters,conn_ck=None):
         if len(ck_data) > 0:
             sqldata['平均曝光位置'] = ck_data[0][-2]
             sqldata['平均点击位置'] = ck_data[0][-1]
-
-        if sqldata['商品曝光pv']==0 and sqldata['商品点击pv']==0 and sqldata['收订金额']==0:
-            sqldata={}
 
     if data!={}:
         sqldata['日期']=date
