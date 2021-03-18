@@ -57,6 +57,7 @@ def ck_vs_davi(webdata,filters):
         i=0
         for data in webdata:
             if data['商品ID']=='-1':
+                data={}
                 continue
 
             if data.__contains__('商品PV点击率') and data['商品PV点击率'] is not None :
@@ -68,6 +69,7 @@ def ck_vs_davi(webdata,filters):
             break
     else:
         data={}
+
 
     sqldata=get_sql_data_reco(data,indicator_cal_map,filterdict,conn_ck)
 
@@ -107,9 +109,9 @@ def product_analysis(s,token,requestload):
                         for module in module_list:
 
                             #debug params
-                            # platform='全部';shoptype='全部';
-                            # bd_value='出版物';pathname='医学';
-                            # page_value='当当首页';module='今日秒杀'
+                            platform='安卓';shoptype='自营';
+                            bd_value='其他';pathname='全部';
+                            page_value='全部';module='全部'
 
                             #参数组合
                             params=[

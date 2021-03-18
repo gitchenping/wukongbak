@@ -187,6 +187,24 @@ def loadenv(**kwargs):
             else:
                 host = env.get(kwargs['db'], 'db_host')
 
+            # port
+            if args.__contains__('port') and args['port'] is not None:
+                port = args['port']
+            else:
+                port = env.get(kwargs['db'], 'db_port')
+
+            #user
+            if args.__contains__('user') and args['user'] is not None:
+                user = args['user']
+            else:
+                user = env.get(kwargs['db'], 'db_username')
+
+            #password
+            if args.__contains__('password') and args['password'] is not None:
+                password = args['password']
+            else:
+                password = env.get(kwargs['db'], 'db_password')
+
             #database
             if args.__contains__('database') and args['database'] is not None:
                 database=args['database']
@@ -235,7 +253,7 @@ def connect_hive(host=None,port=None, user=None, password=None, database=None,co
 @loadenv(db='db_mysql')
 def connect_mysql(host=None,port=None, user=None, password=None, database=None,collection=None):
 
-    conn=pymysql.connect(host=host,user=user,password=password,db=database)
+    conn=pymysql.connect(host=host,port=port,user=user,password=password,db=database)
     return conn.cursor()
 
 

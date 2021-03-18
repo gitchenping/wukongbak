@@ -54,7 +54,8 @@ def get_sql_data_reco(data,indicator_cal_map,filters,conn_ck=None):
         date=data['日期']
         product_id = data['商品ID']
         product_name = data['商品名称']
-        where += ' and product_id= ' + str(product_id) + " and product_name= '" + str(product_name) + "'"
+        where += ' and product_id= ' + str(product_id) \
+                 #+ " and product_name= '" + str(product_name) + "'"
     else:
         where+=" and product_id != -1 group by product_id"
 
