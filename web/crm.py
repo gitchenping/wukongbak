@@ -12,11 +12,15 @@ mysql_table={
     'crm_supply_warehouse_month_top':'天津仓售断TOP全品'
 }
 '''
+import os,sys
 from utils import util
 from utils import log
 from .sql import sqldata,crm_sql_data
 from utils.util import connect_mysql_from_jump_server
-server, mysql_cursor = connect_mysql_from_jump_server('myBdataSupplierDB.db', 'BdataSupplie_rw', 'my@#6rnY9nGQRW', "BdataSupplierDB")
+if os.name=='posix':
+    mysql_cursor=util.connect_mysql(host='myBdataSupplierDB.db', user='BdataSupplie_rw', password='my@#6rnY9nGQRW', database="BdataSupplierDB")
+else:
+    server, mysql_cursor = connect_mysql_from_jump_server('myBdataSupplierDB.db', 'BdataSupplie_rw', 'my@#6rnY9nGQRW', "BdataSupplierDB")
 #品 字段信息
 product_dict={
     'supplier_num':'供应商编码',
@@ -32,8 +36,7 @@ product_dict={
     'num' : '排行'
 }
 
-# hive_cursor= util.connect_hive()
-
+hive_cursor= util.connect_hive()
 
 #品排行 月、年
 
@@ -84,27 +87,8 @@ def product_rank_month_year(date,month=True):
     hive_sql=" select '"+hive_column_date+"',"+hive_column_base+","+hive_column_sale+","+hive_column_rank+ \
         " from ("+hive_sub_table+")t"
 
-    # hive_cursor.execute(hive_sql)
-    # hive_data=hive_cursor.fetchmany(size=10000)
-    hive_data=[('2020-02-01', '0014001', '山东山大图书有限公司', '9787560756899', '24175032', '学科与专业选修指南：根据教育部高校本科、高职（高专）专业目录编注',
-  '01.30.00.00.00.00', '社会科学', 58.0, 1, 58.0, 1), (
- '2020-02-01', '0014001', '山东山大图书有限公司', '9787560755571', '24160936', '折子戏', '01.05.00.00.00.00', '文学', 42.0, 1, 42.0,
- 2), (
- '2020-02-01', '0014001', '山东山大图书有限公司', '9787560753478', '23895700', '光信息专业综合实验', '01.63.00.00.00.00', '工业技术', 15.0, 2,
- 30.0, 3), (
- '2020-02-01', '0014001', '山东山大图书有限公司', '9787560752297', '23663320', '货运运输组织', '01.25.00.00.00.00', '经济', 21.0, 1, 21.0,
- 4), ('2020-02-01', '0014024', '湖北教育出版社有限公司', '9787535178299', '22854255', '朱自清散文集（大阅读·世界文学名著系列·N+1分级阅读丛书)',
-      '01.43.00.00.00.00', '中小学教辅', 16.0, 1010, 16160.0, 1), (
- '2020-02-01', '0014024', '湖北教育出版社有限公司', '9787535178152', '22854271', '狐狸列那的故事 彩图注音版（大阅读-语文）', '01.43.00.00.00.00',
- '中小学教辅', 16.8, 642, 10785.6, 2), (
- '2020-02-01', '0014024', '湖北教育出版社有限公司', '9787556428328', '26922942', '学英语 讲中国故事', '01.43.00.00.00.00', '中小学教辅', 236.0,
- 32, 7552.0, 3), (
- '2020-02-01', '0014024', '湖北教育出版社有限公司', '9787556411184', '27870988', '奥数思维训练六年级', '01.43.00.00.00.00', '中小学教辅', 38.0,
- 97, 3686.0, 4), (
- '2020-02-01', '0014024', '湖北教育出版社有限公司', '9787556411191', '27870985', '奥数思维训练五年级', '01.43.00.00.00.00', '中小学教辅', 38.0,
- 86, 3268.0, 5), (
- '2020-02-01', '0014024', '湖北教育出版社有限公司', '9787556411221', '27870987', '奥数思维训练四年级', '01.43.00.00.00.00', '中小学教辅', 38.0,
- 72, 2736.0, 6)]
+    hive_cursor.execute(hive_sql)
+    hive_data=hive_cursor.fetchmany(size=10000)
 
     #分批次查询
     i=0
@@ -130,10 +114,6 @@ def product_rank_month_year(date,month=True):
             logger.info('')
 
         return diffkey
-
-
-
-
 
 def crm_test():
     data_date="2019-02-01"

@@ -1,39 +1,41 @@
-import os
-import math
 import requests
 import json
 from clickhouse_driver import Client,connect
 import pymssql
 # from pyhive import hive
-import configparser
 import pymongo
 import pymysql
 import redis
-import datetime
 import re
-from .map import *
+from .decorate import retry,loadenv
+import configparser
+from sshtunnel import SSHTunnelForwarder
 
-
-'''数值转换'''
+'''数值(精度)转换'''
 def format_precision(data,selfdefine=0):
+    '''
+
+    :param data: str、int、float
+    :param selfdefine:
+    :return:
+    '''
     newdata=None
-    pattern = re.compile("-?[0-9]+(\.?[0-9]+)?$")         #由数字构成
-    try:
-        if data is None:
-            newdata=0
-        elif isinstance(data,float):
-            newdata = round(data, 2)
-        elif pattern.match(str(data)):
-            newdata=round(float(data),2)
-        elif data.endswith('%') or data.endswith('万') or data.endswith('元'):                            #如 '-23.56%'
-            newdata=float(data.strip('%|万|元'))
-        else:
-            if selfdefine=='':
-                newdata=data
+
+    if data is None:
+        return 0
+    else:
+        tempdata=str(data).rstrip('%|亿|万|元')
+        pattern = re.compile("-?[0-9]+(\.?[0-9]+)?$")         #由数字构成
+        try:
+            if pattern.match(tempdata):
+                newdata=round(float(tempdata),2)
             else:
-                newdata=selfdefine
-    except Exception:
-        newdata=data
+                if selfdefine=='':
+                    newdata=data
+                else:
+                    newdata=selfdefine
+        except Exception:
+            newdata=data
     return newdata
 
 
@@ -56,55 +58,27 @@ def json_format(data,selfdefine):
                 newdata[key]=format_precision(value,selfdefine)
     return newdata
 
-'''两字典比较，并输出不一样的字典键值对'''
-def diff(data1,data2,_logger=None):
-    key_diff_dict=diff_dict(data1, data2)
-    if key_diff_dict!={}:
-        if _logger is not None:
-            try:
-                _logger.info("diff info:" + str(key_diff_dict)+"-*-Fail-*-")
-                # _logger.info("xx"*10+''+"xx"*10)
-            except Exception as e:
-                _logger.info(e)
-            _logger.info('=='*24)
 
+'''两个字典的简单比较（固定一个字典）'''
+def simplediff(data1,data2):
+    '''
 
-'''两个字典的比较'''
-def diff_dict_2(data1,data2,absvalue=0.5):
-    # diff_key_value_list=[]
+    :param data1:
+    :param data2:
+    :return: 不同的键值对
+    '''
     diff_key_value={}
-    if data1=={}:
-        temp_data1=dict(data2)
-        temp_data2 = {}
-    else:
-        temp_data1 = dict(data1)
-        temp_data2 = dict(data2)
-    for key in temp_data1.keys():
-        data1_value = temp_data1[key]
-        try:
-            data2_value=temp_data2[key]
-            if isinstance(data1_value,dict):
-                # diff_key_value_list.extend(diff(temp_data1[key],temp_data2[key]))
-                diff_key_value[key]=diff_dict(data1_value,data2_value)
-                if diff_key_value[key]=={}:
-                    diff_key_value.pop(key)
-            else:
-                if isinstance(data1_value,str) and isinstance(data2_value,str):
-                    if data1_value!=data2_value:
-                        diff_key_value[key] = (data1_value, data2_value)
-                else:
-                    if abs(data1_value-data2_value) > absvalue:
-                        # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
-                        diff_key_value[key] = (data1_value, data2_value)
-        except KeyError as e:
-            key_error_string=key+' 键值对不匹配'
-            diff_key_value[key_error_string] = e.__repr__()
-        except TypeError as e:
-            key_error_string = key + ' 运算类型错误'
-            diff_key_value[key_error_string] = (data1_value,data2_value)
-        except Exception as e:
-            key_error_string = key + ' 其他错误'
-            diff_key_value[key_error_string]=e.__repr__()
+    for key in data1.keys():
+        data1_value = data1[key]
+        data2_value=data2[key]
+
+        if isinstance(data1_value,dict):
+            diff_key_value[key]=simplediff(data1_value,data2_value)
+            if diff_key_value[key]=={}:
+                diff_key_value.pop(key)
+        else:
+            if data1_value!=data2_value:
+                diff_key_value[key] = (data1_value, data2_value)
     return diff_key_value
 
 '''两个字典比较'''
@@ -122,12 +96,12 @@ def diff_dict(data1, data2, absvalue=0.5):
         try:
             data1_value = temp_data1[key]
         except KeyError as e:
-            diff_key_value[key + ' 键不匹配'] = ('',key)
+            diff_key_value[key + ' 键不匹配'] = ('',key)    #data1没有此键
             skip=True
         try:
             data2_value = temp_data2[key]
         except KeyError as e:
-            diff_key_value[key + ' 键不匹配'] = ( key,'')
+            diff_key_value[key + ' 键不匹配'] = ( key,'')   #data2没有此键
             skip=True
         if skip is False:
             try:
@@ -150,80 +124,7 @@ def diff_dict(data1, data2, absvalue=0.5):
                 diff_key_value[key + ' 其他错误'] = e.__repr__()
     return diff_key_value
 
-'''重试'''
-def retry(maxretry=3):
-    def decorator(func):
-        def wrapper(*args, **kw):
-            att = 0
-            while att < maxretry:
-                try:
-                    return func(*args, **kw)
-                except Exception as e:
-                    att += 1
-        return wrapper
-    return decorator
-
 '''数据库连接'''
-def readconfini(path=''):
-    cf = configparser.ConfigParser()
-    allpath=os.path.join(path, "config.ini")
-    cf.read(allpath, encoding='utf-8')
-
-    return cf
-
-def loadenv(**kwargs):
-    env = readconfini('./')
-    # host=env.get(kwargs['db'],'db_host')
-    port=env.get(kwargs['db'],'db_port')
-    user=env.get(kwargs['db'],'db_username')
-    password=env.get(kwargs['db'],'db_password')
-
-    def wrap_o(func):
-        def wrap(**args):       #如果函数带参数，使用实参
-
-            #host
-            if args.__contains__('host') and args['host'] is not None:
-                host=args['host']
-            else:
-                host = env.get(kwargs['db'], 'db_host')
-
-            # port
-            if args.__contains__('port') and args['port'] is not None:
-                port = args['port']
-            else:
-                port = env.get(kwargs['db'], 'db_port')
-
-            #user
-            if args.__contains__('user') and args['user'] is not None:
-                user = args['user']
-            else:
-                user = env.get(kwargs['db'], 'db_username')
-
-            #password
-            if args.__contains__('password') and args['password'] is not None:
-                password = args['password']
-            else:
-                password = env.get(kwargs['db'], 'db_password')
-
-            #database
-            if args.__contains__('database') and args['database'] is not None:
-                database=args['database']
-            else:
-                database = env.get(kwargs['db'], 'db_name')
-
-            #collection
-            if args.__contains__('collection') and args['collection'] is not None:
-                collection=args['collection']
-            else:
-                if env.has_option(kwargs['db'],'db_collection'):
-                    collection = env.get(kwargs['db'],'db_collection')
-                else:
-                    collection = None
-            return func(host,port,user,password,database,collection)
-        return wrap
-    return wrap_o
-    pass
-
 @loadenv(db='db_ck')
 def connect_clickhouse(host=None,port=None, user=None, password=None, database=None,collection=None):
     # conn = connect(host=host,port=port,user=user,password=password, database=database)
@@ -262,10 +163,7 @@ def close_db(conn, cursor):
     cursor.close()
     conn.close()
 
-def readini(path):
-    cf=configparser.ConfigParser()
-    cf.read(path,encoding='utf-8')
-    return cf
+
 
 #连接mongodb
 @loadenv(db='db_mongo')
@@ -289,7 +187,6 @@ def login_davinci():
     passwd = "Ddmymm4321"
     s = requests.Session()
     flag, token = do_log(s, user_name, passwd)
-    # headers = {"Content-Type": "application/json", "Authorization":"Bearer " + token}
     return s,token
 def do_log(s, user_name, passwd):
     """
@@ -310,50 +207,78 @@ def do_log(s, user_name, passwd):
     else:
         return False, ''
 
-def get_shaixuantiaojian(data=None):
+@retry(2)
+def post(url,data=None,headers=None,token=None):
+    # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
+    header={}
+    if headers is not None:
+        header["Content-Type"]="application/json;charset=UTF-8"
 
-    rtnstr="平台来源："+source_dict[data['source']]+"--"+parent_platform_dict[data['parent_platform']]+"--"+platform_dict[data['platform']]+\
-           "&"+"事业部："+bd_id_dict[data['bd_id']]+\
-           "&"+"经营方式："+shop_type[data['shop_type']]+\
-           "&"+"剔除选项："+eliminate_type_dict[data['eliminate_type']]+\
-           "&"+"销售类型："+sale_type_dict[data['sale_type']]
-    return rtnstr
+    if token is not None:
+        header['Authorization']="Bearer "+token
 
-def request(url,data=None):
-    headers={'Authorization':'Bearer MDAwMDAwMDAwMLGenKE'}
+    s = requests.Session()
+    #实参data 为dict时，若header为application/json，使用json参数；若为application/x-www-form，使用data参数
+    req = s.post(url=url, json=data, headers=header)
+
+    if req.status_code == 200:
+        res_data=req.content
+        if isinstance(res_data,bytes):
+            res_data =res_data.decode('utf-8')
+        return res_data
+    return -1
+
+@retry(2)
+def request(url,data=None,token=None):
+    headers=None
+    if token is not None:
+        headers={'Authorization':'Bearer MDAwMDAwMDAwMLGenKE'}
     textdata=requests.get(url,params=data,headers=headers)
 
     if textdata is not None and textdata.status_code==200:
-        return json.loads(textdata.text)
+        return textdata.text
 
     #请求失败
     return -1
 
+def readini(path):
+    cf=configparser.ConfigParser()
+    cf.read(path,encoding='utf-8')
+    return cf
 
-'''传入日期返回对应日周月季的key'''
-def get_trendkey(datetype,date):
-    '''
-    :param datetype:
-    :param date: '2020-12-21'
+
+
+def connect_mysql_from_jump_server(mysql_ip, db_user, db_passwd, db,
+                                   ip='10.255.254.49',
+                                   username='root',
+                                   passwd='dell1950'):
+    """
+    使用跳板机连接远程服务器
+    :param ip:
+    :param username:
+    :param passwd:
+    :param mysql_ip:
+    :param db_user:
+    :param db_passwd:
+    :param db:
     :return:
-    '''
-
-    templist=date.split('-')
-    if datetype == 'day' or datetype=='d':
-
-        key = templist[1] + '/' + templist[2]
-
-    elif datetype == 'wtd' or datetype=='w':
-        a = datetime.datetime.strptime(date, '%Y-%m-%d')
-        key = 'W' + str(a.isocalendar()[1])
-
-    elif datetype == 'mtd' or datetype=='m':
-        key = str(int(templist[1])) + '月'
-
-    else:
-        key = 'Q' + str(math.ceil(int(templist[1]) / 3))
-
-    return key
+    """
+    server = SSHTunnelForwarder(
+        ssh_address_or_host=(ip, 22),
+        ssh_username=username,
+        ssh_password=passwd,
+        remote_bind_address=(mysql_ip, 3306)
+    )
+    server.start()
+    db = pymysql.connect(
+        host='127.0.0.1',
+        port=server.local_bind_port,
+        user=db_user,
+        passwd=db_passwd,
+        db=db
+    )
+    cursor = db.cursor()
+    return server, cursor
 
 
 
