@@ -35,15 +35,32 @@ product_dict={
 # hive_cursor= util.connect_hive()
 
 
-#品排行 月
+#品排行 月、年
 
-def product_rank_month(date):
-    logger=log.set_logger('product_rank_month.txt')
+def product_rank_month_year(date,month=True):
+    hive_table = "dm_dws.dm_order_send_detail"
 
-    hive_table="dm_dws.dm_order_send_detail"
-    mysql_table="crm_supply_product_month_top"
+    if month:   #月top
+        logger=log.set_logger('product_rank_month.txt')
 
-    hive_column_date="concat(substr('{}',0,7),'-01')".format(date)
+        mysql_table = "crm_supply_product_month_top"
+        hive_column_date=date[0:7]+"-01"
+        hive_column_datadate_begin = date[0:7]+"-01"
+        hive_column_datadate_end = date[0:7] + "-31"
+
+        hive_column_senddate_where=" and substr(send_date,0,7) = '"+date[0:7]+"'"
+
+    else:
+        logger = log.set_logger('product_rank_year.txt')
+        mysql_table = "crm_supply_product_year_top"
+
+        hive_column_date = date[0:4] + "-01-01"
+        hive_column_datadate_begin = date[0:4] + "-01-01"
+        hive_column_datadate_end = date[0:4] + "-12-31"
+
+        hive_column_senddate_where = " and substr(send_date,0,4) = '" + date[0:4] + "'"
+
+
     hive_column_base="supplier_num,supplier_name," \
             "standard_id,product_id,product_name," \
             "category_path2,path2_name," \
@@ -52,19 +69,19 @@ def product_rank_month(date):
     hive_column_rank="Row_number() OVER(partition BY supplier_num,supplier_name " \
                     "ORDER BY prod_sale_fixed_amt desc,prod_sale_qty desc) AS rank"
 
-    hive_sub_where=" data_date >= concat(substr('{}',0,7),'-01') and data_date <= concat(substr('{}',0,7),'-31')".format(date,date)
+    hive_sub_where=" data_date >= '{}' and data_date <= '{}'".format(hive_column_datadate_begin,hive_column_datadate_end)
     hive_sub_where+=" and (supplier_num is not null and supplier_num <> '')" \
                     " and (supplier_name is not null" \
                     " and supplier_name <> '')" \
                     " and (standard_id is not null" \
                     " and standard_id <> '')"
-    hive_sub_where+=" and substr(send_date,0,7) = substr('{}',0,7)".format(date)
+    hive_sub_where+=hive_column_senddate_where
 
     hive_sub_groupby=hive_column_base
     hive_sub_table = "select " + hive_column_base + ","+" Sum(prod_sale_qty) AS prod_sale_qty,Sum(prod_sale_fixed_amt) AS prod_sale_fixed_amt"+ \
                     " from "+hive_table+" where "+hive_sub_where+" group by "+hive_sub_groupby
 
-    hive_sql=" select "+hive_column_date+","+hive_column_base+","+hive_column_sale+","+hive_column_rank+ \
+    hive_sql=" select '"+hive_column_date+"',"+hive_column_base+","+hive_column_sale+","+hive_column_rank+ \
         " from ("+hive_sub_table+")t"
 
     # hive_cursor.execute(hive_sql)
@@ -90,7 +107,7 @@ def product_rank_month(date):
  72, 2736.0, 6)]
 
     #分批次查询
-    i=5
+    i=0
     step=10
     cover=int(step/2)
     while i<1000:
@@ -118,19 +135,10 @@ def product_rank_month(date):
 
 
 
-
-
-    pass
-
-def product_rank_year(date):
-
-    pass
-
-
-
-
 def crm_test():
-    data_date="2020-02-01"
+    data_date="2019-02-01"
 
-    #
-    product_rank_month(data_date)
+    #月
+    # product_rank_month_year(data_date)
+    #年
+    product_rank_month_year(data_date,False)
