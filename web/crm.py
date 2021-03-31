@@ -17,10 +17,10 @@ from utils import util
 from utils import log
 from .sql import sqldata,crm_sql_data
 from utils.util import connect_mysql_from_jump_server
-if os.name=='posix':
-    mysql_cursor=util.connect_mysql(host='myBdataSupplierDB.db', user='BdataSupplie_rw', password='my@#6rnY9nGQRW', database="BdataSupplierDB")
-else:
-    server, mysql_cursor = connect_mysql_from_jump_server('myBdataSupplierDB.db', 'BdataSupplie_rw', 'my@#6rnY9nGQRW', "BdataSupplierDB")
+
+#mysql 四元祖
+sql_db_info=('myBdataSupplierDB.db',3306,'BdataSupplie_rw','my@#6rnY9nGQRW',"BdataSupplierDB")
+
 #品 字段信息
 product_dict={
     'supplier_num':'供应商编码',
@@ -90,6 +90,10 @@ def product_rank_month_year(date,month=True):
     hive_cursor.execute(hive_sql)
     hive_data=hive_cursor.fetchmany(size=10000)
 
+    if os.name == 'posix':
+        mysql_cursor = util.connect_mysql(*sql_db_info)
+    else:
+        server, mysql_cursor = connect_mysql_from_jump_server(*sql_db_info)
     #分批次查询
     i=0
     step=10

@@ -248,7 +248,7 @@ def readini(path):
 
 
 
-def connect_mysql_from_jump_server(mysql_ip, db_user, db_passwd, db,
+def connect_mysql_from_jump_server(mysql_ip, db_port,db_user, db_passwd, db,
                                    ip='10.255.254.49',
                                    username='root',
                                    passwd='dell1950'):
@@ -267,7 +267,7 @@ def connect_mysql_from_jump_server(mysql_ip, db_user, db_passwd, db,
         ssh_address_or_host=(ip, 22),
         ssh_username=username,
         ssh_password=passwd,
-        remote_bind_address=(mysql_ip, 3306)
+        remote_bind_address=(mysql_ip, db_port)
     )
     server.start()
     db = pymysql.connect(
