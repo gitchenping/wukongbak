@@ -123,7 +123,7 @@ def product_rank_month_year(date,month=True):
             logger.info("diff info: "+str(diffkey))
             logger.info('')
 
-        return diffkey
+        # return diffkey
 
 def crm_test():
     data_date="2019-02-01"
