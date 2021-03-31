@@ -244,13 +244,16 @@ def report_sql(data,reportname='category',conn_ck=None):
     return sd_zf_info
 
 
-def  crm_sql_data(data,datakey,sqlcursor,table,date):
+def  crm_sql_data(data,datakey,sqlcursor,table,date,month):
     '''
 
     :param data: 筛选条件
     :return:
     '''
-    sql_date=date[0:7]+"-01"
+    if month:
+        sql_date=date[0:7]+"-01"
+    else:
+        sql_date = date[0:4] + "-01-01"
     supplier_num=set()
     product_id=set()
 

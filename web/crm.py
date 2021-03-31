@@ -22,7 +22,7 @@ from utils.util import connect_mysql_from_jump_server
 sql_db_info={
     'host':'myBdataSupplierDB.db',
     'port':3306,
-    'user:':'BdataSupplie_rw',
+    'user':'BdataSupplie_rw',
     'password':'my@#6rnY9nGQRW',
     'database':"BdataSupplierDB"
 }
@@ -116,7 +116,7 @@ def product_rank_month_year(date,month=True):
             each_patch_data[supplier_num+'_'+product_id]=data
         i+=step
 
-        mysql_data=crm_sql_data(each_patch_data.keys(),product_dict.keys(),mysql_cursor,mysql_table,date)
+        mysql_data=crm_sql_data(each_patch_data.keys(),product_dict.keys(),mysql_cursor,mysql_table,date,month)
         diffkey=util.simplediff(each_patch_data,mysql_data)
         if diffkey!={}:
             # logger.info('筛选条件: ' + str(filter) + "-*-Fail-*-")
