@@ -18,8 +18,14 @@ from utils import log
 from .sql import sqldata,crm_sql_data
 from utils.util import connect_mysql_from_jump_server
 
-#mysql 四元祖
-sql_db_info=('myBdataSupplierDB.db',3306,'BdataSupplie_rw','my@#6rnY9nGQRW',"BdataSupplierDB")
+#mysql 信息字典
+sql_db_info={
+    'host':'myBdataSupplierDB.db',
+    'port':3306,
+    'user:':'BdataSupplie_rw',
+    'password':'my@#6rnY9nGQRW',
+    'database':"BdataSupplierDB"
+}
 
 #品 字段信息
 product_dict={
@@ -91,9 +97,9 @@ def product_rank_month_year(date,month=True):
     hive_data=hive_cursor.fetchmany(size=10000)
 
     if os.name == 'posix':
-        mysql_cursor = util.connect_mysql(*sql_db_info)
+        mysql_cursor = util.connect_mysql(**sql_db_info)
     else:
-        server, mysql_cursor = connect_mysql_from_jump_server(*sql_db_info)
+        server, mysql_cursor = connect_mysql_from_jump_server(*sql_db_info.values())
     #分批次查询
     i=0
     step=10
