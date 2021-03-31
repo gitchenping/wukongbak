@@ -1,6 +1,4 @@
-from utils import util
-from utils import date
-from utils import map
+from resources import map
 from utils._api import *
 
 #

@@ -1,5 +1,6 @@
 #encoding=utf-8
 from utils import util
+from utils.decorate import complog
 import math
 
 #口径定义
@@ -25,6 +26,8 @@ RPM（sum(RPM)）：搜索收订金额/搜索次数*1000
 
 '''
 
+#日志logger
+report=log.set_logger('searchword.txt')
 
 def search_top1000(s,token,data):
     '''top1000分析'''
@@ -58,63 +61,6 @@ def post(s,token,data):
     temp_data = dict(data)
     req = s.post(url=searchword_api, json=temp_data, headers=headers)
     return req
-
-def searchword(s,token,data):
-    '''搜索词分析'''
-    # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    # searchword_api = "http://newwk.dangdang.com/api/v3/views/30/getdata"
-    # temp_data = dict(data)
-    # print('now runing ' + str(data))
-
-    search_times=100     #默认api请求查询次数
-
-    i=data['pageNo']
-    start_page=i
-    success_=0
-    fail_=0
-    while i<=search_times+start_page:
-        # req = s.post(url=searchword_api, json=temp_data, headers=headers)
-        req=post(s,token,data)
-        try:
-            payload = util.get_search_word_api_content(req.content)
-            apiresult_num = int(payload['totalCount'])
-
-            apidata=payload['resultList']
-        except Exception:
-            apiresult_num=0
-
-        final_api_result={}
-        page_num=0
-        if apiresult_num > 0 and len(apidata)>0:
-            page_num = math.ceil(apiresult_num / 20)
-
-            #数据进行处理-以日期_平台_搜索词为键，其他值为value
-            for item in apidata:
-
-                # key=item.pop('date_str')+"_"+item.pop('平台')+"_"+item.pop('search_word')
-
-                for _key,_value in item.items():
-                    item[_key]= util.format_precision(_value)
-                #传item去数据库查询
-                sql_item=filters.get_search_word_sql_content_2(item)
-                util.diff_search(item, sql_item)
-        #         final_api_result[key]=item
-        #
-        #
-        #     #数据库
-        #     final_sql_result=filters.get_search_word_sql_content(i-1,data)
-        #
-        # #api和sql比对
-        # util.diff_search(final_api_result,final_sql_result)
-
-        i+=1
-        # temp_data['pageNo'] =i
-        data['pageNo'] = i
-        if i>page_num:
-            break
-    print("run "+str(apiresult_num)+" items ,success "+str(success_)+" items ,fail "+str(fail_)+" items")
-
-
 
 def search_word(s,token,start_date,end_date):
     platformdict={'全部':'1'}
@@ -176,4 +122,60 @@ def search_word(s,token,start_date,end_date):
             }
             # search_top1000(s,token,data_top1000)
             searchword(s,token,data)
+
+@complog(report)
+def searchword(s,token,data):
+    '''搜索词分析'''
+    # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
+    # searchword_api = "http://newwk.dangdang.com/api/v3/views/30/getdata"
+    # temp_data = dict(data)
+    # print('now runing ' + str(data))
+
+    search_times=100     #默认api请求查询次数
+
+    i=data['pageNo']
+    start_page=i
+    success_=0
+    fail_=0
+    while i<=search_times+start_page:
+        # req = s.post(url=searchword_api, json=temp_data, headers=headers)
+        req=post(s,token,data)
+        try:
+            payload = util.get_search_word_api_content(req.content)
+            apiresult_num = int(payload['totalCount'])
+
+            apidata=payload['resultList']
+        except Exception:
+            apiresult_num=0
+
+        final_api_result={}
+        page_num=0
+        if apiresult_num > 0 and len(apidata)>0:
+            page_num = math.ceil(apiresult_num / 20)
+
+            #数据进行处理-以日期_平台_搜索词为键，其他值为value
+            for item in apidata:
+
+                # key=item.pop('date_str')+"_"+item.pop('平台')+"_"+item.pop('search_word')
+
+                for _key,_value in item.items():
+                    item[_key]= util.format_precision(_value)
+                #传item去数据库查询
+                sql_item=filters.get_search_word_sql_content_2(item)
+                util.diff_search(item, sql_item)
+        #         final_api_result[key]=item
+        #
+        #
+        #     #数据库
+        #     final_sql_result=filters.get_search_word_sql_content(i-1,data)
+        #
+        # #api和sql比对
+        # util.diff_search(final_api_result,final_sql_result)
+
+        i+=1
+        # temp_data['pageNo'] =i
+        data['pageNo'] = i
+        if i>page_num:
+            break
+    print("run "+str(apiresult_num)+" items ,success "+str(success_)+" items ,fail "+str(fail_)+" items")
 

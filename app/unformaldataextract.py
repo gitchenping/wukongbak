@@ -180,3 +180,12 @@ def data_extract():
             api.jingying_analysis(datetype, s, logger)
             # diff.overview_diff(datetype,date,2)
             logger.removeHandler(logger.handlers[0])
+
+def get_shaixuantiaojian(data=None):
+
+    rtnstr="平台来源："+source_dict[data['source']]+"--"+parent_platform_dict[data['parent_platform']]+"--"+platform_dict[data['platform']]+\
+           "&"+"事业部："+bd_id_dict[data['bd_id']]+\
+           "&"+"经营方式："+shop_type[data['shop_type']]+\
+           "&"+"剔除选项："+eliminate_type_dict[data['eliminate_type']]+\
+           "&"+"销售类型："+sale_type_dict[data['sale_type']]
+    return rtnstr

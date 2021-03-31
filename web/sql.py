@@ -1,7 +1,6 @@
-from utils import util
 from utils._sql import get_uv_sql_for_report,get_sd_info_sql_for_report,get_zf_info_sql_for_report
 from  utils._sql import get_drill_tb_hb
-from utils.map import bd_id_dict
+from resources.map import bd_id_dict
 
 app_id={'全部':"('2','3')",'IOS':"('2')",'安卓':"('3')"}
 product_is_merchant={'自营':'(1)','招商':'(2)','全部':'(1,2)'}
@@ -245,3 +244,69 @@ def report_sql(data,reportname='category',conn_ck=None):
     return sd_zf_info
 
 
+def  crm_sql_data(data,datakey,sqlcursor,table,date):
+    '''
+
+    :param data: 筛选条件
+    :return:
+    '''
+    sql_date=date[0:7]+"-01"
+    supplier_num=set()
+    product_id=set()
+
+    for ele in data:
+        supplier,product=ele.split('_')
+        supplier_num.add(supplier)
+        product_id.add(int(product))
+
+    column="supplier_num,supplier_name,isbn,product_id,product_name,category_path2,path2_name,original_price,prod_sale_qty,prod_sale_fixed_amt,num"
+
+    if len(supplier_num)==1:
+        supplier_in='('+supplier_num.pop()+')'
+    else:
+        supplier_in = str(tuple(supplier_num))
+    if len(product_id)==1:
+        product_in='('+str(product_id.pop())+')'
+    else:
+        product_in =str(tuple(product_id))
+
+    where =" supplier_num in "+ supplier_in+" and product_id in "+product_in
+    groupby=" group by supplier_num,product_id"
+
+    mysql_sql=" select "+column+" from "+table+" where "+where+" and data_date='"+sql_date+"'"+groupby
+
+    sqlcursor.execute(mysql_sql)
+    sqldata=sqlcursor.fetchall()
+
+    sql_data={}
+    for each in sqldata:
+        data = dict(zip(datakey, each))
+        supplier_num = data.pop('supplier_num')
+        product_id = data.pop('product_id')
+        sql_data[supplier_num + '_' + str(product_id)] = data
+
+    return sql_data
+
+
+
+
+    pass
+
+
+def sqldata(sql,cursor,offset=1000):
+    '''
+
+    :param sql: msql 查询
+    :param cursor:
+    :param offset: 偏移量
+    :return:
+    '''
+    initoffset=0
+    sampletimes=0
+    while sampletimes<1:
+        newsql = sql + " limit " + str(initoffset) + ","+str(int(offset/2))
+        cursor.execute(newsql)
+        row_data = cursor.fetchall()
+        yield row_data
+        sampletimes+=1
+        initoffset+=offset

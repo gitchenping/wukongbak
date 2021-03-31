@@ -2,9 +2,10 @@
 import json
 import requests
 from utils import util,log
-from utils.report_map import path1_name
-from .api import report_api_bussiness_post,report_api_category_post
+from resources.report_map import path1_name
+from .api import report_api_bussiness_post
 from .sql import report_sql
+from utils import decorate
 
 #日志logger
 report=log.set_logger('report.txt')
@@ -113,17 +114,16 @@ def report_product():
 
                             }
 
-                            # apidata=report_api_category_post(data)
-                            apidata=report_api_bussiness_post(data)
-                            sqldata=report_sql(data,reportname='bussiness',sqlconn=conn_ck)
-
-                            #diff
-                            report.info('筛选条件：' + str(data))
-                            util.diff(apidata,sqldata,report)
+                            ck_vs_sql(data)
 
 
-
-
+@decorate.complog(report)
+def ck_vs_sql(data):
+    # apidata=report_api_category_post(data)
+    apidata = report_api_bussiness_post(data)
+    sqldata = report_sql(data, reportname='bussiness', sqlconn=conn_ck)
+    util.diff_dict(apidata, sqldata)
+    pass
 
 
 

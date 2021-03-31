@@ -1,6 +1,6 @@
 from utils import util,tb_hb
 from utils.date import *
-from utils import map
+from resources import map
 from utils._sql import *
 
 
@@ -154,7 +154,7 @@ def sql_user_analysis_drill(datacopy, ck_tables,zhibiao_dict, data_type_dict):
         #
         #新老客
         customer = {}
-        customerdict=map.customer_dict
+        customerdict= map.customer_dict
         groupby_new_flag="new_id"
         order_by = " order by " + groupby_new_flag + "," + "date_str desc"
         group_by = " group by date_str"+ "," + groupby_new_flag
@@ -428,7 +428,7 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                 #others
                 column_bd+=" else '10' end as _bd_id,"
                 group_by=" group by _bd_id,_date_str"
-                bdnamedict=map.cat_name_dict
+                bdnamedict= map.cat_name_dict
 
         else:
                 column_bd="CASE WHEN bd_id IN (5, 12) THEN 1 " \
@@ -483,14 +483,14 @@ def jingyingfenxi_drill(data,tabledict,columndict):
                 if parentplatform=='all':
                     column_plat='source'
                     group_by=_groupby+",source"
-                    platdict=map.source_dict
+                    platdict= map.source_dict
                 else:
                     if platform not in ['1', '2']:  # 安卓、IOS没有平台分布
                         group_by=''
                     else:
                         column_plat = 'platform'
                         group_by=_groupby+",platform"
-                        platdict=map.app_dict
+                        platdict= map.app_dict
 
                 if len(group_by)>0:
                     order_by=" order by "+column_plat+","+"_date_str desc"
@@ -762,3 +762,4 @@ def jingyingfenxi(data):
         drill_data['city'] = city
 
     return drill_data
+

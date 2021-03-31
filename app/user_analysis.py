@@ -1,8 +1,9 @@
-from utils import util
+from utils import util,decorate
 import logging.config
 from . import api
 from . import sql
 import datetime
+
 
 logging.config.fileConfig("logging.conf")
 userlogger=logging.getLogger('user')
@@ -12,25 +13,22 @@ data_type_dict={'3':'出库用户','2':'支付用户','1':'收订用户'}
 
 zhibiao_dict = {'create_parent_uv_sd': '收订用户', 'create_parent_uv_zf': '支付用户', 'create_parent_uv_ck': '出库用户'}
 
+@decorate.complog(userlogger)
 def user_drill(data):
     datacopy=dict(data)
 
     apidata = api.api_user_analysis_drill(datacopy, zhibiao_dict)
     sqldata = sql.sql_user_analysis_drill(datacopy, ck_tables,zhibiao_dict, data_type_dict)
+    util.diff_dict(sqldata, apidata)
+    pass
 
-    userlogger.info("用户分析下钻筛选条件："+str(data))
-    util.diff(apidata,sqldata,userlogger)
-
-
+@decorate.complog(userlogger)
 def user_overview(data):
     datacopy = dict(data)
 
     sqldata = sql.sql_user_analysis_overview(datacopy, ck_tables, data_type_dict)
     apidata = api.api_user_analysis_overview(datacopy, zhibiao_dict)
-
-    userlogger.info("用户分析首页筛选条件：" + str(data))
-    util.diff(apidata, sqldata, userlogger)
-
+    util.diff_dict(sqldata,apidata)
     pass
 
 
@@ -62,7 +60,7 @@ def run_job():
                 data={'source': source, 'platform': platform,'parent_platform': parent_platform,
                       'date_type':'h','date_str': date_str+" "+hour_str}
 
-                data={'source': '1', 'platform': '5', 'parent_platform': '2', 'date_type': 'h', 'date_str': '2021-02-01 12'}
+                # data={'source': '1', 'platform': '5', 'parent_platform': '2', 'date_type': 'h', 'date_str': '2021-02-01 12'}
 
                 user_overview(data)
                 user_drill(data)

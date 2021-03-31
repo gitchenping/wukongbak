@@ -1,8 +1,8 @@
 #encoding=utf-8
 import json
-from utils.recommend_map import *
+from resources.recommend_map import *
 from utils import util,log
-from .sql import get_filters_where_for_reco,get_sql_data_reco
+from .sql import get_sql_data_reco
 
 # ck和达芬奇比较
 '''
