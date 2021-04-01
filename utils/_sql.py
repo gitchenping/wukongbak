@@ -409,3 +409,157 @@ def get_zf_info_sql_for_report(data,tablename,reportname):
              b_sql+") b"+" on a."+groupbyname+" = b."+groupbyname+" and a.date_str = b.date_str"+ groupby_orderby
 
     return zf_sql
+
+def get_crm_product_month_year_top_sql(date,month=True):
+    hive_table = "dm_dws.dm_order_send_detail"
+
+    if month:  # 月top
+
+        hive_column_date = date[0:7] + "-01"
+        hive_column_datadate_begin = date[0:7] + "-01"
+        hive_column_datadate_end = date[0:7] + "-31"
+
+        hive_column_senddate_where = " and substr(send_date,0,7) = '" + date[0:7] + "'"
+
+    else:
+
+        hive_column_date = date[0:4] + "-01-01"
+        hive_column_datadate_begin = date[0:4] + "-01-01"
+        hive_column_datadate_end = date[0:4] + "-12-31"
+
+        hive_column_senddate_where = " and substr(send_date,0,4) = '" + date[0:4] + "'"
+
+    hive_column_base = "supplier_num,supplier_name," \
+                       "standard_id,product_id,product_name," \
+                       "category_path2,path2_name," \
+                       "original_price"
+    hive_column_sale = "prod_sale_qty,round(prod_sale_fixed_amt,2)"
+    hive_column_rank = "Row_number() OVER(partition BY supplier_num,supplier_name " \
+                       "ORDER BY prod_sale_fixed_amt desc,prod_sale_qty desc) AS rank"
+
+    hive_sub_where = " data_date >= '{}' and data_date <= '{}'".format(hive_column_datadate_begin,
+                                                                       hive_column_datadate_end)
+    hive_sub_where += " and (supplier_num is not null and supplier_num <> '')" \
+                      " and (supplier_name is not null" \
+                      " and supplier_name <> '')" \
+                      " and (standard_id is not null" \
+                      " and standard_id <> '')"
+    hive_sub_where += hive_column_senddate_where
+
+    hive_sub_groupby = hive_column_base
+    hive_sub_table = "select " + hive_column_base + "," + " Sum(prod_sale_qty) AS prod_sale_qty,Sum(prod_sale_fixed_amt) AS prod_sale_fixed_amt" + \
+                     " from " + hive_table + " where " + hive_sub_where + " group by " + hive_sub_groupby
+
+    hive_sql = " select '" + hive_column_date + "'," + hive_column_base + "," + hive_column_sale + "," + hive_column_rank + \
+               " from (" + hive_sub_table + ")t"
+
+    return hive_sql
+
+def get_crm_warehouse_month_top_sql(date):
+    data_date_begin=date[0:7]+"-01"
+    data_date_end=date[0:7]+"-31"
+    send_date=date[0:7]
+    trans_date=''
+
+    stock_table='''
+        SELECT
+            warehouse_id,
+            d.supplier_code as supplier_id,
+            product_id,
+            warehouse_name
+        FROM(
+                SELECT
+                    CASE
+                        WHEN trim(warehouse_id) = '10' THEN 'shenyang'
+                        WHEN trim(warehouse_id) = '15' or trim(warehouse_id) = '27' THEN 'guangzhou'
+                        WHEN trim(warehouse_id) = '17' THEN 'wuxi'
+                        WHEN trim(warehouse_id) = '20' THEN 'fuzhou'
+                        WHEN trim(warehouse_id) = '22' or trim(warehouse_id) = '28' THEN 'jinan'
+                        WHEN trim(warehouse_id) = '29' THEN 'beijing'
+                        WHEN trim(warehouse_id) = '30' THEN 'tianjin'
+                        WHEN trim(warehouse_id) = '39' THEN 'wuhan'
+                        WHEN trim(warehouse_id) = '41' or trim(warehouse_id) = '5' THEN 'chengdu'
+                        WHEN trim(warehouse_id) = '9' THEN 'zhengzhou'
+                        ELSE '0'
+                    END AS warehouse_name,
+                    supplier_id,
+                    warehouse_id,
+                    product_id,
+		            sum( CASE WHEN ( region_use_id IN ( '2', '3' ) OR region_use_id IN ( '003', '004' ) ) AND ywbmid = '4' THEN physical_stock_quantity 
+					          WHEN region_use_id IS NULL AND ywbmid IN( '2', '3', '5' ) THEN zpkc 
+					     ELSE 0 END) AS prod_qty_stock_saleable_amount
+		            FROM dwd.prod_stock_supp_detail
+		            WHERE
+                        trans_date = '{}'
+                        AND warehouse_id IN ('10','15','27','17','20','22','28','29','30','39','41','5','9')
+                        AND supplier_id IS NOT NULL
+                        AND supplier_id != ''
+                    GROUP BY
+                        warehouse_id,
+                        supplier_id,
+                        product_id
+        )t
+        left join dim.dim_supplier d 
+        on t.supplier_id = d.supplier_id
+        WHERE t.prod_qty_stock_saleable_amount <= 0
+    '''.format(trans_date)
+
+    order_send_detail_table='''
+        SELECT 
+            supplier_num,
+            supplier_name,
+            warehouse_id,
+            standard_id,
+            product_id,
+            product_name,
+            category_path2,
+            path2_name,
+            original_price,
+            sum(prod_sale_qty) AS prod_sale_qty,
+            sum(prod_sale_fixed_amt) AS prod_sale_fixed_amt
+	FROM
+		    dm_dws.dm_order_send_detail
+	WHERE
+            data_date >='{}'
+            AND data_date <= '{}'
+            AND ( supplier_name IS NOT NULL
+            AND supplier_name <> '')
+            AND substr(send_date,0,7) ='{}'
+            and standard_id is not null
+            and standard_id <> ''
+	GROUP BY
+            supplier_num,
+            supplier_name,
+            warehouse_id,
+            standard_id,
+            product_id,
+            product_name,
+            category_path2,
+            path2_name,
+            original_price
+    '''.format(data_date_begin,data_date_end,send_date)
+
+    hive_sql='''
+        SELECT '{}', 
+            t1.supplier_id, 
+            t2.supplier_name, 
+            t1.warehouse_id, 
+            t1.warehouse_name, 
+            t2.standard_id, 
+            t1.product_id, 
+            t2.product_name, 
+            category_path2, 
+            path2_name, 
+            original_price, 
+            prod_sale_qty, 
+            round(prod_sale_fixed_amt,4),
+            row_number() OVER(partition BY t1.supplier_id,t2.supplier_name,t1.warehouse_name ORDER BY prod_sale_fixed_amt desc,prod_sale_qty desc) AS rn
+        FROM ({}) t1
+        LEFT JOIN ({}) t2
+        ON t1.supplier_id = t2.supplier_num 
+            AND t1.product_id = t2.product_id 
+            AND t1.warehouse_id = t2.warehouse_id where t2.product_id is not null 
+            and t2.product_id is not null and t2.warehouse_id is not null
+    '''.format(data_date_begin,stock_table,order_send_detail_table)
+
+    return hive_sql

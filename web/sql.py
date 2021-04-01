@@ -244,7 +244,7 @@ def report_sql(data,reportname='category',conn_ck=None):
     return sd_zf_info
 
 
-def  crm_sql_data(data,datakey,sqlcursor,table,date,month):
+def  crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
     '''
 
     :param data: 筛选条件
@@ -257,12 +257,13 @@ def  crm_sql_data(data,datakey,sqlcursor,table,date,month):
     supplier_num=set()
     product_id=set()
 
-    for ele in data:
+    for ele in datakey:
         supplier,product=ele.split('_')
         supplier_num.add(supplier)
         product_id.add(int(product))
 
-    column="supplier_num,supplier_name,isbn,product_id,product_name,category_path2,path2_name,original_price,prod_sale_qty,prod_sale_fixed_amt,num"
+    #数据表字段
+    column=','.join([ele for ele in tableinfokey])
 
     if len(supplier_num)==1:
         supplier_in='('+supplier_num.pop()+')'
@@ -283,17 +284,13 @@ def  crm_sql_data(data,datakey,sqlcursor,table,date,month):
 
     sql_data={}
     for each in sqldata:
-        data = dict(zip(datakey, each))
+        data = dict(zip(tableinfokey, each))
         supplier_num = data.pop('supplier_num')
         product_id = data.pop('product_id')
         sql_data[supplier_num + '_' + str(product_id)] = data
 
     return sql_data
 
-
-
-
-    pass
 
 
 def sqldata(sql,cursor,offset=1000):
