@@ -57,9 +57,22 @@ warehouse_dict={
     'prod_sale_fixed_amt': '销售码洋',
     'num': '排行'
 }
+mayang_yunying_dict={
+        'supplier_num':'供应商编码',
+        'supplier_name':'供应商名称',
+        'prod_sale_fixed_amt': '销售码洋',
+        'return_rate': '退货率',
+        'zhouzhuan_days': '周转天数',
+       'sku_rate': '动销率',
+        'amao_rate': '毛利率A',
+        'qimo_sku_num': '期末在库品种数',
+         'PROD_STOCK_COST_AMOUNT': '期末可销售库存成本',
+         'duanhuo_rate': '全店售断率'
+}
+
 
 #hive cursor
-hive_cursor= util.connect_hive()
+# hive_cursor= util.connect_hive()
 
 
 def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
@@ -68,8 +81,15 @@ def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
     :param sql: hive sql
     :return:
     '''
-    hive_cursor.execute(hive_sql)
-    hive_data = hive_cursor.fetchmany(size=10000)
+    # hive_cursor.execute(hive_sql)
+    # hive_data = hive_cursor.fetchmany(size=10000)
+
+    #通过文件读取hive_data
+    hive_data=[]
+    for ele in hive_sql:
+        a=[column.strip(' ') for column in ele.strip('\n').split('|') if column != '']
+        a=a[0:-4]+[float(column) for column in a[-4:]]
+        hive_data.append(a)
 
     if os.name == 'posix':
         mysql_cursor = util.connect_mysql(**sql_db_info)
@@ -87,8 +107,12 @@ def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
         for each in datalist:
             data = dict(zip(tableinfo_key, each[1:]))
             supplier_num = data.pop('supplier_num')
-            product_id = data.pop('product_id')
-            each_patch_data[supplier_num + '_' + product_id] = data
+            if data.__contains__('product_id'):
+                product_id = data.pop('product_id')
+                key=supplier_num + '_' + product_id
+            else:
+                key=supplier_num
+            each_patch_data[key] = data
         i += step
 
         mysql_data = crm_sql_data(each_patch_data.keys(), tableinfo_key, mysql_cursor, mysql_table, date, month)
@@ -110,12 +134,12 @@ def product_rank_month_year(date,month=True):
         logger = log.set_logger('product_rank_year.txt')
         mysql_table = "crm_supply_product_year_top"
 
-    hive_sql=_sql.get_crm_product_month_year_top_sql(date,month)
-    hive_mysql_diff(logger,hive_sql,mysql_table,product_dict.keys(),date,month)
+    # hive_sql=_sql.get_crm_product_month_year_top_sql(date,month)
+    #hive_file ,通过文件
+    with open('./loadfile/product_month.txt','r') as hive_sql:
+        hive_mysql_diff(logger,hive_sql,mysql_table,product_dict.keys(),date,month)
 
-
-
-def suppler_warehose_rank(date):
+def supply_warehose_rank(date):
     '''断货'''
     mysql_table='crm_supply_warehouse_month_top'
     logger = log.set_logger('warehouse_month_top.txt')
@@ -125,12 +149,21 @@ def suppler_warehose_rank(date):
 
     pass
 
+def supply_mayang_yunying(date):
+    mysql_table = 'crm_supply_mayang_yunying_month'
+    logger = log.set_logger('mayang_yunying.txt')
+
+    hive_sql = _sql.get_crm_mayang_yunying_sql(date)
+    hive_mysql_diff(logger, hive_sql, mysql_table, warehouse_dict.keys(), date, True)
+    pass
+
+
 def crm_test():
-    data_date="2019-02-01"
+    data_date="2019-03-01"
 
     #月
-    # product_rank_month_year(data_date)
+    product_rank_month_year(data_date)
     #年
-    product_rank_month_year(data_date,False)
+    # product_rank_month_year(data_date,False)
     #断货
-    # suppler_warehose_rank(data_date)
+    # supply_warehose_rank(data_date)
