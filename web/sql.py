@@ -244,7 +244,7 @@ def report_sql(data,reportname='category',conn_ck=None):
     return sd_zf_info
 
 
-def  crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
+def crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
     '''
 
     :param data: 筛选条件
@@ -256,26 +256,40 @@ def  crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
         sql_date = date[0:4] + "-01-01"
     supplier_num=set()
     product_id=set()
+    warehouse_name=set()
 
     for ele in datakey:
-        supplier,product=ele.split('_')
-        supplier_num.add(supplier)
-        product_id.add(int(product))
+        supplier_warehousename_product = ele.split('_')
+        if len(supplier_warehousename_product)==1:
+            supplier_num.add(supplier_warehousename_product[0])
+
+        elif len(supplier_warehousename_product)==2:
+            supplier_num.add(supplier_warehousename_product[0])
+            product_id.add(int(supplier_warehousename_product[1]))
+
+        else:
+            supplier_num.add(supplier_warehousename_product[0])
+            warehouse_name.add(supplier_warehousename_product[1])
+            product_id.add(int(supplier_warehousename_product[2]))
+
 
     #数据表字段
     column=','.join([ele for ele in tableinfokey])
+    supplier_in=','.join([str(ele) for ele in supplier_num])
+    warehouse_in=','.join(["'"+str(ele)+"'" for ele in warehouse_name])
+    product_in=','.join([str(ele) for ele in product_id])
 
-    if len(supplier_num)==1:
-        supplier_in='('+supplier_num.pop()+')'
-    else:
-        supplier_in = str(tuple(supplier_num))
-    if len(product_id)==1:
-        product_in='('+str(product_id.pop())+')'
-    else:
-        product_in =str(tuple(product_id))
-
-    where =" supplier_num in "+ supplier_in+" and product_id in "+product_in
-    groupby=" group by supplier_num,product_id"
+    where=''
+    groupby=' group by '
+    if supplier_in !='':
+        where += " supplier_num in (" + supplier_in +')'
+        groupby += " supplier_num"
+    if warehouse_in !='':
+        where += " warehouse_name in (" + warehouse_in +")"
+        groupby += " ,warehouse_name"
+    if product_in !='':
+        where += " product_id in (" + product_in +")"
+        groupby += " ,product_id"
 
     mysql_sql=" select "+column+" from "+table+" where "+where+" and data_date='"+sql_date+"'"+groupby
 
@@ -286,8 +300,17 @@ def  crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
     for each in sqldata:
         data = dict(zip(tableinfokey, each))
         supplier_num = data.pop('supplier_num')
-        product_id = data.pop('product_id')
-        sql_data[supplier_num + '_' + str(product_id)] = data
+        key=supplier_num
+
+        if data.__contains__('warehouse_name'):
+            warehouse_name = data.pop('warehouse_name')
+            key  += '_' + str(warehouse_name)
+
+        if data.__contains__('product_id'):
+            product_id = data.pop('product_id')
+            key=supplier_num + '_' + str(product_id)
+
+        sql_data[key] = data
 
     return sql_data
 
