@@ -272,7 +272,6 @@ def crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
             warehouse_name.add(supplier_warehousename_product[1])
             product_id.add(int(supplier_warehousename_product[2]))
 
-
     #数据表字段
     column=','.join([ele for ele in tableinfokey])
     supplier_in=','.join(["'"+str(ele)+"'" for ele in supplier_num])
@@ -304,11 +303,11 @@ def crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
 
         if data.__contains__('warehouse_name'):
             warehouse_name = data.pop('warehouse_name')
-            key  += '_' + str(warehouse_name)
+            key += '_' + str(warehouse_name)
 
         if data.__contains__('product_id'):
             product_id = data.pop('product_id')
-            key=supplier_num + '_' + str(product_id)
+            key+= '_' + str(product_id)
 
         sql_data[key] = data
 

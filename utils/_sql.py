@@ -1,4 +1,4 @@
-from .date import get_tb_hb_date
+from .date import get_tb_hb_date,get_month_end_day
 from .tb_hb import tb_hb_cal,get_tb_hb_key
 
 def get_platform_where(data,yinhao=False):
@@ -457,7 +457,9 @@ def get_crm_product_month_year_top_sql(date,month=True):
 
 def get_crm_warehouse_month_top_sql(date):
     data_date_begin=date[0:7]+"-01"
-    data_date_end=date[0:7]+"-31"
+    #月末最后一天
+    data_date_end=get_month_end_day(data_date_begin)
+
     send_date=date[0:7]
     trans_date=date[0:7]
 
@@ -564,10 +566,14 @@ def get_crm_warehouse_month_top_sql(date):
 
     return hive_sql
 
-def get_mayang_yunying_sql(date):
+def get_crm_mayang_yunying_sql(date):
 
-    end_date=date[0:7]+"-31"
-    begin_date=date[0:7]+"-01"
+    #统计当月第一天
+    begin_date = date[0:7] + "-01"
+    #统计当月的下一个月的第一天
+    month=str(int(date[5:7])+1)
+    new_month=len(month)<2 and '0'+month or month
+    end_date=date[0:4]+"-"+new_month+"-01"
 
     hive_sql='''
         SELECT

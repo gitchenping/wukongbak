@@ -114,13 +114,14 @@ def diff_dict(data1, data2, absvalue=0.5):
                     if diff_key_value[key] == {}:
                         diff_key_value.pop(key)
                 else:
-                    if isinstance(data1_value, str) and isinstance(data2_value, str):
-                        if data1_value != data2_value:
-                            diff_key_value[key] = (data1_value, data2_value)
-                    else:
-                        if abs(data1_value - data2_value) > absvalue:
-                            # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
-                            diff_key_value[key] = (data1_value, data2_value)
+                    if data1_value is not None and data2_value is not None:
+                        if isinstance(data1_value, str) and isinstance(data2_value, str):
+                            if data1_value != data2_value:
+                                diff_key_value[key] = (data1_value, data2_value)
+                        else:
+                            if abs(data1_value - data2_value) > absvalue:
+                                # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
+                                diff_key_value[key] = (data1_value, data2_value)
             except TypeError as e:
                 diff_key_value[key + ' 运算类型错误'] = (data1_value, data2_value)
             except Exception as e:
