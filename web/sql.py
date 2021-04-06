@@ -275,7 +275,7 @@ def crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
 
     #数据表字段
     column=','.join([ele for ele in tableinfokey])
-    supplier_in=','.join([str(ele) for ele in supplier_num])
+    supplier_in=','.join(["'"+str(ele)+"'" for ele in supplier_num])
     warehouse_in=','.join(["'"+str(ele)+"'" for ele in warehouse_name])
     product_in=','.join([str(ele) for ele in product_id])
 
@@ -285,10 +285,10 @@ def crm_sql_data(datakey,tableinfokey,sqlcursor,table,date,month):
         where += " supplier_num in (" + supplier_in +')'
         groupby += " supplier_num"
     if warehouse_in !='':
-        where += " warehouse_name in (" + warehouse_in +")"
+        where += " and warehouse_name in (" + warehouse_in +")"
         groupby += " ,warehouse_name"
     if product_in !='':
-        where += " product_id in (" + product_in +")"
+        where += " and product_id in (" + product_in +")"
         groupby += " ,product_id"
 
     mysql_sql=" select "+column+" from "+table+" where "+where+" and data_date='"+sql_date+"'"+groupby
