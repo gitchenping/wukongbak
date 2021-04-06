@@ -444,7 +444,7 @@ def get_crm_product_month_year_top_sql(date,month=True):
                       " and supplier_name <> '')" \
                       " and (standard_id is not null" \
                       " and standard_id <> '')"
-    hive_sub_where += hive_column_senddate_where
+    hive_sub_where += hive_column_senddate_where+ " and  sale_type=1 "
 
     hive_sub_groupby = hive_column_base
     hive_sub_table = "select " + hive_column_base + "," + " Sum(prod_sale_qty) AS prod_sale_qty,Sum(prod_sale_fixed_amt) AS prod_sale_fixed_amt" + \
@@ -459,7 +459,7 @@ def get_crm_warehouse_month_top_sql(date):
     data_date_begin=date[0:7]+"-01"
     data_date_end=date[0:7]+"-31"
     send_date=date[0:7]
-    trans_date=''
+    trans_date=date[0:7]
 
     stock_table='''
         SELECT
@@ -490,7 +490,7 @@ def get_crm_warehouse_month_top_sql(date):
 					     ELSE 0 END) AS prod_qty_stock_saleable_amount
 		            FROM dwd.prod_stock_supp_detail
 		            WHERE
-                        trans_date = '{}'
+                        substr(trans_date,0,7) = '{}'
                         AND warehouse_id IN ('10','15','27','17','20','22','28','29','30','39','41','5','9')
                         AND supplier_id IS NOT NULL
                         AND supplier_id != ''
@@ -561,5 +561,253 @@ def get_crm_warehouse_month_top_sql(date):
             AND t1.warehouse_id = t2.warehouse_id where t2.product_id is not null 
             and t2.product_id is not null and t2.warehouse_id is not null
     '''.format(data_date_begin,stock_table,order_send_detail_table)
+
+    return hive_sql
+
+def get_mayang_yunying_sql(date):
+
+    end_date=date[0:7]+"-31"
+    begin_date=date[0:7]+"-01"
+
+    hive_sql='''
+        SELECT
+            '{}',
+            supplier_code as supplier_num,
+            supplier_name,
+            prod_fixed_sale_amount as prod_sale_fixed_amt,
+            round(prod_cost_purchase_return_amount / prod_cost_purchase_amount,4) as return_rate,
+            round((prod_cost_stock_amount_start + prod_cost_stock_amount_end)/ 2 / prod_cost_sale_amount*currmonth_days,4) as zhouzhuan_days,
+            round(prod_sold_amount / prod_skunums_stock_saleable_amount,4) as sku_rate,
+            round(prod_gross_sale_amount / prod_net_sale_amount,4) as amao_rate,
+            prod_skunums_stock_saleable_amount as qimo_sku_num,
+            prod_cost_stock_saleable_amount as prod_stock_cost_amount,
+            round(prod_skunums_stock_soldout_amount / prod_skunums_stock_saleable_amount,4) as duanhuo_rate
+        from (
+            select
+                supplier_code,
+                max(supplier_name) as supplier_name,
+                max(prod_fixed_sale_amount) as prod_fixed_sale_amount,
+                max(prod_cost_purchase_amount) as prod_cost_purchase_amount,
+                max(prod_cost_purchase_return_amount) as prod_cost_purchase_return_amount,
+                max(prod_cost_stock_amount_start) as prod_cost_stock_amount_start,
+                max(prod_cost_stock_amount_end) as prod_cost_stock_amount_end,
+                max(prod_cost_sale_amount) as prod_cost_sale_amount,
+                datediff('{}','{}') as currmonth_days,
+                max(prod_sold_amount) as prod_sold_amount,
+                max(prod_skunums_stock_saleable_amount) as prod_skunums_stock_saleable_amount,
+                max(prod_gross_sale_amount) as prod_gross_sale_amount,
+                max(prod_net_sale_amount) as prod_net_sale_amount,
+                max(prod_cost_stock_saleable_amount) as prod_cost_stock_saleable_amount,
+                max(prod_skunums_stock_soldout_amount) as prod_skunums_stock_soldout_amount
+            from 
+                (
+                    SELECT 
+                        supplier_code,
+                        supplier_name,
+                        prod_fixed_sale_amount, 
+                        null as prod_cost_purchase_amount, 
+                        null as prod_cost_purchase_return_amount, 
+                        null as prod_cost_stock_amount_start, 
+                        null as prod_cost_stock_amount_end, 
+                        prod_cost_sale_amount,
+                        prod_skunums_sold_amount as prod_sold_amount, 
+                        null as prod_skunums_stock_saleable_amount, 
+                        prod_gross_sale_amount,
+                        prod_net_sale_amount, 
+                        null as prod_cost_stock_saleable_amount,
+                        null as prod_skunums_stock_soldout_amount 
+                    from (select 
+                            supplier_num as supplier_code,
+                            max(supplier_name) as supplier_name,
+                            round(sum(case when sale_type = 1 then prod_sale_fixed_amt else 0 end), 4) as prod_fixed_sale_amount, 
+                            round(sum(case when sale_type in(1,2) then gross_profit else 0 end), 4) as prod_gross_sale_amount, 
+                            round(sum(case when sale_type in(1,2) then out_profit else 0 end), 4) as prod_net_sale_amount, 
+                            round(sum(case when sale_type = 1 then cost_amount else 0 end), 4) as prod_cost_sale_amount, 
+                            count(distinct case when sale_type = 1 and prod_sale_qty >= 1 then product_id else null end) as prod_skunums_sold_amount 
+                            from dm_dws.dm_order_send_detail 
+                            where data_date >= '{}' and data_date < '{}'
+                            and supplier_num is not null and supplier_num != ''
+                            group by 
+                                supplier_num
+                         )tmp1_send_res
+			        union all
+                    select 
+                        supplier_code,
+                        supplier_name,
+                        null as prod_fixed_sale_amount,
+                        null as prod_cost_purchase_amount, 
+                        prod_cost_purchase_return_amount, 
+                        null as prod_cost_stock_amount_start, 
+                        null as prod_cost_stock_amount_end, 
+                        null as prod_cost_sale_amount, 
+                        null as prod_sold_amount, 
+                        null as prod_skunums_stock_saleable_amount, 
+                        null as prod_gross_sale_amount, 
+                        null as prod_net_sale_amount, 
+                        null as prod_cost_stock_saleable_amount, 
+                        null as prod_skunums_stock_soldout_amount 
+			from (
+				select 
+					suppliers.supplier_code,
+					suppliers.supplier_name,
+					res.prod_cost_purchase_return_amount
+					from (
+						select 
+							supplier_key,
+							sum(purchase_return_quantity *purchase_price) as prod_cost_purchase_return_amount 
+						from dwd.prod_purchase_return_detail
+						where trans_date >= '{}' and trans_date < '{}'
+						group by supplier_key
+						) res 
+					left outer join dim.dim_supplier suppliers 
+					on res.supplier_key = suppliers.supplier_key
+				) tmp2_purchase_return_res
+			union all
+			select 
+				supplier_code,
+				supplier_name,
+				null as prod_fixed_sale_amount, 
+				prod_cost_purchase_amount, 
+				null as prod_cost_purchase_return_amount, 
+				null as prod_cost_stock_amount_start, 
+				null as prod_cost_stock_amount_end, 
+				null as prod_cost_sale_amount, 
+				null as prod_sold_amount,
+				null as prod_skunums_stock_saleable_amount, 
+				null as prod_gross_sale_amount, 
+				null as prod_net_sale_amount, 
+				null as prod_cost_stock_saleable_amount, 
+				null as prod_skunums_stock_soldout_amount 
+			from (
+					select 
+						suppliers.supplier_code,
+						suppliers.supplier_name,
+						res.prod_cost_purchase_amount
+						from (
+						select 
+							supplier_key,
+							sum(purchase_quantity*purchase_price) as prod_cost_purchase_amount 
+						from 
+							dwd.prod_purchase_in_detail
+						where trans_date >= '{}' and trans_date < '{}'
+						group by supplier_key
+						) res 
+						left outer join dim.dim_supplier suppliers 
+						on res.supplier_key = suppliers.supplier_key
+				) tmp3_purchase_to_storage_res
+			union all
+			select 
+				supplier_code,
+				supplier_name,
+				null as prod_fixed_sale_amount, 
+				null as prod_cost_purchase_amount, 
+				null as prod_cost_purchase_return_amount, 
+				null as prod_cost_stock_amount_start, 
+				prod_cost_stock_amount_end, 
+				null as prod_cost_sale_amount, 
+				null as prod_sold_amount, 
+				prod_skunums_stock_saleable_amount,
+				null as prod_gross_sale_amount, 
+				null as prod_net_sale_amount, 
+				prod_cost_stock_saleable_amount, 
+				prod_skunums_stock_soldout_amount 
+			from (
+				select 
+					suppliers.supplier_code,
+					suppliers.supplier_name,
+					res.prod_cost_stock_amount as prod_cost_stock_amount_end,
+					res.prod_skunums_stock_saleable_amount,
+					res.prod_cost_stock_saleable_amount,
+					res.prod_skunums_stock_soldout_amount
+					from (
+						select 
+							supplier_id,
+							sum(prod_cost_stock_amount) as prod_cost_stock_amount,
+						count(distinct case when prod_qty_stock_amount > 0 then product_id else null end) as prod_skunums_stock_saleable_amount,
+						sum(prod_cost_stock_saleable_amount) as prod_cost_stock_saleable_amount,
+						count(distinct case when prod_qty_stock_saleable_amount_tj <= 0 and prod_qty_stock_saleable_amount_gz <= 0 and prod_qty_stock_saleable_amount_wx <= 0 then product_id else null end) as prod_skunums_stock_soldout_amount 
+						from (
+							select 
+								supplier_id,
+								product_id,
+								sum(physical_stock_quantity * purchase_price) as prod_cost_stock_amount,
+								sum(physical_stock_quantity) as prod_qty_stock_amount,
+								sum(
+								case when (region_use_id in ('2', '3') or region_use_id in ('003', '004')) and ywbmid='4' then physical_stock_quantity*purchase_price
+								when region_use_id is null and ywbmid in('2','3','5') then zpkcsy
+								else 0 
+								end
+								) 
+								as prod_cost_stock_saleable_amount,
+								sum(
+								case when warehouse_id =30 and (region_use_id in ('2', '3') or region_use_id in ('003', '004')) and ywbmid='4' then physical_stock_quantity
+								when warehouse_id =30 and region_use_id is null and ywbmid in('2','3','5') then zpkc
+								else 0 
+								end
+								) 
+								as prod_qty_stock_saleable_amount_tj,
+								sum(
+								case when warehouse_id in(15,27) and (region_use_id in ('2', '3') or region_use_id in ('003', '004')) and ywbmid='4' then physical_stock_quantity
+								when warehouse_id in(15,27) and region_use_id is null and ywbmid in('2','3','5') then zpkc
+								else 0 
+								end
+								) 
+								as prod_qty_stock_saleable_amount_gz,
+								sum(
+								case when warehouse_id =17 and (region_use_id in ('2', '3') or region_use_id in ('003', '004')) and ywbmid='4' then physical_stock_quantity
+								when warehouse_id =17 and region_use_id is null and ywbmid in('2','3','5') then zpkc
+								else 0 
+								end
+								) 
+								as prod_qty_stock_saleable_amount_wx
+								from dwd.prod_stock_supp_detail
+								where trans_date = date_sub(cast(cast(concat(year('{}'),'-',month('{}'),'-01') as date) as string),1)
+								group by supplier_id, product_id
+						) tmp4_stock_res_qimo_pre
+						group by supplier_id
+					) res
+					left outer join dim.dim_supplier suppliers 
+					on res.supplier_id = suppliers.supplier_id
+			) tmp4_stock_res_qimo
+			union all
+			select 
+				supplier_code,
+				supplier_name,
+				null as prod_fixed_sale_amount, 
+				null as prod_cost_purchase_amount, 
+				null as prod_cost_purchase_return_amount, 
+				prod_cost_stock_amount_start, 
+				null as prod_cost_stock_amount_end, 
+				null as prod_cost_sale_amount, 
+				null as prod_sold_amount, 
+				null as prod_skunums_stock_saleable_amount, 
+				null as prod_gross_sale_amount, 
+				null as prod_net_sale_amount, 
+				null as prod_cost_stock_saleable_amount, 
+				null as prod_skunums_stock_soldout_amount 
+			from (
+				select 
+					suppliers.supplier_code,
+					suppliers.supplier_name,
+					res.prod_cost_stock_amount as prod_cost_stock_amount_start 
+					from (
+						select 
+							supplier_id,
+							sum(physical_stock_quantity * purchase_price) as prod_cost_stock_amount 
+						from dwd.prod_stock_supp_detail
+						where trans_date = '{}' 
+						group by supplier_id
+					) res 
+					left outer join dim.dim_supplier suppliers 
+					on res.supplier_id = suppliers.supplier_id
+			)tmp5_stock_res_qichu
+		) report_meta_res_union
+	where
+		supplier_code is not null
+		and supplier_code != ''
+	group by
+		supplier_code 
+	) report_meta_res
+    '''.format(begin_date,end_date,begin_date,begin_date,end_date,begin_date,end_date,begin_date,end_date,end_date,end_date,begin_date)
 
     return hive_sql

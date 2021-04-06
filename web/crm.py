@@ -89,6 +89,7 @@ def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
     for ele in hive_sql:
         a=[column.strip(' ') for column in ele.strip('\n').split('|') if column != '']
         a=a[0:-4]+[float(column) for column in a[-4:]]
+
         hive_data.append(a)
 
     if os.name == 'posix':
@@ -107,11 +108,15 @@ def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
         for each in datalist:
             data = dict(zip(tableinfo_key, each[1:]))
             supplier_num = data.pop('supplier_num')
+
+            key=supplier_num
+            if data.__contains__('warehouse_name'):
+                warehouse_name = data.pop('warehouse_name')
+                key = key + '_' + warehouse_name
             if data.__contains__('product_id'):
                 product_id = data.pop('product_id')
-                key=supplier_num + '_' + product_id
-            else:
-                key=supplier_num
+                key=key + '_' + product_id
+
             each_patch_data[key] = data
         i += step
 
@@ -134,7 +139,12 @@ def product_rank_month_year(date,month=True):
         logger = log.set_logger('product_rank_year.txt')
         mysql_table = "crm_supply_product_year_top"
 
-    # hive_sql=_sql.get_crm_product_month_year_top_sql(date,month)
+
+    hive_sql=_sql.get_crm_product_month_year_top_sql(date,month)
+    #每个分组取top N
+    # N=3
+    # hive_sql="select * from ("+hive_sql+") t where rank<="+str(N)
+
     #hive_file ,通过文件
     with open('./loadfile/product_month.txt','r') as hive_sql:
         hive_mysql_diff(logger,hive_sql,mysql_table,product_dict.keys(),date,month)
@@ -144,8 +154,9 @@ def supply_warehose_rank(date):
     mysql_table='crm_supply_warehouse_month_top'
     logger = log.set_logger('warehouse_month_top.txt')
 
-    hive_sql=_sql.get_crm_warehouse_month_top_sql(date)
-    hive_mysql_diff(logger, hive_sql, mysql_table,warehouse_dict.keys(), date, True)
+    # hive_sql=_sql.get_crm_warehouse_month_top_sql(date)
+    with open('./loadfile/warehouse_month.txt', 'r') as hive_sql:
+        hive_mysql_diff(logger, hive_sql, mysql_table,warehouse_dict.keys(), date, True)
 
     pass
 
@@ -162,8 +173,8 @@ def crm_test():
     data_date="2019-03-01"
 
     #月
-    product_rank_month_year(data_date)
+    # product_rank_month_year(data_date)
     #年
     # product_rank_month_year(data_date,False)
     #断货
-    # supply_warehose_rank(data_date)
+    supply_warehose_rank(data_date)
