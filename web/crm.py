@@ -112,6 +112,7 @@ def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
             key=supplier_num
             if data.__contains__('warehouse_name'):
                 warehouse_name = data.pop('warehouse_name')
+                data['warehouse_id']=int(data['warehouse_id'])
                 key = key + '_' + warehouse_name
             if data.__contains__('product_id'):
                 product_id = data.pop('product_id')
@@ -155,7 +156,7 @@ def supply_warehose_rank(date):
     logger = log.set_logger('warehouse_month_top.txt')
 
     # hive_sql=_sql.get_crm_warehouse_month_top_sql(date)
-    with open('./loadfile/warehouse_month.txt', 'r') as hive_sql:
+    with open('./loadfile/warehouse_month.txt', 'r',encoding='UTF-8') as hive_sql:
         hive_mysql_diff(logger, hive_sql, mysql_table,warehouse_dict.keys(), date, True)
 
     pass
@@ -170,7 +171,7 @@ def supply_mayang_yunying(date):
 
 
 def crm_test():
-    data_date="2019-03-01"
+    data_date="2020-03-01"
 
     #月
     # product_rank_month_year(data_date)

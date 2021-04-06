@@ -70,8 +70,11 @@ def simplediff(data1,data2):
     diff_key_value={}
     for key in data1.keys():
         data1_value = data1[key]
-        data2_value=data2[key]
-
+        try:
+            data2_value = data2[key]
+        except KeyError:
+            diff_key_value[key] = 'mysql 中此键值不存在'
+            continue
         if isinstance(data1_value,dict):
             diff_key_value[key]=simplediff(data1_value,data2_value)
             if diff_key_value[key]=={}:
@@ -153,7 +156,6 @@ def connect_hive(host=None,port=None, user=None, password=None, database=None,co
 
 @loadenv(db='db_mysql')
 def connect_mysql(host=None,port=None, user=None, password=None, database=None,collection=None):
-
     conn=pymysql.connect(host=host,port=port,user=user,password=password,db=database)
     return conn.cursor()
 
