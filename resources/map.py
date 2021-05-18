@@ -31,11 +31,11 @@ drill_zf_ck_dict={'out_pay_amount': '实付金额', 'out_profit': '净销售额'
 drill_ck = { 'gross_profit': '毛利额', 'gross_profit_rate': '毛利率'}
 
 #用户分析指标
-user_dict={"create_parent_uv_sd":"收订用户",
+user_dict={
             "new_uv":"新访UV","new_uv_ratio": "新访UV占比",
            "register_number": "新增注册用户","new_create_parent_uv_sd": "新增收订用户",
            "new_create_parent_uv_zf": "新增支付用户","new_create_parent_uv_ck": "新增出库用户",
-            "uv": "活跃UV",
+            "uv": "活跃UV","create_parent_uv_sd":"收订用户",
            "create_parent_uv_zf":"支付用户","create_parent_uv_ck":"出库用户",
            "daycount_ratio_sd": "收订下单频次",
            "daycount_ratio_zf": "支付下单频次"}

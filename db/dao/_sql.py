@@ -610,7 +610,7 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
 
     outer_column=["t"+str(i+1)+"."+outer_column[i] for i in range(0,len(outer_column))]
 
-    outer_column.insert(2,new_uv_ration_column)
+    outer_column.insert(1,new_uv_ration_column)
 
     final_sql="select "+",".join(outer_column) +", t1.date_str from "+sql +orderby
 

@@ -106,9 +106,9 @@ def user_analysis_op(datetype,date_str):
                                   'date': date_str
                                   }
 
-                            # data={'source': 'all', 'platform': 'all', 'parent_platform': 'all',
-                            #       'bd_id':'5','shop_type':'all','eliminate_type':'all',
-                            #       'date_type': 'd', 'date': '2021-05-17'}
+                            data={'source': 'all', 'platform': 'all', 'parent_platform': 'all',
+                                  'bd_id':'4','shop_type':'1','eliminate_type':'5',
+                                  'date_type': 'd', 'date': '2021-05-17'}
 
                             user_overview(data)
                             # user_drill(data)
