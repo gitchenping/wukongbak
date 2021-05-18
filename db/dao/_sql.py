@@ -541,12 +541,13 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
 
     # where=" where bd_id IN (1,4,9,15,16) AND platform IN (1,2) and shop_type=1 and  date_str IN ('2021-05-12','2020-05-12','2021-05-05','2021-05-11') "
     groupby = "  group by date_str "
-    orderby = " order by t1.date_str desc"
+    orderby = " order by date_str desc"
 
     #根据指标拼接sql，一个
     sql_list=[]
     i=1
     outer_column=[]
+    indicator_list=[]
     for ename,cname in indicator.items():
 
         if ename=='new_uv_ratio':
@@ -592,10 +593,25 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
         column = user_indicator_op_cal_dict[ename][0]+" ,"+column_date
         table = 'bi_mdata.'+user_indicator_op_cal_dict[ename][1]
 
-        sql_list.append("(select "+column+ " from "+table+ newwhere + groupby+" ) "+alias_name)
-        i+=1
+        sql="select " + column + " from " + table + newwhere + groupby + orderby
+        sql_list.append(sql)
 
-    #组装sql
+        indicator_list.append(ename)
+
+        if ename=="new_uv":
+            new_uv_sql=sql
+        if ename=='uv':
+            uv_sql = sql
+
+    #新访UV占比
+    uv_ratio_sql="select t1."+"new_uv / t2.uv*100 as new_uv_ratio,t1.date_str  from ("+new_uv_sql+") t1 "+" left join ("+uv_sql+") t2 on t1.date_str=t2.date_str "+orderby
+
+    sql_list.append(uv_ratio_sql)
+    indicator_list.append('new_uv_ratio')
+
+    return sql_list,indicator_list
+
+    #组装sql  ，此处有bug
     length=len(sql_list)
     sql_list=[sql_list[0]]+[sql_list[i] + " on t1" + ".date_str=t" + str(i + 1) + ".date_str" for i in range(1, length)]
     sql = ' left join '.join(sql_list)

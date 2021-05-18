@@ -51,40 +51,70 @@ def sql_user_analysis_overview_op(data, test_indicator_dict, ck_db=None):
     if data['bd_id'] !='all' or data['shop_type'] !='all':
         indicator_dict.pop('register_number')
 
-    sql=get_sql_for_user_analysis_overview_op(data,indicator_dict)
+    sqllist,indicator_list=get_sql_for_user_analysis_overview_op(data,indicator_dict)
     # sql='select 2+2'
     # conn.execute(sql)
     # rawdata=conn.fetchall()
-    r=requests.get(headers=ck_db['headers'],url=ck_db['host'],params={'query':sql})
 
-    '''debug
-     rawdata=[[360,338,1.14,1.14,'2021-05-12',],
-            [None,273,1.09,1.05,'2021-05-11'],
-            [198,184,1.1,1.04,'2021-05-05'],
-            [216,196,1.06,1.06,'2020-05-12']]
-    
-    '''
-    if r.status_code==200 and len(r.text)>0:
-        rawdata=[ele.split('\t') for ele in  r.text.strip('\n').split('\n')]
+    #依次处理每个指标
+    for sql,ename in zip(sqllist,indicator_list):
 
-        #将rawdata转换为narray类型
-        raw_data_array=np.array(rawdata)
+        r=requests.get(headers=ck_db['headers'],url=ck_db['host'],params={'query':sql})
 
-        i=0
-        for indicator_name in indicator_dict.keys():         #循环处理每个指标
+        '''debug
+             rawdata=[[360,338,1.14,1.14,'2021-05-12',],
+                    [None,273,1.09,1.05,'2021-05-11'],
+                    [198,184,1.1,1.04,'2021-05-05'],
+                    [216,196,1.06,1.06,'2020-05-12']]
 
-            each_indicator=raw_data_array[:,[i,-1]]
-            each_indicator_list=each_indicator.tolist()
-            each_indicator_list=[[float(ele[0]), ele[1]]  for ele in each_indicator_list if ele[0] is not None and ele[0]!='0']
+            '''
+        if r.status_code == 200 and len(r.text) > 0:
+            rtext=r.text.strip('\n')
+            rawdata = [ele.split('\t') for ele in rtext.split('\n')]
 
-            each_item_sqldata=get_overview_tb_hb(each_indicator_list, test_indicator_dict[indicator_name], date, datetype)
+            each_indicator_list=[[float(ele[0]), ele[1]] for ele in rawdata if
+                                       ele[0] is not None and ele[0] != '0']
+
+            each_item_sqldata = get_overview_tb_hb(each_indicator_list, test_indicator_dict[ename], date,
+                                                   datetype)
 
             sqldata.update(each_item_sqldata)
 
-            i+=1
-            pass
+    #新访uv占比
+    # if indicator_dict.__contains__('new_uv_ratio') :
+    #     new_uv_value=sqldata['新访UV']['value']
+    #     uv_value=sqldata['活跃UV']['value']
+    #     if uv_value is not None or uv_value !=0 or uv_value!='--':
+    #         sqldata['新访UV占比']=round( new_uv_value / uv_value *100 ,2)
+
 
     return sqldata
+
+    '''
+    
+    # 将rawdata转换为narray类型
+            raw_data_array = np.array(rawdata)
+
+            i = 0
+            for indicator_name in indicator_dict.keys():  # 循环处理每个指标
+
+                each_indicator = raw_data_array[:, [i, -1]]
+                each_indicator_list = each_indicator.tolist()
+                each_indicator_list = [[float(ele[0]), ele[1]] for ele in each_indicator_list if
+                                       ele[0] is not None and ele[0] != '0']
+
+                each_item_sqldata = get_overview_tb_hb(each_indicator_list, test_indicator_dict[indicator_name], date,
+                                                       datetype)
+
+                sqldata.update(each_item_sqldata)
+
+                i += 1
+                pass
+
+
+    return sqldata
+    '''
+
 
 
 def sql_user_analysis_drill(datacopy, ck_tables, test_indicator_dict, data_type_dict,conn=None):
