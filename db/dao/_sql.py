@@ -91,14 +91,19 @@ def get_bd_where(data,yinhao=False):
     elif bd == '4':                 #文创
         bd_id = [20,21,23]
     elif bd=='5':                   #其他
-        bd_id = [0,13,19]
+        bd_id = [1,3,4,9,15,16,5,12,6,20,21,23]
     elif bd=='6':                   #服装
         bd_id = [3]
     else:
         bd_id =''                    #[1, 3, 4, 5,6, 9, 12, 15, 16, 20, 21, 23
 
-    bdwhere=" and bd_id in "
+    if bd == '5':
+        bdwhere = " and bd_id not in "
+    else:
+        bdwhere=" and bd_id in "
+
     if bd_id !='':
+
         bdwhere += "(" + ','.join([_yin + str(ele) + _yin for ele in bd_id]) + ")"
     else:
         bdwhere=''
@@ -534,7 +539,6 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
 
 
 
-
     # where=" where bd_id IN (1,4,9,15,16) AND platform IN (1,2) and shop_type=1 and  date_str IN ('2021-05-12','2020-05-12','2021-05-05','2021-05-11') "
     groupby = "  group by date_str "
     orderby = " order by t1.date_str desc"
@@ -606,7 +610,7 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
 
     outer_column=["t"+str(i+1)+"."+outer_column[i] for i in range(0,len(outer_column))]
 
-    outer_column.insert(1,new_uv_ration_column)
+    outer_column.insert(2,new_uv_ration_column)
 
     final_sql="select "+",".join(outer_column) +", t1.date_str from "+sql +orderby
 

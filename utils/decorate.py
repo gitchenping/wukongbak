@@ -76,6 +76,7 @@ def complog(logger=None):
                 filter=args[0]         #第一个参数作为比较条件
                 logger.info('筛选条件: '+str(filter)+"-*-Fail-*-")
                 logger.info("diff info:" + str(result))
+                logger.info(' ')
             # return result
         return wrapper
     return decorator

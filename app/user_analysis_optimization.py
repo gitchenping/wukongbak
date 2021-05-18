@@ -62,7 +62,13 @@ def user_overview(data):
     apidata = api_user_analysis_overview_op(url,datacopy, test_indicator_dict)
     sqldata = sql_user_analysis_overview_op(datacopy,test_indicator_dict,ck_db)
 
-    return util.diff_dict(apidata,sqldata)
+    try:
+        diff= util.diff_dict(apidata,sqldata)
+    except Exception as e:
+        print(e.__repr__())
+        print(data)
+
+    return diff
 
     pass
 
@@ -101,7 +107,7 @@ def user_analysis_op(datetype,date_str):
                                   }
 
                             # data={'source': 'all', 'platform': 'all', 'parent_platform': 'all',
-                            #       'bd_id':'5','shop_type':'2','eliminate_type':'all',
+                            #       'bd_id':'5','shop_type':'all','eliminate_type':'all',
                             #       'date_type': 'd', 'date': '2021-05-17'}
 
                             user_overview(data)
