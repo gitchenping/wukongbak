@@ -1,11 +1,12 @@
-import utils
-from app import ck_sqlserver
-from app import view
-from app import jingyingfenxi_new
-from app import user_offline
-from app import user_analysis
-from web import reco_analysis
-from web import crm
+# import utils
+# from app import ck_sqlserver
+# from app import view
+# from app import jingyingfenxi_new
+from app import user_analysis_optimization
+# # from app import user_offline
+# from app import user_analysis
+# from web import reco_analysis
+# from web import crm
 # from web  import report_table
 
 if __name__=="__main__":
@@ -21,5 +22,6 @@ if __name__=="__main__":
    # user_offline.run_job()
    # user_analysis.run_job()
    # reco_analysis.reco_test()
-   #report_table.report_product()
-   crm.crm_test()
+   #report_table.report_product_test()
+   # crm.crm_test()
+   user_analysis_optimization.run_job()

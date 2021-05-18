@@ -1,21 +1,8 @@
-'''
-mysql_table={
-    'crm_supply_cat_month':'月度品类销售分布',
-    'crm_supply_zhengti_xiaoshou':'历史销售&回款',
-    'crm_supply_mayang_yunying_month':'月毛利&存货',
-    'crm_supply_caigou_month':'上月采购码洋到货率',
-    'crm_supply_huigao_month':'上月回告码洋',
-
-    'crm_supply_daohuoshichang_month':'月平均到货时长',
-    'crm_supply_product_month_top':'月销售TOP40',
-    'crm_supply_product_year_top':'年销售TOP40',
-    'crm_supply_warehouse_month_top':'天津仓售断TOP全品'
-}
-'''
 import os,sys
-from utils import util,_sql
+from utils import util
 from utils import log
-from .sql import sqldata,crm_sql_data
+from db.map.crm import product_dict,mayang_yunying_dict,warehouse_dict
+from db.dao.crm import get_crm_sql_data,get_crm_product_month_year_top_sql
 from utils.util import connect_mysql_from_jump_server
 
 #mysql 信息字典
@@ -27,53 +14,8 @@ sql_db_info={
     'database':"BdataSupplierDB"
 }
 
-#品 字段信息
-product_dict={
-    'supplier_num':'供应商编码',
-    'supplier_name' :'供应商名称',
-    'isbn': 'isbn',
-    'product_id':'商品id',
-    'product_name':'商品名称',
-    'category_path2' :'二级类路径',
-    'path2_name': '二级类名称',
-    'original_price':'定价',
-    'prod_sale_qty': '销售数量',
-    'prod_sale_fixed_amt':'销售码洋',
-    'num' : '排行'
-}
-
-warehouse_dict={
-    'supplier_num': '供应商编码',
-    'supplier_name': '供应商名称',
-    'warehouse_id':'仓店id',
-    'warehouse_name':'仓店名称',
-    'isbn': 'isbn',
-    'product_id': '商品id',
-    'product_name': '商品名称',
-    'category_path2': '二级类路径',
-    'path2_name': '二级类名称',
-    'original_price': '定价',
-    'prod_sale_qty': '销售数量',
-    'prod_sale_fixed_amt': '销售码洋',
-    'num': '排行'
-}
-mayang_yunying_dict={
-        'supplier_num':'供应商编码',
-        'supplier_name':'供应商名称',
-        'prod_sale_fixed_amt': '销售码洋',
-        'return_rate': '退货率',
-        'zhouzhuan_days': '周转天数',
-       'sku_rate': '动销率',
-        'amao_rate': '毛利率A',
-        'qimo_sku_num': '期末在库品种数',
-         'PROD_STOCK_COST_AMOUNT': '期末可销售库存成本',
-         'duanhuo_rate': '全店售断率'
-}
-
-
 #hive cursor
 # hive_cursor= util.connect_hive()
-
 
 def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
     '''
@@ -129,7 +71,7 @@ def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
             each_patch_data[key] = data
         i += step
 
-        mysql_data = crm_sql_data(each_patch_data.keys(), tableinfo_key, mysql_cursor, mysql_table, date, month)
+        mysql_data = get_crm_sql_data(each_patch_data.keys(), tableinfo_key, mysql_cursor, mysql_table, date, month)
         diffkey = util.diff_dict(each_patch_data, mysql_data)
         if diffkey != {}:
             # logger.info('筛选条件: ' + str(filter) + "-*-Fail-*-")
@@ -149,13 +91,17 @@ def product_rank_month_year(date,month=True):
         mysql_table = "crm_supply_product_year_top"
 
 
-    hive_sql=_sql.get_crm_product_month_year_top_sql(date,month)
+    hive_sql=get_crm_product_month_year_top_sql(date,month)
     #每个分组取top N
     # N=3
     # hive_sql="select * from ("+hive_sql+") t where rank<="+str(N)
 
     #hive_file ,通过文件
-    with open('./loadfile/product_month.txt','r') as hive_sql:
+    if month:
+        file='product_month.txt'
+    else:
+        file = 'product_rank_year.txt'
+    with open('./loadfile/'+file,'r',encoding='UTF-8') as hive_sql:
         hive_mysql_diff(logger,hive_sql,mysql_table,product_dict.keys(),date,month)
 
 def supply_warehose_rank(date):
@@ -180,13 +126,13 @@ def supply_mayang_yunying(date):
 
 
 def crm_test():
-    data_date="2021-01-01"
+    data_date="2020-03-01"
 
     #月
     # product_rank_month_year(data_date)
     #年
     # product_rank_month_year(data_date,False)
     #断货
-    # supply_warehose_rank(data_date)
+    supply_warehose_rank(data_date)
     #运营
-    supply_mayang_yunying(data_date)
+    # supply_mayang_yunying(data_date)

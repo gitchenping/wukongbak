@@ -2,8 +2,10 @@ import json
 from utils import util
 import logging
 from . import api
-from . import sql
+from db.dao.jingyingfenxi import *
+from api.service.user_analysis import *
 
+conn_ck = util.connect_clickhouse()
 #经营分析API
 cf=util.readini('./config.ini')
 jingying_analysis_api_path=cf.get('api','jingying_analysis_api')
@@ -19,8 +21,8 @@ table_dict={ 'sd':'bi_mdata.dm_order_create_day',
 }
 
 def jingyingfenxi_overview(jingying_analysis_api_path,data):
-    apidata=api.api_jingyingfenxi_overview(jingying_analysis_api_path,data)
-    sqldata=sql.sql_jingyingfenxi_overview(data,table_dict)
+    apidata=api_jingyingfenxi_overview(jingying_analysis_api_path,data)
+    sqldata=sql_jingyingfenxi_overview(data,table_dict)
 
     #diff
     userlogger.info('筛选条件为: '+ str(data))
@@ -29,7 +31,7 @@ def jingyingfenxi_overview(jingying_analysis_api_path,data):
 
 def jingyingfenxi_drill(jingying_analysis_api_path,data):
     # apidata=api.api_jingyingfenxi_drill(jingying_analysis_api_path,data)
-    sqldata=sql.sql_jingyingfenxi_drill(data,table_dict)
+    sqldata=sql_jingyingfenxi_drill(data,table_dict)
 
 
     userlogger.info('筛选条件为: ' + str(data))
@@ -78,9 +80,9 @@ def jingyingfenxi_new(date_type,date):
                                 data={'source': 'all', 'parent_platform': 'all', 'platform': 'all', 'bd_id': '4', 'shop_type': '1', 'eliminate_type': 'all', 'sale_type': 'ck', 'date_type': 'mtd', 'date_str': '2021-01-14'}
                                 print(data)
                                 # if sale_type!='zf':
-                                #     jingyingfenxi_overview(jingying_analysis_api_path,data)
+                                #     jingyingfenxi_overview(jingying_analysis_api_path,data,conn_ck)
 
-                                jingyingfenxi_drill(jingying_analysis_api_path,data)
+                                jingyingfenxi_drill(jingying_analysis_api_path,data,conn_ck)
 
 
 def jingyingfenxi():

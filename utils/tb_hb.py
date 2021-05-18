@@ -52,50 +52,53 @@ def get_tb_hb_key(data,date,datetype):
     data_datelist = [ele[-1] for ele in data]
 
     keylist = []
-    if length_raw !=len(defaultkeylist):                               # 说明有同比或环比忽略
 
-        if lastestdate > data[0][-1] :                            # 如果没有最近日期的数据，无法计算同比、环比
-            keylist=[]                                           #keylist为空，说明不能进行同比、环比计算
+    if length_raw!=0:
+
+        if length_raw !=len(defaultkeylist):                               # 说明有同比或环比忽略
+
+            if lastestdate > data[0][-1] :                            # 如果没有最近日期的数据，无法计算同比、环比
+                keylist=[]                                           #keylist为空，说明不能进行同比、环比计算
+            else:
+                # 判断同比、环比计算那个或两个都计算
+                keylist = ['value']
+
+                begindate_str = data_datelist[0]                         #第一个日期
+                begindate_date = datetime.datetime.strptime(begindate_str, '%Y-%m-%d')
+
+                for i in range(1, len(data_datelist)):
+                    next_date = datetime.datetime.strptime(data_datelist[i], '%Y-%m-%d')
+
+                    deltadays = (begindate_date - next_date).days
+
+                    if datetype == 'day' or datetype == 'd' or datetype=='h':
+                        if deltadays == 1:
+                            keylist.append('环比')
+                        elif deltadays > 1 and deltadays < 8:
+                            keylist.append('同比上周')
+                        else:
+                            keylist.append('同比去年')
+
+                    elif datetype == 'wtd' or datetype == 'w':
+                        if deltadays > 7:
+                            keylist = ['value', '同比去年']
+                        else:
+                            keylist = ['value', '环比']
+                    elif datetype == 'mtd' or datetype == 'm':
+
+                        if deltadays > 31:
+                            keylist = ['value', '同比去年']
+                        else:
+                            keylist = ['value', '环比']
+
+                    elif datetype == 'qtd' or datetype == 'q':
+                        if deltadays > 92 :
+                            keylist = ['value', '同比去年']
+                        else:
+                            keylist = ['value', '环比']
+                    else:
+                            keylist = ['value', '同比去年']
         else:
-            # 判断同比、环比计算那个或两个都计算
-            keylist = ['value']
-
-            begindate_str = data_datelist[0]                         #第一个日期
-            begindate_date = datetime.datetime.strptime(begindate_str, '%Y-%m-%d')
-
-            for i in range(1, len(data_datelist)):
-                next_date = datetime.datetime.strptime(data_datelist[i], '%Y-%m-%d')
-
-                deltadays = (begindate_date - next_date).days
-
-                if datetype == 'day' or datetype == 'd' or datetype=='h':
-                    if deltadays == 1:
-                        keylist.append('环比')
-                    elif deltadays > 1 and deltadays < 8:
-                        keylist.append('同比上周')
-                    else:
-                        keylist.append('同比去年')
-
-                elif datetype == 'wtd' or datetype == 'w':
-                    if deltadays > 7:
-                        keylist = ['value', '同比去年']
-                    else:
-                        keylist = ['value', '环比']
-                elif datetype == 'mtd' or datetype == 'm':
-
-                    if deltadays > 31:
-                        keylist = ['value', '同比去年']
-                    else:
-                        keylist = ['value', '环比']
-
-                elif datetype == 'qtd' or datetype == 'q':
-                    if deltadays > 92 :
-                        keylist = ['value', '同比去年']
-                    else:
-                        keylist = ['value', '环比']
-                else:
-                        keylist = ['value', '同比去年']
-    else:
-        keylist=list(defaultkeylist)
+            keylist=list(defaultkeylist)
 
     return keylist,defaultkeylist

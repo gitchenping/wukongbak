@@ -1,11 +1,13 @@
 from utils import util,decorate
 import logging.config
-from . import api
-from . import sql
+from api.service.user_analysis import api_user_analysis_overview,api_user_analysis_drill
+from db.dao.user_analysis import *
 import datetime
+from os import path
 
-
-logging.config.fileConfig("logging.conf")
+#日志设置
+filepath=path.join(path.dirname(path.dirname(__file__)),"conf","logging.conf")
+logging.config.fileConfig(filepath)
 userlogger=logging.getLogger('user')
 
 ck_tables = 'bi_mdata.kpi_order_info_all_v2'
@@ -17,8 +19,8 @@ zhibiao_dict = {'create_parent_uv_sd': '收订用户', 'create_parent_uv_zf': '�
 def user_drill(data):
     datacopy=dict(data)
 
-    apidata = api.api_user_analysis_drill(datacopy, zhibiao_dict)
-    sqldata = sql.sql_user_analysis_drill(datacopy, ck_tables,zhibiao_dict, data_type_dict)
+    apidata = api_user_analysis_drill(datacopy, zhibiao_dict)
+    sqldata = sql_user_analysis_drill(datacopy, ck_tables,zhibiao_dict, data_type_dict)
     util.diff_dict(sqldata, apidata)
     pass
 
@@ -26,8 +28,8 @@ def user_drill(data):
 def user_overview(data):
     datacopy = dict(data)
 
-    sqldata = sql.sql_user_analysis_overview(datacopy, ck_tables, data_type_dict)
-    apidata = api.api_user_analysis_overview(datacopy, zhibiao_dict)
+    sqldata = sql_user_analysis_overview(datacopy, ck_tables, data_type_dict)
+    apidata = api_user_analysis_overview(datacopy, zhibiao_dict)
     util.diff_dict(sqldata,apidata)
     pass
 

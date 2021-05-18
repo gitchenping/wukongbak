@@ -2,18 +2,7 @@ import configparser
 import os
 #装饰器函数
 
-'''请求重试'''
-def retry(maxretry=3):
-    def decorator(func):
-        def wrapper(*args, **kw):
-            att = 0
-            while att < maxretry:
-                try:
-                    return func(*args, **kw)
-                except Exception as e:
-                    att += 1
-        return wrapper
-    return decorator
+
 
 
 def readconfini(path=''):
@@ -25,7 +14,7 @@ def readconfini(path=''):
 
 '''环境变量预加载'''
 def loadenv(**kwargs):
-    env = readconfini('./')
+    env = readconfini('./conf/')
     # host=env.get(kwargs['db'],'db_host')
     port=env.get(kwargs['db'],'db_port')
     user=env.get(kwargs['db'],'db_username')

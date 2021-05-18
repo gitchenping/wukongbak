@@ -1,6 +1,7 @@
 import time
 import datetime
 import math
+import calendar
 
 '''获取月份所在的季度起始日期'''
 def get_sd_ed_q(m):
@@ -40,6 +41,13 @@ def get_startdate_in_w_m_q(date,datetype):
         startdate=str(year)+get_sd_ed_q(m)[0]
     return startdate
 
+'''返回月末最后一天'''
+def get_month_end_day(date):
+    a=datetime.datetime.strptime(date, '%Y-%m-%d')
+    this_month_end = datetime.datetime(a.year, a.month, calendar.monthrange(a.year, a.month)[1])
+
+    return datetime.datetime.strftime(this_month_end,'%Y-%m-%d')
+
 '''获取日期所在月的总天数'''
 def get_totaldays(year,month):
     month=str(month)
@@ -50,7 +58,7 @@ def get_totaldays(year,month):
             totaldays=29
         else:
             totaldays=28
-    elif month in ['4','6','9','11'] :
+    elif month in ['04','06','09','11','4','6','9'] :
         totaldays=30
     else:
         totaldays=31
@@ -77,7 +85,9 @@ def get_day2month(year,month):
         lastday='30'
     else:
         lastday='31'
-    return str(new_year)+"-"+str(new_month)+"-"+"01",str(year)+"-"+str(month)+"-"+lastday
+
+    new_month=len(str(new_month))<2 and '0'+str(new_month) or str(new_month)
+    return str(new_year)+"-"+new_month+"-01",str(year)+"-"+str(month)+"-"+lastday
 
 def get_day2q(m):
     _m=int(m)
@@ -188,9 +198,9 @@ def get_tb_hb_date(date,datetype):
         tb_hb_date = ((week_s,week_e),
                       (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d')),
                       (datetime.datetime.strftime(tb_year_date_s, '%Y-%m-%d'),datetime.datetime.strftime(tb_year_date_e, '%Y-%m-%d')))
-        tb_hb_date = ((week_s, week_e),
-                      (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d'))
-                      )
+        # tb_hb_date = ((week_s, week_e),
+        #               (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d'))
+        #               )
     elif datetype=='mtd' or datetype == 'm':
         # 本月
         month_s=date_s_str
@@ -209,9 +219,9 @@ def get_tb_hb_date(date,datetype):
 
         #汇总
         tb_hb_date = (
-        (month_s, month_e),
-        (hb_month_date_s,datetime.datetime.strftime(hb_month_date_e, '%Y-%m-%d')),
-        (tb_year_month_s, datetime.datetime.strftime(tb_year_month_e, '%Y-%m-%d')))
+        (month_s, month_e),               #当期
+        (hb_month_date_s,datetime.datetime.strftime(hb_month_date_e, '%Y-%m-%d')),      #环比基期
+        (tb_year_month_s, datetime.datetime.strftime(tb_year_month_e, '%Y-%m-%d')))     #同比基期
     else:
         # 本季度
         q_s=date_s_str
@@ -366,3 +376,28 @@ def get_day_mtd_qtd(date_type,start_date,end_date):
 
         pass
     return datelist
+
+'''传入日期返回对应日周月季的key'''
+def get_trendkey(datetype,date):
+    '''
+    :param datetype:
+    :param date: '2020-12-21'
+    :return:
+    '''
+
+    templist=date.split('-')
+    if datetype == 'day' or datetype=='d':
+
+        key = templist[1] + '/' + templist[2]
+
+    elif datetype == 'wtd' or datetype=='w':
+        a = datetime.datetime.strptime(date, '%Y-%m-%d')
+        key = 'W' + str(a.isocalendar()[1])
+
+    elif datetype == 'mtd' or datetype=='m':
+        key = str(int(templist[1])) + '月'
+
+    else:
+        key = 'Q' + str(math.ceil(int(templist[1]) / 3))
+
+    return key

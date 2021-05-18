@@ -7,7 +7,7 @@ import pymongo
 import pymysql
 import redis
 import re
-from .decorate import retry,loadenv
+from .decorate import loadenv
 import configparser
 from sshtunnel import SSHTunnelForwarder
 
@@ -86,7 +86,6 @@ def simplediff(data1,data2):
 
 '''两个字典比较'''
 def diff_dict(data1, data2, absvalue=0.5):
-
     diff_key_value = {}
     temp_data1 = dict(data1)
     temp_data2 = dict(data2)
@@ -114,14 +113,15 @@ def diff_dict(data1, data2, absvalue=0.5):
                     if diff_key_value[key] == {}:
                         diff_key_value.pop(key)
                 else:
-                    if data1_value is not None and data2_value is not None:
-                        if isinstance(data1_value, str) and isinstance(data2_value, str):
-                            if data1_value != data2_value:
-                                diff_key_value[key] = (data1_value, data2_value)
-                        else:
-                            if abs(data1_value - data2_value) > absvalue:
-                                # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
-                                diff_key_value[key] = (data1_value, data2_value)
+                    if data1_value is None and data2_value is None:
+                        continue
+                    if isinstance(data1_value, str) and isinstance(data2_value, str):
+                        if data1_value != data2_value:
+                            diff_key_value[key] = (data1_value, data2_value)
+                    else:
+                        if abs(data1_value - data2_value) > absvalue:
+                            # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
+                            diff_key_value[key] = (data1_value, data2_value)
             except TypeError as e:
                 diff_key_value[key + ' 运算类型错误'] = (data1_value, data2_value)
             except Exception as e:
@@ -131,14 +131,14 @@ def diff_dict(data1, data2, absvalue=0.5):
 '''数据库连接'''
 @loadenv(db='db_ck')
 def connect_clickhouse(host=None,port=None, user=None, password=None, database=None,collection=None):
-    # conn = connect(host=host,port=port,user=user,password=password, database=database)
-    conn = connect(host=host,user=user, password=password, database=database)
+    conn = connect(host=host,port=port,user=user,password=password, database=database)
+    # conn = connect(host=host,user=user, password=password, database=database)
     return conn.cursor()
 
 @loadenv(db='db_ck')
 def client_ck(host=None,port=None, user=None, password=None, database=None,collection=None):
     """链接ck数据库"""
-    conn = Client(host=host, user=user,password=password, database=database)
+    conn = Client(host=host,port=port,user=user,password=password, database=database)
     return conn
 
 
@@ -210,46 +210,12 @@ def do_log(s, user_name, passwd):
     else:
         return False, ''
 
-@retry(2)
-def post(url,data=None,headers=None,token=None):
-    # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    header={}
-    if headers is not None:
-        header["Content-Type"]="application/json;charset=UTF-8"
 
-    if token is not None:
-        header['Authorization']="Bearer "+token
-
-    s = requests.Session()
-    #实参data 为dict时，若header为application/json，使用json参数；若为application/x-www-form，使用data参数
-    req = s.post(url=url, json=data, headers=header)
-
-    if req.status_code == 200:
-        res_data=req.content
-        if isinstance(res_data,bytes):
-            res_data =res_data.decode('utf-8')
-        return res_data
-    return -1
-
-@retry(2)
-def request(url,data=None,token=None):
-    headers=None
-    if token is not None:
-        headers={'Authorization':'Bearer MDAwMDAwMDAwMLGenKE'}
-    textdata=requests.get(url,params=data,headers=headers)
-
-    if textdata is not None and textdata.status_code==200:
-        return textdata.text
-
-    #请求失败
-    return -1
 
 def readini(path):
     cf=configparser.ConfigParser()
     cf.read(path,encoding='utf-8')
     return cf
-
-
 
 def connect_mysql_from_jump_server(mysql_ip, db_port,db_user, db_passwd, db,
                                    ip='10.255.254.49',
@@ -257,10 +223,10 @@ def connect_mysql_from_jump_server(mysql_ip, db_port,db_user, db_passwd, db,
                                    passwd='dell1950'):
     """
     使用跳板机连接远程服务器
-    :param ip:
-    :param username:
-    :param passwd:
-    :param mysql_ip:
+    :param ip: 跳板机地址
+    :param username:跳板机用户名
+    :param passwd: 跳板机密码
+    :param mysql_ip: 目标数据库服务器地址
     :param db_user:
     :param db_passwd:
     :param db:

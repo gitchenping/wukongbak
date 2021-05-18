@@ -1,5 +1,6 @@
 from utils.util import connect_mongodb,connect_mysql,connect_hive,connect_clickhouse
 import logging.config
+from db.dao.collect import get_collect_offline_hive_data
 
 logging.config.fileConfig("logging.conf")
 collectlogger=logging.getLogger('collect')
@@ -51,78 +52,12 @@ def collect_realtime():
     print('success:'+str(success)+" fail:"+str(fail))
 
 
-def collect_offline():
-    data_date='2020-12-21'
+def collect_offline(date):
+    '''离线 收藏'''
+    hive_data=get_collect_offline_hive_data(date)
 
-    offline_sql='''
-            SELECT
-                t.cust_id,
-                t.product_id,
-                t.shop_id,
-                t.brand,
-                t.category_path,
-                count(*) AS pv,
-                concat(t.data_date,' 00:00:00') AS creation_date,
-                t.supply_id,
-                t.data_date
-            FROM
-                (
-                SELECT
-                    t1.cust_id,
-                    t1.product_id,
-                    t1.shop_id,
-                    t2.brand,
-                    t2.category_path,
-                    t3.last_supplier_id AS supply_id,
-                    t1.data_date
-                FROM
-                    (
-                    SELECT
-                        cust_id,
-                        product_id,
-                        shop_id,
-                        data_date
-                    FROM
-                        ddclick_umt.product_wish_info
-                    WHERE
-                        data_date = '{}') t1
-                LEFT JOIN (
-                    SELECT
-                        product_id,
-                        brand,
-                        category_path
-                    FROM
-                        productdb.prod_basic) t2 ON
-                    (t1.product_id = t2.product_id)
-                LEFT JOIN (
-                    SELECT
-                        item_id,
-                        last_supplier_id
-                    FROM
-                        dw_ods.item_book
-                    WHERE
-                        trans_date = '{}'
-                        AND item_id IS NOT NULL
-                        AND last_supplier_id IS NOT NULL
-                    GROUP BY
-                        item_id,
-                        last_supplier_id) t3 ON
-                    (t1.product_id = t3.item_id)) t
-            GROUP BY
-                t.cust_id,
-                t.product_id,
-                t.shop_id,
-                t.brand,
-                t.category_path,
-                t.supply_id,
-                t.data_date
-                '''.format(data_date,data_date)
     # 连接ck
     conn_ck = connect_clickhouse(host='10.12.6.116', database='ioc_mdata')
-    #连接hive
-    hivecursor=connect_hive()
-    hivecursor.execute(offline_sql)
-    hive_data = hivecursor.fetchall()
 
     fail=0
     success=0
@@ -156,5 +91,12 @@ def collect_offline():
             success+=1
     print("success: "+ str(success)+", fail:"+str(fail))
 
-
+def collect_test():
+    '''收藏'''
+    date='2020-12-21'
+    #离线
+    collect_offline(date)
+    #实时
+    collect_realtime()
+    pass
 

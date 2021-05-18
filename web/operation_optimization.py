@@ -21,7 +21,6 @@ mysql_table='ioc_adm.smart_cust_detail'
 
 def get_mysql_phone(crowdid,num):
     '''
-
     :param crwodid: 人群id,根据这个找表，找custid\phone
     :param num: 人群数量
     :return: {cust_id:phone}

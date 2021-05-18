@@ -51,7 +51,7 @@ log_config = {
         }
     },
     'loggers': {
-        'crawler': {
+        'debug': {
             'handlers': ['console', 'file'],                #打印到屏幕和写入文件
             'level': 'DEBUG',                               #只显示错误的log
         },

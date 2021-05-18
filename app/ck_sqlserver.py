@@ -1,7 +1,7 @@
 from utils import util
 import logging.config
 from . import api
-from . import sql
+from db.dao.jingyingfenxi import *
 
 logging.config.fileConfig("logging.conf")
 userlogger=logging.getLogger('user')
@@ -115,7 +115,7 @@ def jingying_zf_drill(data):
         userlogger.info('经营分析-' + name + jingying_zhibiao_dict[jingying_item] + '钻取')
         data['field_str']=jingying_item
         apidata = api.jingyingfenxi(data)
-        sqldata = sql.jingyingfenxi(data)
+        sqldata = jingyingfenxi(data)
 
         diff_result={}
         for item in apidata.keys():

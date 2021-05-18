@@ -1,8 +1,9 @@
 #encoding=utf-8
 import json
-from resources.recommend_map import *
+from db.map.recommend_map import *
 from utils import util,log
-from .sql import get_sql_data_reco
+from db.dao.reco import get_sql_data_reco
+from api.service.reco import reco_api_data
 
 # ck和达芬奇比较
 '''
@@ -25,24 +26,6 @@ UV订单转化率：指当前查询的模块，带来的订单行数占推荐商
 平均点击位置：指当前查询的模块，商品的平均点击深度
 人均点击位置：商品点击PV/商品点击UV
 '''
-indicator_cal_map={
-    '商品曝光pv':"COUNT(CASE WHEN model_type = 1 THEN udid ELSE null END) AS product_expose_pv",
-    '商品曝光uv':"COUNT(DISTINCT CASE WHEN model_type = 1 THEN udid ELSE NULL END) AS product_expose_uv",
-    '商品点击pv':"COUNT(DISTINCT CASE WHEN model_type = 3 THEN concat(udid,creation_date,toString(main_product_id)) ELSE NULL END) AS product_click_pv",
-    '商品点击uv':"COUNT(DISTINCT CASE WHEN model_type = 3 THEN udid ELSE NULL END) AS product_click_uv",
-    '商品UV点击率':'case when product_expose_uv>0 then round(product_click_uv / product_expose_uv*100,2) else null end as uv_ctr',
-    '商品PV点击率':'case when product_expose_pv>0 then round(product_click_pv / product_expose_pv*100,2) else null end as pv_ctr',
-    '原始订单行数':'COUNT(CASE WHEN order_id = -1 THEN NULL ELSE order_id END) AS create_hang_num',
-    '收订单量':'COUNT(DISTINCT CASE WHEN order_id = -1 THEN NULL ELSE order_id END) AS create_parent_num',
-    '收订金额':'SUM(bargin_price * order_quantity) AS create_sale_amt',
-    '收订顾客数':'COUNT(DISTINCT CASE WHEN order_id = -1 THEN NULL ELSE order_cust_id END) AS create_cust_num',
-    '收订转化率':'case when product_expose_uv>0 then round(create_cust_num / product_expose_uv*100,2) else null end as create_trans_rate',
-    '最大曝光位置':'MAX(CASE WHEN model_type = 1 AND position > 0 THEN position ELSE 0 END) AS max_expose_location',
-    # '平均曝光位置':'ROUND(AVG(CASE WHEN model_type = 1 AND `position` > 0 THEN `position` ELSE null END)) AS avg_expose_deepth',
-    '最大点击位置':'MAX(CASE WHEN model_type = 3 AND position > 0 THEN position ELSE 0 END) AS max_click_location',
-    # '平均点击位置':'ROUND(AVG(CASE WHEN model_type = 3 AND `position` > 0 THEN `position` ELSE null END)) AS avg_click_deepth',
-    '人均点击次数':'case when product_click_uv>0 then round(product_click_pv / product_click_uv,2) else null end as avg_click_num'
-}
 
 #日志设置
 reco = log.set_logger('reco.txt')
@@ -70,8 +53,7 @@ def ck_vs_davi(webdata,filters):
     else:
         data={}
 
-
-    sqldata=get_sql_data_reco(data,indicator_cal_map,filterdict,conn_ck)
+    sqldata=get_sql_data_reco(data,filterdict,conn_ck)
 
     davi_data = util.json_format(data, selfdefine='')
     sql_data = util.json_format(sqldata, selfdefine='')
@@ -84,16 +66,7 @@ def ck_vs_davi(webdata,filters):
     util.diff(davi_data,sql_data,reco)
 
 
-@util.retry(2)
-def post(s,token,data):
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    searchword_api = "http://newwk.dangdang.com/api/v3/views/72/getdata"
-    temp_data = dict(data)
-    req = s.post(url=searchword_api, json=temp_data, headers=headers)
-    return req
-
-
-def product_analysis(s,token,requestload):
+def product_analysis(s,token,url,requestload):
     '''单品分析'''
     start_date_str = '2021-02-01'
     end_date_str = '2021-02-01'
@@ -137,26 +110,14 @@ def product_analysis(s,token,requestload):
                             requestload['filters']=filters
                             requestload['params']=params
 
-                            print(params)
-                            dreq = post(s, token, requestload)
-                            if dreq.status_code==200:
-                                davi_res=dreq.content
-                                full_data=davi_res.decode('utf-8')
-                                try:
-                                    jsondata=json.loads(full_data)
-                                    rawdata=jsondata['payload']['resultList']
-                                except Exception as e:
-                                    print(e)
-                                    print(filters)
-                                    continue
-                                filterdict = {}
-                                for ele in params:
-                                    filterdict.update({ele['name']: ele['value'].strip("'")})
-                                filterdict['shop_type_name']=filters[0]['value'].strip("'")
-                                ck_vs_davi(rawdata,filterdict)
+                            # print(params)
+                            rawdata=reco_api_data(token,requestload)
 
-
-
+                            filterdict = {}
+                            for ele in params:
+                                filterdict.update({ele['name']: ele['value'].strip("'")})
+                            filterdict['shop_type_name']=filters[0]['value'].strip("'")
+                            ck_vs_davi(rawdata,filterdict)
 
 def reco_test():
     #登录
