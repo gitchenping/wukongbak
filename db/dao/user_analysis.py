@@ -79,6 +79,8 @@ def sql_user_analysis_overview_op(data, test_indicator_dict, ck_db=None):
                                                    datetype)
 
             sqldata.update(each_item_sqldata)
+        else:
+            sqldata[ename]={}
 
     #新访uv占比
     # if indicator_dict.__contains__('new_uv_ratio') :

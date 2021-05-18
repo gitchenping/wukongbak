@@ -47,6 +47,8 @@ def get_tb_hb_key(data,date,datetype):
     defaultkeylist = ['value', '环比', '同比去年']
     if datetype == 'day' or datetype == 'd' or datetype=='h':
         defaultkeylist = ['value', '环比', "同比上周", '同比去年']
+    if datetype == 'week' or datetype == 'w':
+        defaultkeylist = ['value', '环比']
 
     length_raw = len(data)
     data_datelist = [ele[-1] for ele in data]

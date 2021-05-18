@@ -195,12 +195,12 @@ def get_tb_hb_date(date,datetype):
 
         tb_year_date_e=tb_year_date_s+delta_day
         #汇总
-        tb_hb_date = ((week_s,week_e),
-                      (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d')),
-                      (datetime.datetime.strftime(tb_year_date_s, '%Y-%m-%d'),datetime.datetime.strftime(tb_year_date_e, '%Y-%m-%d')))
-        # tb_hb_date = ((week_s, week_e),
-        #               (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d'))
-        #               )
+        # tb_hb_date = ((week_s,week_e),
+        #               (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d')),
+        #               (datetime.datetime.strftime(tb_year_date_s, '%Y-%m-%d'),datetime.datetime.strftime(tb_year_date_e, '%Y-%m-%d')))
+        tb_hb_date = ((week_s, week_e),
+                      (datetime.datetime.strftime(hb__week_date_s, '%Y-%m-%d'),datetime.datetime.strftime(hb__week_date_e, '%Y-%m-%d'))
+                      )
     elif datetype=='mtd' or datetype == 'm':
         # 本月
         month_s=date_s_str
@@ -258,7 +258,7 @@ def datechange(type,enddate):
     key=''
     if date_type == 'day':
         key = enddate
-    elif date_type == 'wtd':
+    elif date_type == 'wtd' or date_type == 'w':
         a = datetime.datetime.strptime(enddate, '%Y-%m-%d')
         key = templist[0] + '-w' + str(a.isocalendar()[1])
     elif date_type == 'mtd':

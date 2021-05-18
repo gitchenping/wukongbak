@@ -177,7 +177,7 @@ def get_time_where(data):
         last_week_day=tb_hb_date[2]
         last_year_day=tb_hb_date[3]
 
-        datewhere += ' and date_str in ' + "('" + today+"','"+yesterday+"','"+last_week_day+"','"+last_year_day+"')"
+        datewhere += ' and t.date_str in ' + "('" + today+"','"+yesterday+"','"+last_week_day+"','"+last_year_day+"')"
 
     else:                   #周、月、季返回环比、同比去年
         hb_date=tb_hb_date[0]
@@ -185,7 +185,7 @@ def get_time_where(data):
 
         for ele in tb_hb_date:
             if ele[0] is not None:
-                 datewhere+= " date_str between '"+ele[0]+"' and '"+ele[1]+"' or "
+                 datewhere+= " t.date_str between '"+ele[0]+"' and '"+ele[1]+"' or "
         datewhere=" and ("+datewhere.strip('or ')+" )"
     return datewhere
 
@@ -593,7 +593,7 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
         column = user_indicator_op_cal_dict[ename][0]+" ,"+column_date
         table = 'bi_mdata.'+user_indicator_op_cal_dict[ename][1]
 
-        sql="select " + column + " from " + table + newwhere + groupby + orderby
+        sql="select " + column + " from " + table + " t "+newwhere + groupby + orderby
         sql_list.append(sql)
 
         indicator_list.append(ename)

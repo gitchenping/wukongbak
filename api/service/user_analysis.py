@@ -1,5 +1,6 @@
 from resources import map
 from utils import util
+from utils.date import datechange
 from ._api import request,get_tb_hb_item,item_drillpage
 
 #
@@ -58,6 +59,9 @@ def api_user_analysis_overview(url,data,zhibiao_dict=None):
 def api_user_analysis_overview_op(url,data,zhibiao_dict=None):
     '''用户分析优化首页'''
     datacopy=dict(data)
+
+    datacopy['date']=datechange(datacopy['date_type'],datacopy['date'])
+
 
     datacopy['view'] = 'core_index'
     # api requests
