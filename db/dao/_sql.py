@@ -584,6 +584,9 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
         if ename.startswith('new_create'):
             append_where = " and {}_new_flag=1 ".format(new_flag)
 
+        if ename=="register_number":
+            where=where.replace('platform','from_platform')
+
 
         newwhere = where + append_where
 

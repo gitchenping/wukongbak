@@ -32,7 +32,7 @@ def api_user_analysis_overview(url,data,zhibiao_dict=None):
         print(e)
         return
 
-    # 取活跃用户中的收订、支付和出库
+
     keys=zhibiao_dict.keys()
     if len(datalist)>0:
         for ele in datalist[1]['sub']:
@@ -60,7 +60,8 @@ def api_user_analysis_overview_op(url,data,zhibiao_dict=None):
     '''用户分析优化首页'''
     datacopy=dict(data)
 
-    datacopy['date']=datechange(datacopy['date_type'],datacopy['date'])
+    if datacopy['date_type'] !='d':
+        datacopy['date']=datechange(datacopy['date_type'],datacopy['date'])
 
 
     datacopy['view'] = 'core_index'
@@ -101,6 +102,8 @@ def api_user_analysis_overview_op(url,data,zhibiao_dict=None):
     if datacopy['shop_type'] !='all' or datacopy['bd_id'] !='all':
         if overviewinfo.__contains__('新增注册用户'):
             overviewinfo.pop('新增注册用户')
+        if overviewinfo.__contains__('register_number'):
+            overviewinfo.pop('register_number')
 
     return overviewinfo
 

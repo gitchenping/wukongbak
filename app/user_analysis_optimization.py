@@ -106,17 +106,17 @@ def user_analysis_op(datetype,date_str):
                                   'date': date_str
                                   }
 
-                            # data={'source': '1', 'platform': '8', 'parent_platform': '2', 'bd_id': '4',
-                            #       'shop_type': '1', 'eliminate_type': 'all', 'date_type': 'd', 'date': '2021-05-17'}
+                            # data={'source': 'all', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all',
+                            #       'shop_type': 'all', 'eliminate_type': 'all', 'date_type': 'm', 'date': '2021-05-17'}
 
                             user_overview(data)
                             # user_drill(data)
 
 def run_job():
     '''用户分析'''
-    date_str='2021-05-17'
+    date_str='2021-05-18'
 
-    date_type = ['wtd','day','qtd','mtd']           # 日、周、月、季度
+    date_type = ['mtd','qtd','wtd','day']           # 日、周、月、季度
 
     for datetype in date_type:
 

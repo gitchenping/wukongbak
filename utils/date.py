@@ -261,7 +261,7 @@ def datechange(type,enddate):
     elif date_type == 'wtd' or date_type == 'w':
         a = datetime.datetime.strptime(enddate, '%Y-%m-%d')
         key = templist[0] + '-w' + str(a.isocalendar()[1])
-    elif date_type == 'mtd':
+    elif date_type == 'mtd' or date_type == 'm' :
         key = templist[0] + '-m' + str(int(templist[1]))
     else:
         key = templist[0] + '-q' + str(math.ceil(int(templist[1]) / 3))
