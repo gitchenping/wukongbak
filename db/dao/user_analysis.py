@@ -51,13 +51,13 @@ def sql_user_analysis_overview_op(data, test_indicator_dict, ck_db=None):
     if data['bd_id'] !='all' or data['shop_type'] !='all':
         indicator_dict.pop('register_number')
 
-    sqllist,indicator_list=get_sql_for_user_analysis_overview_op(data,indicator_dict)
+    sqldict=get_sql_for_user_analysis_overview_op(data,indicator_dict)
     # sql='select 2+2'
     # conn.execute(sql)
     # rawdata=conn.fetchall()
 
     #依次处理每个指标
-    for sql,ename in zip(sqllist,indicator_list):
+    for ename,sql in sqldict.items():
 
         r=requests.get(headers=ck_db['headers'],url=ck_db['host'],params={'query':sql})
 
@@ -76,11 +76,11 @@ def sql_user_analysis_overview_op(data, test_indicator_dict, ck_db=None):
                                        ele[0] is not None and ele[0] != '0']
 
             each_item_sqldata = get_overview_tb_hb(each_indicator_list, test_indicator_dict[ename], date,
-                                                   datetype)
-
-            sqldata.update(each_item_sqldata)
-        else:
-            sqldata[ename]={}
+                                                   datetype,misskeyshow=False)
+            if each_item_sqldata[test_indicator_dict[ename]]['value']!='--':
+                sqldata.update(each_item_sqldata)
+        # else:
+        #     sqldata[ename]={}
 
     #新访uv占比
     # if indicator_dict.__contains__('new_uv_ratio') :

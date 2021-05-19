@@ -87,10 +87,11 @@ def api_user_analysis_overview_op(url,data,zhibiao_dict=None):
                     if ele.__contains__('ename') and ele['ename'] in keys:
                         name = ele['name']
                         if ele.__contains__('value_ori'):
-                            if ele['value_ori'] != 0:
+                            if ele['value'] != '--':
                                 _value_ori = ele['value_ori']
                                 valuedict[tb_hb_name_dict['value_ori']] = util.format_precision(_value_ori, selfdefine='--')
                             else:
+                                continue
                                 valuedict[tb_hb_name_dict['value_ori']] = '--'
                         # 同环比项
                         valuedict.update(get_tb_hb_item(ele))

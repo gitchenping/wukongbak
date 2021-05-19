@@ -62,6 +62,7 @@ def user_overview(data):
     apidata = api_user_analysis_overview_op(url,datacopy, test_indicator_dict)
     sqldata = sql_user_analysis_overview_op(datacopy,test_indicator_dict,ck_db)
 
+    diff=-1
     try:
         diff= util.diff_dict(apidata,sqldata)
     except Exception as e:
@@ -106,17 +107,17 @@ def user_analysis_op(datetype,date_str):
                                   'date': date_str
                                   }
 
-                            # data={'source': 'all', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all',
-                            #       'shop_type': 'all', 'eliminate_type': 'all', 'date_type': 'm', 'date': '2021-05-17'}
+                            # data={'source': '1', 'platform': '2', 'parent_platform': '1',
+                            # 'bd_id': '6', 'shop_type': 'all', 'eliminate_type': '4', 'date_type': 'm', 'date': '2021-05-18'}
 
                             user_overview(data)
                             # user_drill(data)
 
 def run_job():
     '''用户分析'''
-    date_str='2021-05-18'
+    date_str='2021-04-18'
 
-    date_type = ['mtd','qtd','wtd','day']           # 日、周、月、季度
+    date_type = ['qtd','wtd','mtd','day']           # 日、周、月、季度
 
     for datetype in date_type:
 

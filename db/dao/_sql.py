@@ -544,7 +544,7 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
     orderby = " order by date_str desc"
 
     #根据指标拼接sql，一个
-    sql_list=[]
+    sqlset_dict={}
     i=1
     outer_column=[]
     indicator_list=[]
@@ -590,31 +590,22 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
 
         newwhere = where + append_where
 
-        alias_name="t"+str(i)
-        outer_column.append(ename)
-
         column = user_indicator_op_cal_dict[ename][0]+" ,"+column_date
         table = 'bi_mdata.'+user_indicator_op_cal_dict[ename][1]
 
         sql="select " + column + " from " + table + " t "+newwhere + groupby + orderby
-        sql_list.append(sql)
-
-        indicator_list.append(ename)
-
-        if ename=="new_uv":
-            new_uv_sql=sql
-        if ename=='uv':
-            uv_sql = sql
+        sqlset_dict[ename]=sql
 
     #新访UV占比
-    uv_ratio_sql="select t1."+"new_uv / t2.uv*100 as new_uv_ratio,t1.date_str  from ("+new_uv_sql+") t1 "+" left join ("+uv_sql+") t2 on t1.date_str=t2.date_str "+orderby
+    uv_ratio_sql="select t1."+"new_uv / t2.uv*100 as new_uv_ratio,t1.date_str  from ("+sqlset_dict['new_uv']+") t1 "+" left join ("+sqlset_dict['uv']+") t2 on t1.date_str=t2.date_str "+orderby
 
-    sql_list.append(uv_ratio_sql)
-    indicator_list.append('new_uv_ratio')
+    sqlset_dict['new_uv_ratio']=uv_ratio_sql
 
-    return sql_list,indicator_list
+
+    return sqlset_dict
 
     #组装sql  ，此处有bug
+    outer_column.append(ename)
     length=len(sql_list)
     sql_list=[sql_list[0]]+[sql_list[i] + " on t1" + ".date_str=t" + str(i + 1) + ".date_str" for i in range(1, length)]
     sql = ' left join '.join(sql_list)

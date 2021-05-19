@@ -72,11 +72,14 @@ def complog(logger=None):
         def wrapper(*args, **kw):
 
             result=func(*args, **kw)
+            filter = args[0]  # 第一个参数作为比较条件
             if logger is not None and result!={}:
-                filter=args[0]         #第一个参数作为比较条件
+
                 logger.info('筛选条件: '+str(filter)+"-*-Fail-*-")
                 logger.info("diff info:" + str(result))
                 logger.info(' ')
+            else:
+                logger.info('筛选条件: ' + str(filter) + "-*-Pass-*-")
             # return result
         return wrapper
     return decorator
