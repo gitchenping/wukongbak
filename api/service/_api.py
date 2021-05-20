@@ -119,20 +119,25 @@ def user_drillpage_item(data,indicator=None):
     return itemslist
 
 
-def get_tb_hb_item(data):
+def get_tb_hb_item(data,novaluekeyshow=True):
     '''返回api请求结果中的同环比键值对'''
     ele=dict(data)
     valuedict={}
+
+
     if ele.__contains__('tb_week'):
         _tb_week = ele['tb_week']
-        valuedict[tb_hb_name_dict['tb_week']] = util.format_precision(_tb_week, selfdefine='--')
+        if _tb_week !='--':
+            valuedict[tb_hb_name_dict['tb_week']] = util.format_precision(_tb_week, selfdefine='--')
 
     if ele.__contains__('tb_year'):
         _tb_year = ele['tb_year']
-        valuedict[tb_hb_name_dict['tb_year']] = util.format_precision(_tb_year, selfdefine='--')
+        if _tb_year != '--':
+            valuedict[tb_hb_name_dict['tb_year']] = util.format_precision(_tb_year, selfdefine='--')
 
     if ele.__contains__('value_hb'):
         _value_hb = ele['value_hb']
-        valuedict[tb_hb_name_dict['value_hb']] = util.format_precision(_value_hb, selfdefine='--')
+        if _value_hb != '--':
+            valuedict[tb_hb_name_dict['value_hb']] = util.format_precision(_value_hb, selfdefine='--')
 
     return valuedict
