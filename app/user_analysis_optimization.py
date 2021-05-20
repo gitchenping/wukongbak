@@ -19,7 +19,7 @@ cf=util.readini(filepath)
 url=cf.get('api','user_analysis_api')
 
 #ck 连接 、名称
-ck_conn=util.connect_clickhouse()
+# ck_conn=util.connect_clickhouse()
 ck_db={
     'host':"http://10.0.5.80:8123",
     'headers':{'X-ClickHouse-User': 'membersbi', 'X-ClickHouse-Key': 'dangdangbi'}
@@ -128,6 +128,9 @@ def user_analysis_op(datetype,date_str):
 
 
                                 data['field_str']=indicator
+                                data={'source': 'all', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all',
+                                 'shop_type': 'all', 'eliminate_type': '2', 'date_type': 'd', 'date': '2021-05-19',
+                                 'field_str': 'create_parent_uv_sd'}
                                 user_drill(data,test_indicator_dict[data['field_str']],data['field_str'])
 
 def run_job():
