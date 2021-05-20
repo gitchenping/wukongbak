@@ -2,6 +2,7 @@ from resources import map
 from utils import util
 from utils.date import datechange
 from ._api import request,get_tb_hb_item,item_drillpage,user_drillpage_item
+from utils.date import get_enddate_in_w_m_q
 
 #
 tb_hb_name_dict = {
@@ -170,6 +171,11 @@ def api_user_analysis_drill_op(url,data,indicator_name):
     api_drill_data = {}
 
     field=datacopy['field_str']
+
+    #月的话，替换为周末那一天
+    if datacopy['date_type']=='w':
+        datacopy['date']=get_enddate_in_w_m_q(datacopy['date'],'w')
+
     fieldinfo={}
     itemlist=user_drillpage_item(datacopy,field)
     for item in itemlist:

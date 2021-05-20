@@ -100,16 +100,19 @@ def user_drillpage_item(data,indicator=None):
     '''用户分析下钻页item'''
     itemslist = ['trend','platform']
 
-    if is_platform_show(data):
-        itemslist.append('platform')
+    if not is_platform_show(data):
+        itemslist.pop(itemslist.index('platform'))
 
     #['uv','new_create_parent_uv_sd','new_create_parent_uv_zf','new_create_parent_uv_ck','create_parent_uv_sd',
                     # 'create_parent_uv_zf','create_parent_uv_ck','daycount_ratio_sd','daycount_ratio_zf']
-    if indicator not in ['new_uv','new_uv_ratio','register_number']:
+    if indicator not in ['uv','new_uv','new_uv_ratio','register_number']:
         itemslist.append('bd')
 
     if indicator in ['uv','create_parent_uv_sd','create_parent_uv_zf','create_parent_uv_ck','daycount_ratio_sd','daycount_ratio_zf']:
-        itemslist.append('customer')
+        if indicator =='uv':
+            itemslist.append('uv')
+        else:
+            itemslist.append('customer')
 
     if indicator in ['daycount_ratio_sd','daycount_ratio_zf']:
         itemslist.append('quantile')

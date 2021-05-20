@@ -128,16 +128,16 @@ def user_analysis_op(datetype,date_str):
 
 
                                 data['field_str']=indicator
-                                # data={'source': 'all', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all',
-                                #  'shop_type': 'all', 'eliminate_type': '2', 'date_type': 'd', 'date': '2021-05-19',
-                                #  'field_str': 'create_parent_uv_sd'}
+                                # data={'source': '3', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all', 'shop_type': '2',
+                                #       'eliminate_type': 'all', 'date_type': 'd', 'date': '2021-05-19',
+                                #       'field_str': 'daycount_ratio_sd'}
                                 user_drill(data,test_indicator_dict[data['field_str']],data['field_str'])
 
 def run_job():
     '''用户分析'''
     date_str='2021-05-19'
 
-    date_type = ['day','mtd','qtd','wtd']           # 日、周、月、季度
+    date_type = ['wtd','mtd','qtd''day']           # 日、周、月、季度
 
     for datetype in date_type:
 

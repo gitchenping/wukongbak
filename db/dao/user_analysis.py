@@ -7,7 +7,7 @@ from utils.date import get_trend_where_date,get_trend_data
 import numpy as np
 import requests
 import re
-from resources.map import customer_dict,bd_id_dict,app_dict,source_dict,parent_platform_dict,cat_name_dict
+from resources.map import customer_dict,new_old_customer_dict,bd_id_dict,app_dict,source_dict,parent_platform_dict,cat_name_dict
 
 
 #用户分支优化各指标计算逻辑
@@ -468,13 +468,24 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
     if is_show_for_user_drill(ename,'customer'):
         #新老客分布
         customer = {}
-        customerdict= customer_dict
+        if ename=='uv':
+            customerdict= new_old_customer_dict
+
+            groupby_new_flag="new_id"
+            order_by = " order by new_id," + "date_str desc"
+            group_by = " group by date_str" + ",new_id"
+
+            customer_key='uv'
+        else:
+            customerdict= customer_dict
+
+            groupby_new_flag = new_flag + "_new_flag"
+            order_by = " order by " + groupby_new_flag + "," + "date_str desc"
+            group_by = " group by date_str" + "," + new_flag + "_new_flag"
+
+            customer_key='customer'
 
         column_customer=user_indicator_op_cal_dict[ename][0] + "," + column_date
-
-        groupby_new_flag = new_flag+"_new_flag"
-        order_by = " order by " + groupby_new_flag + "," + "date_str desc"
-        group_by = " group by date_str"+ "," + new_flag+"_new_flag"
 
         customersql = "select " + groupby_new_flag + "," + column_customer + " from " + table \
                       + where + group_by + order_by
@@ -492,7 +503,8 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
 
             customer = get_drill_tb_hb(rawdata, customerdict, date, datetype)
 
-        itemdict['customer'] = customer
+        itemdict[customer_key] = customer
+
 
     if is_show_for_user_drill(ename,'quantile'):
         #分位分布-to do
@@ -541,7 +553,7 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
                 qualtile.update(a)
 
                 i+=1
-            itemdict['quantile']=qualtile
+        itemdict['quantile']=qualtile
 
 
     sql_drill_data[cname]=itemdict
