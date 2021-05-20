@@ -1,7 +1,7 @@
 from resources import map
 from utils import util
 from utils.date import datechange
-from ._api import request,get_tb_hb_item,item_drillpage
+from ._api import request,get_tb_hb_item,item_drillpage,user_drillpage_item
 
 #
 tb_hb_name_dict = {
@@ -96,9 +96,9 @@ def api_user_analysis_overview_op(url,data,zhibiao_dict=None):
                         # 同环比项
                         valuedict.update(get_tb_hb_item(ele))
                         overviewinfo[name] = valuedict
-    else:
-        for ele in zhibiao_dict.keys():
-            overviewinfo[ele] = {}
+    # else:
+    #     for ele in zhibiao_dict.keys():
+    #         overviewinfo[ele] = {}
 
     if datacopy['shop_type'] !='all' or datacopy['bd_id'] !='all':
         if overviewinfo.__contains__('新增注册用户'):
@@ -126,7 +126,7 @@ def api_user_analysis_drill(url,data,zhibiao_dict=None):
         for item in item_drillpage(datacopy):
             datacopy['view']=item
             apiinfo={}
-            datadict = util.request(url, datacopy)
+            datadict = request(url, datacopy)
 
             if datadict!=-1:
                 if item == 'trend':
@@ -161,51 +161,50 @@ def api_user_analysis_drill(url,data,zhibiao_dict=None):
     return api_drill_data
 
 
-def api_user_analysis_drill_op(url,data,zhibiao_dict=None):
+def api_user_analysis_drill_op(url,data,indicator_name):
     '''用户分析下钻页'''
     datacopy = dict(data)
-    datacopy['date']=datacopy['date_str']
-    datacopy.pop('date_str')
+    # datacopy['date']=datacopy['date']
+    # datacopy.pop('date_str')
 
     api_drill_data = {}
 
-    for field in zhibiao_dict.keys():
+    field=datacopy['field_str']
+    fieldinfo={}
+    itemlist=user_drillpage_item(datacopy,field)
+    for item in itemlist:
+        datacopy['view']=item
+        apiinfo={}
+        datadict = request(url, datacopy)
 
-        datacopy['field_str'] = field
-        fieldinfo={}
-        for item in item_drillpage(datacopy):
-            datacopy['view']=item
-            apiinfo={}
-            datadict = util.request(url, datacopy)
-
-            if datadict!=-1:
-                if item == 'trend':
-                    # 取value
-                    try:
-                        datalist = datadict['data'][0]['values']           #取当日数据
-                        for ele in datalist:
-                            apiinfo[ele[0]] = round(float(ele[1]), 2)
-                    except Exception as e:
-                        apiinfo = {}
-                else:
-
-                    # 取data
-                    if item == 'app':
-                        datalist = datadict['data'][0:10]
-                    else:
-                        datalist = datadict['data']
-
+        if datadict!=-1:
+            if item == 'trend':
+                # 取value
+                try:
+                    datalist = datadict['data'][0]['values']           #取当日数据
                     for ele in datalist:
-                        valuedict = {}
-                        name = ele['name']
+                        apiinfo[ele[0]] = round(float(ele[1]), 2)
+                except Exception as e:
+                    apiinfo = {}
+            else:
 
-                        if ele.__contains__('value'):
-                            valuedict[tb_hb_name_dict['value']] = util.format_precision(ele['value'],selfdefine='--')
-                        #获取同环比项
-                        valuedict.update(get_tb_hb_item(ele))
-                        apiinfo[name] = valuedict
-                fieldinfo[item]=apiinfo
+                # 取data
+                if item == 'app':
+                    datalist = datadict['data'][0:10]
+                else:
+                    datalist = datadict['data']
 
-        api_drill_data[zhibiao_dict[field]] = fieldinfo
+                for ele in datalist:
+                    valuedict = {}
+                    name = ele['name']
+
+                    if ele.__contains__('value'):
+                        valuedict[tb_hb_name_dict['value']] = util.format_precision(ele['value'],selfdefine='--')
+                    #获取同环比项
+                    valuedict.update(get_tb_hb_item(ele))
+                    apiinfo[name] = valuedict
+            fieldinfo[item]=apiinfo
+
+    api_drill_data[indicator_name] = fieldinfo
 
     return api_drill_data

@@ -96,6 +96,26 @@ def item_drillpage(data=None):
 
     return itemslist
 
+def user_drillpage_item(data,indicator=None):
+    '''用户分析下钻页item'''
+    itemslist = ['trend','platform']
+
+    if is_platform_show(data):
+        itemslist.append('platform')
+
+    #['uv','new_create_parent_uv_sd','new_create_parent_uv_zf','new_create_parent_uv_ck','create_parent_uv_sd',
+                    # 'create_parent_uv_zf','create_parent_uv_ck','daycount_ratio_sd','daycount_ratio_zf']
+    if indicator not in ['new_uv','new_uv_ratio','register_number']:
+        itemslist.append('bd')
+
+    if indicator in ['uv','create_parent_uv_sd','create_parent_uv_zf','create_parent_uv_ck','daycount_ratio_sd','daycount_ratio_zf']:
+        itemslist.append('customer')
+
+    if indicator in ['daycount_ratio_sd','daycount_ratio_zf']:
+        itemslist.append('quantile')
+    return itemslist
+
+
 def get_tb_hb_item(data):
     '''返回api请求结果中的同环比键值对'''
     ele=dict(data)

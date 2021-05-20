@@ -2,11 +2,11 @@
 #移动悟空筛选条件字典
 #平台来源
 source_dict = {"all": "全部", '1': "主站", '2': "天猫", '3': "抖音", '4': "拼多多"}
-parent_platform_dict = {"all": "全部", '1': 'APP', '2': '轻应用', '3': 'H5', "4": 'PC'}
-platform_dict = {"all": "全部", '1': "安卓", '2': "iOS", '3': "快应用", '4': "微信", '5': '百度', '6': '头条', '7': '支付宝', '8': 'qq',
+parent_platform_dict = {"all": "全部", '1': 'APP', '2': '轻应用', '3': 'H5', "4": 'PC','5':'其他'}
+platform_dict = {"all": "全部", '1': "安卓", '2': "IOS", '3': "快应用", '4': "微信", '5': '百度', '6': '头条', '7': '支付宝', '8': 'qq',
             '9': '360'}
 #平台来源为APP时，细分
-app_dict={'1':'安卓','2':'iOS'}
+app_dict={'1':'安卓','2':'IOS'}
 #事业部
 bd_id_dict = {"all": "全部", "1": "出版物", "2": "日百","3":"数字", "4": "文创",'5':"其他",'6':'服装'}
 
@@ -32,9 +32,9 @@ drill_ck = { 'gross_profit': '毛利额', 'gross_profit_rate': '毛利率'}
 
 #用户分析指标
 user_dict={
-            "new_uv":"新访UV","new_uv_ratio": "新访UV占比",
-           "register_number": "新增注册用户","new_create_parent_uv_sd": "新增收订用户",
-           "new_create_parent_uv_zf": "新增支付用户","new_create_parent_uv_ck": "新增出库用户",
+           #  "new_uv":"新访UV","new_uv_ratio": "新访UV占比",
+           # "register_number": "新增注册用户","new_create_parent_uv_sd": "新增收订用户",
+           # "new_create_parent_uv_zf": "新增支付用户","new_create_parent_uv_ck": "新增出库用户",
             "uv": "活跃UV","create_parent_uv_sd":"收订用户",
            "create_parent_uv_zf":"支付用户","create_parent_uv_ck":"出库用户",
            "daycount_ratio_sd": "收订下单频次",

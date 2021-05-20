@@ -1,5 +1,6 @@
 from utils.date import get_tb_hb_date,get_month_end_day
 from utils.tb_hb import tb_hb_cal,get_tb_hb_key
+from resources.map import catgory_path_dict
 
 def get_platform_where(data,yinhao=False):
     '''获取platform对应的过滤条件,库不一样，字段代码在sql中可能需要加引号'''
@@ -177,7 +178,7 @@ def get_time_where(data):
         last_week_day=tb_hb_date[2]
         last_year_day=tb_hb_date[3]
 
-        datewhere += ' and t.date_str in ' + "('" + today+"','"+yesterday+"','"+last_week_day+"','"+last_year_day+"')"
+        datewhere += ' and date_str in ' + "('" + today+"','"+yesterday+"','"+last_week_day+"','"+last_year_day+"')"
 
     else:                   #周、月、季返回环比、同比去年
         hb_date=tb_hb_date[0]
@@ -188,6 +189,67 @@ def get_time_where(data):
                  datewhere+= " t.date_str between '"+ele[0]+"' and '"+ele[1]+"' or "
         datewhere=" and ("+datewhere.strip('or ')+" )"
     return datewhere
+
+
+#平台分布列
+def get_plat_column(ename):
+
+    yinhao=''
+    if ename in ['uv','new_uv']:
+        yinhao="'"
+
+    column_plat = "(case when platform in ("+yinhao+'0'+yinhao+") then '4' " \
+                  "when source="+yinhao+'1'+yinhao+" and platform in ("+yinhao+'12'+yinhao+","+yinhao+'20'+yinhao+") then '3' " \
+                  "when source="+yinhao+'1'+yinhao+" and platform in ("+yinhao+'1'+yinhao+","+yinhao+'2'+yinhao+") then '1' " \
+                  "when source="+yinhao+'1'+yinhao+" and platform in ("+yinhao+'3'+yinhao+","+yinhao+'4'+yinhao+','+yinhao+'5'+yinhao+","\
+                  +yinhao+'6'+yinhao+","+yinhao+'7'+yinhao+','+yinhao+'8'+yinhao+','+yinhao+'9'+yinhao+\
+                  ") then '2' else '5' end) as _platform,"
+
+    return column_plat
+
+#事业部分布列
+def get_bd_column(ename,namedict):
+    yinhao = ''
+    if ename in ['uv', 'new_uv']:
+        yinhao = "'"
+
+    if len(namedict) == 10:  #事业部细分
+
+        column_bd = 'case'
+        namedict.pop('10')
+        for key in namedict.keys():
+            column_bd += " when category_path3 in " + str(catgory_path_dict[key]) + " then '" + key + "'"
+        # others
+        column_bd += " else '10' end as _bd_id,"
+
+    else:
+        column_bd = "(case  when bd_id in("+yinhao+'5'+yinhao+","+yinhao+'12'+yinhao+") then '1' " \
+                    "when bd_id in("+yinhao+'1'+yinhao+','+yinhao+'4'+yinhao+','+ \
+                            yinhao+'9'+yinhao+","+yinhao+'15'+yinhao+','+yinhao+'16'+yinhao+") then '2' " \
+                    "when bd_id IN ("+yinhao+'3'+yinhao+") THEN '6' " \
+                    "when bd_id in("+yinhao+'20'+yinhao+","+yinhao+'21'+yinhao+','+yinhao+'23'+yinhao+") then '4' " \
+                    "else '5' end ) as _bd_id,"
+
+    return column_bd
+
+
+#是否显示计算下钻项
+def is_show_for_user_drill(indicator,item):
+
+    if item =='bd':
+        if indicator not in ['new_uv','uv','new_uv_ratio','register_number']:
+            return True
+
+    if item == 'customer':
+        if indicator in ['uv','create_parent_uv_sd','create_parent_uv_zf','create_parent_uv_ck','daycount_ratio_sd','daycount_ratio_zf']:
+            return True
+
+    if item == 'quantile':
+        if indicator in ['daycount_ratio_sd','daycount_ratio_zf']:
+            return True
+
+    return False
+
 
 #模块首页同环比计算
 def get_overview_tb_hb(ck_data,name,date,datetype,misskeyshow=True,misskeyvalue='--'):
@@ -504,23 +566,66 @@ def gen_sqldata(sql,cursor,offset=1000):
 
 
 #用户分析优化sql
-#用户分支优化各指标计算逻辑
-user_indicator_op_cal_dict={
-    "new_uv":['uniqExactMerge(device_id_state) as new_uv','mdata_flows_user_realtime_day_all'],  #"新访UV"
-    "new_uv_ratio":'new_uv/uv as new_uv_ratio',  #"新访uv占比"
-    "register_number":['count(distinct cust_id) as register_number','mdata_customer_new_all'] ,    #"新增注册用户"
-    "new_create_parent_uv_sd":['groupBitmapMerge(cust_id_state) as new_create_parent_uv_sd','dm_order_create_day'],  #"新增收订用户"
-    "new_create_parent_uv_zf":['groupBitmapMerge(cust_id_state) as new_create_parent_uv_zf','dm_order_pay_day'],             #"新增支付用户"
-    "new_create_parent_uv_ck": ['groupBitmapMerge(cust_id_state) as new_create_parent_uv_ck','dm_order_send_day'],             #"新增出库用户"
-    "uv":['uniqExactMerge(device_id_state) as uv','mdata_flows_user_realtime_day_all'] ,        #"活跃UV"
-    "create_parent_uv_sd":['groupBitmapMerge(cust_id_state) as create_parent_uv_sd','dm_order_create_day'],#"收订用户"
-    "create_parent_uv_zf":['groupBitmapMerge(cust_id_state) as create_parent_uv_zf','dm_order_pay_day'],#'"支付用户"
-    "create_parent_uv_ck":['groupBitmapMerge(cust_id_state) as create_parent_uv_ck','dm_order_send_day'],#"出库用户",
-    "daycount_ratio_sd":['groupBitmapMerge(parent_id_state)/groupBitmapMerge(cust_id_state) as daycount_ratio_sd','dm_order_create_day'],#"收订下单频次",
-    "daycount_ratio_zf":['groupBitmapMerge(parent_id_state)/groupBitmapMerge(cust_id_state) as daycount_ratio_zf','dm_order_pay_day'] #"支付下单频次"
-}
 
-def get_sql_for_user_analysis_overview_op(data,indicator):
+def get_where_for_analysis_overview_op(data,indicator,overview=True):
+    '''
+
+    :param data:
+    :param indicator:
+    :param overview: 默认首页时间，否则下钻页时间条件
+    :return:
+    '''
+    date_type = data['date_type']
+    if date_type == 'd':
+        new_flag = 'day'
+    elif date_type == 'w':
+        new_flag = 'week'
+    elif date_type == 'm':
+        new_flag = 'month'
+    else:
+        new_flag = 'quarter'
+
+    #指标名称
+    ename=indicator
+
+    yinhao = False
+    if ename in ['new_uv', 'register_number', 'uv']:
+        yinhao = True
+        bdid = "bd_id != '6' and "
+    else:
+        bdid = "bd_id != 6 and "
+
+    if ename in ['register_number']:
+        yinhao = True
+        bdid = ''
+
+    where = ' where ' + bdid
+    where += get_platform_where(data, yinhao)
+    where += get_bd_where(data, yinhao)
+    where += get_shoptype_where(data, yinhao)
+    if ename not in ['new_uv', 'register_number', 'uv']:
+        where += get_eliminate_where(data)
+    where += get_time_where(data)
+
+    append_where = ''
+    if ename == 'new_uv':
+        append_where = " and new_id=1 and type='prod' "
+
+    if ename == 'uv':
+        append_where = " and type='prod' "
+
+    if ename.startswith('new_create'):
+        append_where = " and {}_new_flag=1 ".format(new_flag)
+
+    if ename == "register_number":
+        where = where.replace('platform', 'from_platform')
+
+    newwhere = where + append_where
+
+    return newwhere
+
+
+def get_sql_for_user_analysis_overview_op(data,indicator,user_indicator_op_cal_dict):
     '''用户分析优化'''
 
     date_type=data['date_type']
@@ -538,7 +643,6 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
         column_date = 'toStartOfQuarter(toDate(date_str)) as date_str'
 
 
-
     # where=" where bd_id IN (1,4,9,15,16) AND platform IN (1,2) and shop_type=1 and  date_str IN ('2021-05-12','2020-05-12','2021-05-05','2021-05-11') "
     groupby = "  group by date_str "
     orderby = " order by date_str desc"
@@ -552,54 +656,19 @@ def get_sql_for_user_analysis_overview_op(data,indicator):
 
         if ename=='new_uv_ratio':
             continue
-
-        #有几个指标条件需要特殊处理
-        yinhao=False
-        if ename in ['new_uv','register_number','uv']:
-            yinhao=True
-            bdid="bd_id != '6' and "
-        else:
-            bdid = "bd_id != 6 and "
-
-        if ename in ['register_number']:
-            yinhao = True
-            bdid = ''
-
-        where = ' where '+bdid
-
-        where += get_platform_where(data, yinhao)
-        where += get_bd_where(data,yinhao)
-        where += get_shoptype_where(data,yinhao)
-        if ename not in ['new_uv', 'register_number', 'uv']:
-            where += get_eliminate_where(data)
-        where += get_time_where(data)
-
-        append_where = ''
-        if ename=='new_uv':
-            append_where=" and new_id=1 and type='prod' "
-
-        if ename=='uv':
-            append_where=" and type='prod' "
-
-        if ename.startswith('new_create'):
-            append_where = " and {}_new_flag=1 ".format(new_flag)
-
-        if ename=="register_number":
-            where=where.replace('platform','from_platform')
-
-
-        newwhere = where + append_where
+        where=get_where_for_analysis_overview_op(data,ename)
 
         column = user_indicator_op_cal_dict[ename][0]+" ,"+column_date
         table = 'bi_mdata.'+user_indicator_op_cal_dict[ename][1]
 
-        sql="select " + column + " from " + table + " t "+newwhere + groupby + orderby
+        sql="select " + column + " from " + table + " t "+where + groupby + orderby
         sqlset_dict[ename]=sql
 
     #新访UV占比
-    uv_ratio_sql="select t1."+"new_uv / t2.uv*100 as new_uv_ratio,t1.date_str  from ("+sqlset_dict['new_uv']+") t1 "+" left join ("+sqlset_dict['uv']+") t2 on t1.date_str=t2.date_str "+orderby
+    if sqlset_dict.__contains__('uv') and sqlset_dict.__contains__('new_uv'):
+        uv_ratio_sql="select t1."+"new_uv / t2.uv*100 as new_uv_ratio,t1.date_str  from ("+sqlset_dict['new_uv']+") t1 "+" left join ("+sqlset_dict['uv']+") t2 on t1.date_str=t2.date_str "+orderby
 
-    sqlset_dict['new_uv_ratio']=uv_ratio_sql
+        sqlset_dict['new_uv_ratio']=uv_ratio_sql
 
 
     return sqlset_dict

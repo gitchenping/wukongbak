@@ -235,7 +235,10 @@ def get_tb_hb_date(date,datetype):
         else:
             last_year=year
         hb_q_date_s=str(last_year)+get_day2q(hb_month)[0]
-        hb_q_date_e=datetime.datetime.strptime(hb_q_date_s,'%Y-%m-%d')+delta_day
+
+        #环比按日期取即可
+        # hb_q_date_e=datetime.datetime.strptime(hb_q_date_s,'%Y-%m-%d')+delta_day
+        hb_q_date_e=datetime.datetime.strptime(_year+"-0"+str(month-3)+"-"+_day,'%Y-%m-%d')
 
         # 同比去年
         m = month
@@ -270,7 +273,7 @@ def datechange(type,enddate):
 '''trend键值'''
 def get_trend_where_date(data):
     datetype=data['date_type']
-    datestr=data['date_str']
+    datestr=data['date']
 
     datelist=[]
     wheredate=''
@@ -294,13 +297,17 @@ def get_trend_where_date(data):
 
     if datetype == 'wtd' or datetype == 'w':  # 最近七周
 
+        # 将当前日期换算到周日
+
+        datestr=get_enddate_in_w_m_q(datestr, datetype)
         end_date_datetime = datetime.datetime.strptime(datestr, '%Y-%m-%d')
         i=0
         while i < 7:
+
             tempdatetime_e=end_date_datetime-datetime.timedelta(days=7 * i)
             tempdatetime_s=tempdatetime_e-datetime.timedelta(days=6)
 
-            wheredate += " date_str between '" +tempdatetime_s.strftime("%Y-%m-%d") + "' and '" + tempdatetime_e.strftime("%Y-%m-%d") + "' or "
+            wheredate += " t.date_str between '" +tempdatetime_s.strftime("%Y-%m-%d") + "' and '" + tempdatetime_e.strftime("%Y-%m-%d") + "' or "
 
             i+=1
 
@@ -317,7 +324,7 @@ def get_trend_where_date(data):
         while i<min(7,_month):
             month_s_e=get_day2month(year,month)
 
-            wheredate += " date_str between '" + month_s_e[0] + "' and '" +month_s_e[1] + "' or "
+            wheredate += " t.date_str between '" + month_s_e[0] + "' and '" +month_s_e[1] + "' or "
 
             month=str(int(month)-1)
             i+=1
@@ -335,7 +342,7 @@ def get_trend_where_date(data):
             a=int(month)-3*i
             q_s_e =get_day2q(a)
 
-            wheredate += " date_str between '" +year+ q_s_e[0] + "' and '" +year+ q_s_e[1] + "' or "
+            wheredate += " t.date_str between '" +year+ q_s_e[0] + "' and '" +year+ q_s_e[1] + "' or "
             i+=1
 
         wheredata = ' and (' + wheredate.strip('or ')+")"
@@ -401,3 +408,32 @@ def get_trendkey(datetype,date):
         key = 'Q' + str(math.ceil(int(templist[1]) / 3))
 
     return key
+
+
+'''返回trend的格式化键值对'''
+def get_trend_data(data,datetype):
+    trend={}
+    if datetype == 'day' or datetype=='d':
+
+        for ele in data:
+            datelist = ele[1].split('-')
+            key = datelist[1] + "/" + datelist[2]
+            trend[key] = round(float(ele[0]),2)
+
+    elif datetype == 'wtd' or datetype == 'w':
+        for ele in data:
+            a = datetime.datetime.strptime(ele[1], '%Y-%m-%d')
+            key = 'W' + str(a.isocalendar()[1])
+            trend[key] = round(float(ele[0]),2)
+    elif datetype == 'mtd' or datetype=='m':
+        for ele in data:
+            a=ele[1].split('-')[1]
+            key=str(int(a)) + '月'
+            trend[key] = round(float(ele[0]),2)
+    else:
+        for ele in data:
+            a=ele[1].split('-')[1]
+            key="Q"+str(int((int(a)-1)/3+1))
+            trend[key] = round(float(ele[0]),2)
+
+    return trend

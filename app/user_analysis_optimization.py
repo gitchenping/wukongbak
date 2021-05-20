@@ -19,7 +19,7 @@ cf=util.readini(filepath)
 url=cf.get('api','user_analysis_api')
 
 #ck 连接 、名称
-# ck_conn=util.connect_clickhouse()
+ck_conn=util.connect_clickhouse()
 ck_db={
     'host':"http://10.0.5.80:8123",
     'headers':{'X-ClickHouse-User': 'membersbi', 'X-ClickHouse-Key': 'dangdangbi'}
@@ -46,12 +46,25 @@ test_indicator_dict={"new_uv":"新访UV" ,#'mdata_flows_user_realtime_day_all',
 test_indicator_dict = dict(user_dict)
 
 @decorate.complog(userlogger)
-def user_drill(data):
+def user_drill(data,indicator_name,indicator):
     datacopy=dict(data)
 
-    apidata = api_user_analysis_drill_op(datacopy, test_indicator_dict)
-    sqldata = sql_user_analysis_drill_op(datacopy, test_indicator_dict)
-    util.diff_dict(sqldata, apidata)
+    if indicator=='register_number' and (data['bd_id'] != 'all' or data['shop_type'] != 'all'):
+        return
+
+    apidata = api_user_analysis_drill_op(url,datacopy,indicator_name)
+    sqldata = sql_user_analysis_drill_op(datacopy,ck_db,indicator,indicator_name)
+
+    diff = -1
+    try:
+        diff = util.diff_dict(apidata, sqldata)
+    except Exception as e:
+        print(e.__repr__())
+        print(data)
+
+    return diff
+
+
     pass
 
 
@@ -76,7 +89,7 @@ def user_overview(data):
 
 def user_analysis_op(datetype,date_str):
 
-    for source in ['all','1','3','2','4']:                 #平台来源      all-all 1-主站 2-天猫 3-抖音 4-拼多多
+    for source in ['all','1','2','3','4']:                 #平台来源      all-all 1-主站 2-天猫 3-抖音 4-拼多多
         if source!='1':
             parent_platformlist = ['all']
         else :                                               #点击主站可以下钻 all-全部、1-APP、2-轻应用、3-H5、4-PC
@@ -91,7 +104,7 @@ def user_analysis_op(datetype,date_str):
 
             for platform in platformlist:
 
-                for bd_id in ['all','1', '2', '4','5','6']:            # 事业部id：all-全部 1-出版物事业部 2-日百 3-数字业务事业部 4-文创 5-其它 6-服装
+                for bd_id in ['all']:         #['all', '2', '4','5','6','1']:            # 事业部id：all-全部 1-出版物事业部 2-日百 3-数字业务事业部 4-文创 5-其它 6-服装
 
                     for shop_type in ['all', '1', '2']:                 # 经营方式 all-ALL 1-自营 2-招商
 
@@ -107,17 +120,21 @@ def user_analysis_op(datetype,date_str):
                                   'date': date_str
                                   }
 
-                            # data={'source': '1', 'platform': '2', 'parent_platform': '1',
-                            # 'bd_id': '6', 'shop_type': 'all', 'eliminate_type': '4', 'date_type': 'm', 'date': '2021-05-18'}
+                            # data={'source': '1', 'platform': 'all', 'parent_platform': 'all', 'bd_id': '1', 'shop_type': 'all',
+                            #       'eliminate_type': 'all', 'date_type': 'd', 'date': '2021-05-19'}
 
-                            user_overview(data)
-                            # user_drill(data)
+                            # user_overview(data)
+                            for indicator,indicator_name in test_indicator_dict.items():
+
+
+                                data['field_str']=indicator
+                                user_drill(data,test_indicator_dict[data['field_str']],data['field_str'])
 
 def run_job():
     '''用户分析'''
-    date_str='2021-04-18'
+    date_str='2021-05-19'
 
-    date_type = ['qtd','wtd','mtd','day']           # 日、周、月、季度
+    date_type = ['day','mtd','qtd','wtd']           # 日、周、月、季度
 
     for datetype in date_type:
 
