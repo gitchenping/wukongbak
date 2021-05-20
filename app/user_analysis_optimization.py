@@ -128,9 +128,8 @@ def user_analysis_op(datetype,date_str):
 
 
                                 data['field_str']=indicator
-                                # data={'source': '3', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all', 'shop_type': '2',
-                                #       'eliminate_type': 'all', 'date_type': 'd', 'date': '2021-05-19',
-                                #       'field_str': 'daycount_ratio_sd'}
+                                # data={'source': 'all', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all', 'shop_type': 'all',
+                                #  'eliminate_type': 'all', 'date_type': 'w', 'date': '2021-05-19', 'field_str': 'daycount_ratio_sd'}
                                 user_drill(data,test_indicator_dict[data['field_str']],data['field_str'])
 
 def run_job():

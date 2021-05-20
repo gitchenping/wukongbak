@@ -522,12 +522,16 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
 
         where_quantile = where+where_quantile
 
+        if datetype !='d':
+            # where_quantile= re.sub('(t\.)','',where_quantile)
+            table=table+" t "
+
         time_where=get_time_where(datacopy).replace(' and ', '', 1)
 
         coloumn_quantile="max(t.parent_num) as parentNum_max, sum(t.parent_num)/groupBitmap(toUInt64(t.cust_id)) as parentNum_avg, " \
-                        "min(t.parent_num) as parentNum_min, quantileExact(0.5)(t.parent_num) as parentNum_quantile,date_str "
+                        "min(t.parent_num) as parentNum_min, quantileExact(0.5)(t.parent_num) as parentNum_quantile,"+column_date
 
-        table="SELECT cust_id, groupBitmap(toUInt64(parent_id)) as parent_num,date_str FROM "+table+where_quantile+groupby_custid
+        table="SELECT cust_id, groupBitmap(toUInt64(parent_id)) as parent_num,"+column_date+" FROM "+table+where_quantile+groupby_custid
 
         quantitlesql="select "+coloumn_quantile+" from ("+table+") t "+" where "+time_where+groupby+orderby
 
