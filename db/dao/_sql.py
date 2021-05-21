@@ -215,9 +215,11 @@ def get_bd_column(ename,namedict):
 
     if len(namedict) == 10:  #事业部细分
 
+        namedictcopy=dict(namedict)
         column_bd = 'case'
-        namedict.pop('10')
-        for key in namedict.keys():
+        namedictcopy.pop('10')
+        
+        for key in namedictcopy.keys():
             column_bd += " when category_path3 in " + str(catgory_path_dict[key]) + " then '" + key + "'"
         # others
         column_bd += " else '10' end as _bd_id,"
