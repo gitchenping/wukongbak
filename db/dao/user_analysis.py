@@ -7,7 +7,7 @@ from utils.date import get_trend_where_date,get_trend_data
 import numpy as np
 import requests
 import re
-from resources.map import customer_dict,new_old_customer_dict,bd_id_dict,app_dict,source_dict,parent_platform_dict,cat_name_dict
+from resources.map import customer_dict,new_old_customer_dict,bd_id_dict,app_dict,source_dict,parent_platform_dict,user_drill_cat_name_dict
 
 
 #用户分支优化各指标计算逻辑
@@ -25,6 +25,60 @@ user_indicator_op_cal_dict={
     "daycount_ratio_sd":['groupBitmapMerge(parent_id_state)/groupBitmapMerge(cust_id_state) as daycount_ratio_sd','dm_order_create_day'],#"收订下单频次",
     "daycount_ratio_zf":['groupBitmapMerge(parent_id_state)/groupBitmapMerge(cust_id_state) as daycount_ratio_zf','dm_order_pay_day'] #"支付下单频次"
 }
+
+#根据new_uv uv获取占比
+def get_new_uv_ratio(new_uv,uv):
+    result = {}
+    result['新访UV占比'] = {}
+    newuv = new_uv['新访UV']
+    uv = uv['活跃UV']
+
+    for item, itemvalue in newuv.items():
+        if item == 'trend':
+            newuv_trend = itemvalue
+            uv_trend = uv[item]
+
+            trend = {}
+            for key in newuv_trend.keys():
+                try:
+                    ratio = round(newuv_trend[key] / uv_trend[key] * 100, 2)
+                    trend[key] = ratio
+                except Exception:
+                    continue
+            if trend != {}:
+                result['新访UV占比'].update({'trend': trend})
+
+        if item == "platform":
+            newuv_platform = itemvalue
+            uv_platform = uv[item]
+
+            platform = {}
+            for key, newuvvalue in newuv_platform.items():
+                platform[key] = {}
+
+                uvvalue = uv_platform[key]
+
+                value = 0
+                for vthk, vthv in newuvvalue.items():
+                    try:
+                        if vthk == "value":
+                            value = round(newuvvalue[vthk] / uvvalue[vthk] * 100, 2)
+                            platform[key].update({vthk: value})
+
+                        else:
+                            a = newuvvalue['value'] / (1 + newuvvalue[vthk] / 100)
+
+                            b = uvvalue['value'] / (1 + uvvalue[vthk] / 100)
+
+                            hb_tb_ratio_value = round(a / b * 100, 2)
+                            platform[key].update({vthk: round((value / hb_tb_ratio_value - 1) * 100, 2)})
+                    except Exception:
+                        continue
+            if platform != {}:
+                result['新访UV占比'].update({'platform': platform})
+
+    return result
+
 
 
 def sql_user_analysis_overview(data,ck_tables,data_type_dict,conn=None):
@@ -347,34 +401,15 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
 
         new_uv_ratio={}
         if new_uv_info['新访UV'] !={} and uv_info['活跃UV']!={} :
-            uv_info['活跃UV'].pop('uv')
+            # uv_info['活跃UV'].pop('uv')
 
+            new_uv_ratio=get_new_uv_ratio(new_uv_info,uv_info)
+            if new_uv_ratio['新访UV占比']=={}:
+                new_uv_ratio['新访UV占比']['trend']={}
+                if is_platform_show(datacopy):
+                    new_uv_ratio['新访UV占比']['platform'] = {}
 
-            for key in new_uv_info['新访UV']:
-                if key =="trend":
-                    trend={}
-                    new_uv_trend=new_uv_info['新访UV']['trend']
-                    uv_trend=uv_info['活跃UV']['trend']
-                    for key_trend in new_uv_trend.keys():
-                        try:
-                           trend[key_trend]=new_uv_trend[key_trend] / uv_trend[key_trend] *100
-                        except Exception as e:
-                            pass
-                if key =="platform":
-                     platform={}
-                     new_uv_platform = new_uv_info['新访UV']['platform']
-                     uv_platform = uv_info['活跃UV']['platform']
-
-                     for key_platform in new_uv_platform.keys():
-                        try:
-
-                            for value_tb_hb in platform[key_platform].keys():
-
-                                a=new_uv_trend[key_trend] / uv_trend[key_trend] *100
-                        except Exception as e:
-                            pass
-        return 1
-
+        return new_uv_ratio
 
 
     # trend
@@ -461,7 +496,7 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
         if bdid =='all':
             bdnamedict = bd_id_dict
         else:
-            bdnamedict = cat_name_dict
+            bdnamedict = user_drill_cat_name_dict
 
         column_bd = get_bd_column(ename,bdnamedict)
 
@@ -598,7 +633,7 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
                     each_column_list = [[float(ele[i]), ele[-1]] for ele in rawdata if
                                        ele[i] is not None and ele[0] != '0']
                     j+=1
-                a=get_overview_tb_hb(each_column_list,parentnum_name,date,datetype)
+                a=get_overview_tb_hb(each_column_list,parentnum_name,date,datetype,misskeyshow=False)
                 qualtile.update(a)
 
                 i+=1

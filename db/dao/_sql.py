@@ -1,6 +1,6 @@
 from utils.date import get_tb_hb_date,get_month_end_day
 from utils.tb_hb import tb_hb_cal,get_tb_hb_key
-from resources.map import catgory_path_dict
+from resources.map import user_drill_catgory_path_dict
 
 def get_platform_where(data,yinhao=False):
     '''获取platform对应的过滤条件,库不一样，字段代码在sql中可能需要加引号'''
@@ -213,16 +213,16 @@ def get_bd_column(ename,namedict):
     if ename in ['uv', 'new_uv']:
         yinhao = "'"
 
-    if len(namedict) == 10:  #事业部细分
+    if len(namedict) == 13:  #事业部细分
 
         namedictcopy=dict(namedict)
         column_bd = 'case'
-        namedictcopy.pop('10')
-        
+        namedictcopy.pop('13')
+
         for key in namedictcopy.keys():
-            column_bd += " when category_path3 in " + str(catgory_path_dict[key]) + " then '" + key + "'"
+            column_bd += " when category_path3 in " + str(user_drill_catgory_path_dict[key]) + " then '" + key + "'"
         # others
-        column_bd += " else '10' end as _bd_id,"
+        column_bd += " else '13' end as _bd_id,"
 
     else:
         column_bd = "(case  when bd_id in("+yinhao+'5'+yinhao+","+yinhao+'12'+yinhao+") then '1' " \
@@ -270,7 +270,8 @@ def get_overview_tb_hb(ck_data,name,date,datetype,misskeyshow=True,misskeyvalue=
     tempdict = {}
 
     if len(tb_hb_key_list)==0:
-        tempdict[name]={'value':'--'}
+        # tempdict[name]={'value':'--'}
+        tempdict[name] ={}
 
     else :                       # 可以进行同环比计算
         newdata = tb_hb_cal(ck_data, misskeyvalue)
