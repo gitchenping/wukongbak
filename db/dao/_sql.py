@@ -589,7 +589,7 @@ def get_where_for_analysis_overview_op(data,indicator,overview=True):
     ename=indicator
 
     yinhao = False
-    if ename in ['new_uv', 'register_number', 'uv']:
+    if ename in ['new_uv', 'register_number', 'uv','new_uv_ratio']:
         yinhao = True
         bdid = "bd_id != '6' and "
     else:
@@ -603,7 +603,7 @@ def get_where_for_analysis_overview_op(data,indicator,overview=True):
     where += get_platform_where(data, yinhao)
     where += get_bd_where(data, yinhao)
     where += get_shoptype_where(data, yinhao)
-    if ename not in ['new_uv', 'register_number', 'uv']:
+    if ename not in ['new_uv', 'register_number', 'uv','new_uv_ratio']:
         where += get_eliminate_where(data)
     where += get_time_where(data)
 

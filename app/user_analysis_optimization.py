@@ -104,7 +104,7 @@ def user_analysis_op(datetype,date_str):
 
             for platform in platformlist:
 
-                for bd_id in ['all']:         #['all', '2', '4','5','6','1']:            # 事业部id：all-全部 1-出版物事业部 2-日百 3-数字业务事业部 4-文创 5-其它 6-服装
+                for bd_id in ['1','2', '4','5','6']:         #['all', '2', '4','5','6','1']:            # 事业部id：all-全部 1-出版物事业部 2-日百 3-数字业务事业部 4-文创 5-其它 6-服装
 
                     for shop_type in ['all', '1', '2']:                 # 经营方式 all-ALL 1-自营 2-招商
 
@@ -128,9 +128,8 @@ def user_analysis_op(datetype,date_str):
 
 
                                 data['field_str']=indicator
-                                # data={'source': '1', 'platform': 'all',
-                                #       'parent_platform': 'all', 'bd_id': '1', 'shop_type': '1',
-                                #       'eliminate_type': '5', 'date_type': 'm', 'date': '2021-05-19', 'field_str': 'daycount_ratio_sd'}
+                                # data={'source': 'all', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all', 'shop_type': 'all',
+                                #       'eliminate_type': 'all', 'date_type': 'd', 'date': '2021-05-20', 'field_str': 'new_uv_ratio'}
                                 user_drill(data,test_indicator_dict[data['field_str']],data['field_str'])
 
 def run_job():

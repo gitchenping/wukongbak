@@ -254,9 +254,13 @@ def connect_mysql_from_jump_server(mysql_ip, db_port,db_user, db_passwd, db,
 #通过shell 命令执行ck sql
 def cmd_linux(sql):
 
-    cmd='curl "http://membersbi:dangdangbi@10.0.5.80:8123" - d "$'+sql+'"'
-    result=os.popen(cmd).readlines()
+    cmd='curl "http://membersbi:dangdangbi@10.0.5.80:8123" -d "'+sql+'"'
+    rawresult=os.popen(cmd).readlines()     #返回一个列表
 
-    #格式化
+    result=[]
+    if len(rawresult)>0:
+
+        for ele in rawresult:
+            result.append(ele.strip('\n').split('\t'))
 
     return result

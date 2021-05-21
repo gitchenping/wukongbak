@@ -13,7 +13,7 @@ from resources.map import customer_dict,new_old_customer_dict,bd_id_dict,app_dic
 #用户分支优化各指标计算逻辑
 user_indicator_op_cal_dict={
     "new_uv":['uniqExactMerge(device_id_state) as new_uv','mdata_flows_user_realtime_day_all'],  #"新访UV"
-    "new_uv_ratio":'new_uv/uv as new_uv_ratio',  #"新访uv占比"
+    "new_uv_ratio":['new_uv/uv as new_uv_ratio',''],  #"新访uv占比"
     "register_number":['count(distinct cust_id) as register_number','mdata_customer_new_all'] ,    #"新增注册用户"
     "new_create_parent_uv_sd":['groupBitmapMerge(cust_id_state) as new_create_parent_uv_sd','dm_order_create_day'],  #"新增收订用户"
     "new_create_parent_uv_zf":['groupBitmapMerge(cust_id_state) as new_create_parent_uv_zf','dm_order_pay_day'],             #"新增支付用户"
@@ -334,10 +334,47 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
 
     column = user_indicator_op_cal_dict[ename][0] + "," + column_date
 
+
     table_alias=''
     if datetype!='d':
         table_alias=' t'
     table="bi_mdata."+user_indicator_op_cal_dict[ename][1]+table_alias
+
+    if ename =="new_uv_ratio":          #新访uv占比 特殊计算
+
+        new_uv_info = sql_user_analysis_drill_op(datacopy, ck_db, ename='new_uv', cname='新访UV')
+        uv_info = sql_user_analysis_drill_op(datacopy, ck_db, ename='uv', cname='活跃UV')
+
+        new_uv_ratio={}
+        if new_uv_info['新访UV'] !={} and uv_info['活跃UV']!={} :
+            uv_info['活跃UV'].pop('uv')
+
+
+            for key in new_uv_info['新访UV']:
+                if key =="trend":
+                    trend={}
+                    new_uv_trend=new_uv_info['新访UV']['trend']
+                    uv_trend=uv_info['活跃UV']['trend']
+                    for key_trend in new_uv_trend.keys():
+                        try:
+                           trend[key_trend]=new_uv_trend[key_trend] / uv_trend[key_trend] *100
+                        except Exception as e:
+                            pass
+                if key =="platform":
+                     platform={}
+                     new_uv_platform = new_uv_info['新访UV']['platform']
+                     uv_platform = uv_info['活跃UV']['platform']
+
+                     for key_platform in new_uv_platform.keys():
+                        try:
+
+                            for value_tb_hb in platform[key_platform].keys():
+
+                                a=new_uv_trend[key_trend] / uv_trend[key_trend] *100
+                        except Exception as e:
+                            pass
+        return 1
+
 
 
     # trend
@@ -434,11 +471,19 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
         bdsql = " select  " + column_bd + column + " from " + table + \
                 where + group_by + order_by
 
-        r = requests.get(headers=ck_db['headers'], url=ck_db['host'], params={'query': bdsql})
+        rawdata=[]
+        if bdid=='all':
+            r = requests.get(headers=ck_db['headers'], url=ck_db['host'], params={'query': bdsql})
 
-        if r.status_code == 200 and len(r.text) > 0:
-            rtext = r.text.strip('\n')
-            rawdata = [ele.split('\t') for ele in rtext.split('\n')]
+            if r.status_code == 200 and len(r.text) > 0:
+                rtext = r.text.strip('\n')
+                rawdata = [ele.split('\t') for ele in rtext.split('\n')]
+
+        else:
+
+            rawdata=util.cmd_linux(bdsql)
+
+        if rawdata!=[]:
 
             raw_new_data = []
             for ele in rawdata:
