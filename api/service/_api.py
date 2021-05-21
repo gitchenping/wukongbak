@@ -94,6 +94,7 @@ def item_drillpage(data=None):
     if is_platform_show(data):
         itemslist=['trend', 'bd','platform', 'customer']
 
+
     return itemslist
 
 def user_drillpage_item(data,indicator=None):

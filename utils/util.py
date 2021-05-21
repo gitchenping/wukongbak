@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 from clickhouse_driver import Client,connect
@@ -250,4 +251,12 @@ def connect_mysql_from_jump_server(mysql_ip, db_port,db_user, db_passwd, db,
     return server, cursor
 
 
+#通过shell 命令执行ck sql
+def cmd_linux(sql):
 
+    cmd='curl "http://membersbi:dangdangbi@10.0.5.80:8123" - d "$'+sql+'"'
+    result=os.popen(cmd).readlines()
+
+    #格式化
+
+    return result

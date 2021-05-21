@@ -445,7 +445,7 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
                 ele[1] = float(ele[1])
                 raw_new_data.append(ele)
 
-            bd = get_drill_tb_hb(rawdata, bdnamedict, date, datetype)
+            bd = get_drill_tb_hb(rawdata, bdnamedict, date, datetype,misskeyshow=False)
 
         itemdict['bd'] = bd
 
@@ -501,7 +501,7 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
                 ele[1] = float(ele[1])
                 raw_new_data.append(ele)
 
-            customer = get_drill_tb_hb(rawdata, customerdict, date, datetype)
+            customer = get_drill_tb_hb(rawdata, customerdict, date, datetype,misskeyshow=False)
 
         itemdict[customer_key] = customer
 
