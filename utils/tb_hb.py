@@ -2,37 +2,55 @@ import time
 import datetime
 from .date import *
 
+
+tb_hb_name_dict = {
+    'value_ori': 'value',      #首页使用
+    'value':'value',         #下钻页使用
+    'tb_week': '同比上周',
+    'tb_year': '同比去年',
+    'value_hb': '环比'
+}
+
 def tb_hb_format(data):
     if isinstance(data,str) and data.endswith('%'):
         return float(data.strip('%'))
     else:
         return data
 
-'''计算同环比'''
-def tb_hb_cal(rawdata,misskeyvalue='--'):
-    '''同比、环比计算，返回一个二维列表'''
-    newdata=[]
-    currentvaluelist = list(rawdata[0])
-    newdata.append(currentvaluelist)
-    for raw in rawdata[1:]:
-        tempdata = []
-        for i in range(len(raw) - 1):
-            if raw[i] is not None and raw[i] != 0 and currentvaluelist[i] is not None:
-                tempdata.append(round((currentvaluelist[i] - raw[i]) / raw[i] * 100, 2))
-            else:             #
-                if currentvaluelist[i] is  None:
-                    tempdata.append(-100)
-                else:
-                    tempdata.append(misskeyvalue)
-        tempdata.append(raw[-1])
-        newdata.append(tempdata)
-    newdata[0] = [round(ele, 2) for ele in currentvaluelist[:-1] if ele is not None]+[currentvaluelist[-1]]   #首行处理
-    return newdata
 
 
 
-'''获取同比、环比key'''
-def get_tb_hb_key(data,date,datetype):
+'''根据日期类型获取同环比key'''
+def get_tb_hb_key_dict(datetype,overview=True):
+    '''
+
+    :param datetype:
+    :param overview: 默认首页tbhb键
+    :return:
+    '''
+    keyitem = dict(tb_hb_name_dict)
+    if overview:
+        keyitem.pop('value')
+    else:
+        keyitem.pop('value_ori')
+
+    if datetype == 'd' or datetype=='h':
+        # keylist = keyitem.keys()
+        pass
+    elif datetype == 'w':
+        keyitem.pop('tb_week')
+        keyitem.pop('tb_year')
+        # keylist = keyitem.keys()
+    else:
+        keyitem.pop('tb_week')
+        # keylist = keyitem.keys()
+
+    return keyitem
+
+
+
+'''sql返回结果集获取同比、环比key'''
+def get_tb_hb_key_list(data,date,datetype,tbhb_keydict):
     '''
 
     :param data:       二维列表，
@@ -40,15 +58,12 @@ def get_tb_hb_key(data,date,datetype):
     :param datetype:
     :return:
     '''
+    if datetype.startswith('h'):
+        date=date.split(' ')[0]
 
-    lastestdate = get_startdate_in_w_m_q(date,datetype)
+    lastestdate_str = get_startdate_in_w_m_q(date,datetype)     #date所在的日 周一、月一号、季度一号
+    lastestdate_date=datetime.datetime.strptime(lastestdate_str, '%Y-%m-%d')
 
-    #默认keylist
-    defaultkeylist = ['value', '环比', '同比去年']
-    if datetype == 'day' or datetype == 'd' or datetype=='h':
-        defaultkeylist = ['value', '环比', "同比上周", '同比去年']
-    if datetype == 'week' or datetype == 'w':
-        defaultkeylist = ['value', '环比']
 
     length_raw = len(data)
     data_datelist = [ele[-1] for ele in data]
@@ -57,50 +72,66 @@ def get_tb_hb_key(data,date,datetype):
 
     if length_raw!=0:
 
-        if length_raw !=len(defaultkeylist):                               # 说明有同比或环比忽略
+        begindate_str = data_datelist[0]  # 第一个日期
+        begindate_date = datetime.datetime.strptime(begindate_str, '%Y-%m-%d')
 
-            if lastestdate > data[0][-1] :                            # 如果没有最近日期的数据，无法计算同比、环比
-                keylist=[]                                           #keylist为空，说明不能进行同比、环比计算
-            else:
-                # 判断同比、环比计算那个或两个都计算
-                keylist = ['value']
+        if lastestdate_date <= begindate_date:  # 如果没有最近日期的数据，无法计算同比、环比
 
-                begindate_str = data_datelist[0]                         #第一个日期
-                begindate_date = datetime.datetime.strptime(begindate_str, '%Y-%m-%d')
+            if tbhb_keydict.__contains__('value_ori'):
+                keylist.append('value_ori')
+            if tbhb_keydict.__contains__('value'):
+                keylist.append('value')
 
-                for i in range(1, len(data_datelist)):
-                    next_date = datetime.datetime.strptime(data_datelist[i], '%Y-%m-%d')
+            for i in range(1, length_raw):
+                next_date = datetime.datetime.strptime(data_datelist[i], '%Y-%m-%d')
 
-                    deltadays = (begindate_date - next_date).days
+                deltadays = (begindate_date - next_date).days
 
-                    if datetype == 'day' or datetype == 'd' or datetype=='h':
-                        if deltadays == 1:
-                            keylist.append('环比')
-                        elif deltadays > 1 and deltadays < 8:
-                            keylist.append('同比上周')
-                        else:
-                            keylist.append('同比去年')
-
-                    elif datetype == 'wtd' or datetype == 'w':
-                        if deltadays > 7:
-                            keylist = ['value', '同比去年']
-                        else:
-                            keylist = ['value', '环比']
-                    elif datetype == 'mtd' or datetype == 'm':
-
-                        if deltadays > 31:
-                            keylist = ['value', '同比去年']
-                        else:
-                            keylist = ['value', '环比']
-
-                    elif datetype == 'qtd' or datetype == 'q':
-                        if deltadays > 92 :
-                            keylist = ['value', '同比去年']
-                        else:
-                            keylist = ['value', '环比']
+                if datetype == 'day' or datetype == 'd' or datetype == 'h':
+                    if deltadays == 1:
+                        tbhbname='value_hb'
+                    elif deltadays > 1 and deltadays < 8:
+                        tbhbname='tb_week'
                     else:
-                            keylist = ['value', '同比去年']
-        else:
-            keylist=list(defaultkeylist)
+                        tbhbname='tb_year'
 
-    return keylist,defaultkeylist
+                elif datetype == 'wtd' or datetype == 'w':
+                    if deltadays > 7:
+                        tbhbname='tb_year'
+                    else:
+                        tbhbname='value_hb'
+
+                elif datetype == 'mtd' or datetype == 'm':
+
+                    if deltadays > 31:
+                        tbhbname='tb_year'
+                    else:
+                        tbhbname='value_hb'
+
+                elif datetype == 'qtd' or datetype == 'q':
+                    if deltadays > 92:
+                        tbhbname='tb_year'
+                    else:
+                        tbhbname='value_hb'
+
+                keylist.append(tbhbname)
+
+    return keylist
+
+
+'''计算同环比'''
+def tb_hb_cal(rawdata,tb_hb_key_list):
+    '''
+
+    :param rawdata: [[360.0, '2021-05-12'], [198.0, '2021-05-05'], [216.0, '2020-05-12']]
+    :param misskeyvalue:
+    :return: 返回一个二维列表
+    '''
+
+    newdata = [ele[0] for ele in rawdata]
+
+    first_value=newdata[0]
+    newdata=[first_value]+[round((first_value - ele) / ele * 100, 2) for ele in newdata[1:] if ele is not None and ele!=0]
+
+    newdata_dict=dict(zip(tb_hb_key_list,newdata))
+    return newdata_dict

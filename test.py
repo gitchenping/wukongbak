@@ -5,71 +5,79 @@ import json
 import sys
 import os
 import time
-from utils.util import cmd_linux
+from utils.tb_hb import get_tb_hb_key_dict
+from utils.util import is_number
+from db.dao._sql import data_merge
+from resources.map import bd_id_cat,parent_platform_cat
 
-new_uv={'新访UV': {'trend': {'05/14': 175453.0, '05/15': 123024.0, '05/16': 176725.0, '05/17': 185645.0, '05/18': 203188.0,
-                              '05/19': 197267.0, '05/20': 185235.0},
-            'platform': {'主站': {'value': 185235.0, '环比': -6.1, '同比上周': 2.78, '同比去年': -25.62},'APP':{'value': 189235.0,'环比': -9.1}}
-        }}
+data = {'source': '4', 'platform': 'all', 'parent_platform': 'all', 'bd_id': 'all', 'shop_type': '1',
+        'eliminate_type': 'all', 'date_type': 'd', 'date': '2021-05-12', 'field_str': 'uv'}
 
-uv={'活跃UV': {'trend': {'05/14': 721904.0, '05/15': 690543.0, '05/16': 702026.0, '05/17': 740582.0, '05/18': 849780.0,
-                          '05/19': 814180.0, '05/20': 761370.0},
-                  'platform': {'主站': {'value': 761370.0, '环比': -6.49, '同比上周': 1.87, '同比去年': -25.75},'APP':{'value': 185985.0,'环比': -6.1}}
- }}
+date_hour = data['date'].split(' ')       #对于时的情况，传值形式为2021-05-21 13
+
+date=date_hour[0]
+datetype = data['date_type']
+
+ename=data['field_str']
+sqldata={}
+
+rawdata=[
+                     [360,'2021-05-24',],
+                      # [300,'2021-05-17'],
+                     [198,'2021-05-17'],
+                    # ['NaN','2020-05-12']
+    ]
+
+rawdata2=[
+          [1,12,100,'2021-05-12'],
+            [1,20,130,'2021-05-12'],
+            [1,12,170,'2021-05-11'],
+           [1,20,100,'2021-05-11'],
+          [2,3,120,'2021-05-12'],
+         [2,4,80,'2021-05-11'],
+         [2,4,None,'2021-05-11'],
+           [2,5,110,'2021-05-05']
+          ]
+
+namedict={
+    '1':'安卓',
+    '2':'IOS'
+}
+
+def data_merge(ck_data):
+    '''
+    根据时间日期、首位分类进行数据合并
+    :param ck_data: 细分的数据，加和 合并，如[['1','3',100,'2021-06-06'],['1','20',120,'2021-06-06'],
+            ['1','4',100,'2021-06-06'],['1','3',100,'2021-06-05'],['1','20',100,'2021-06-05'],
+            ['2','5',110,'2021-06-06'],['2','6',80,'2021-06-06'],['2','5',200,'2021-06-05']]
+    :return:[['1',320,'2021-06-06'],['1',200,'2021-06-05'],['2',190,'2021-06-06'],['2',200,'2021-06-05']]
+    '''
+
+    # 数据预处理
+    ckdata = [[ele[0], float(ele[-2]), ele[-1]] for ele in ck_data if is_number(ele[-2]) and ele[1] != '0']
+    # 依据时间排序、分类排序
+    ckdata = sorted(ckdata, key=lambda s: s[2], reverse=True)
+    ckdata = sorted(ckdata, key=lambda s: s[0])
+
+    length=len(ckdata)
+    new_ckdata=[]
+
+    cmp=ckdata[0]
+
+    for ele in ckdata[1:]:
+
+        if ele[0] == cmp[0] and ele[-1] == cmp[-1]:
+            cmp[1] +=ele[1]
+
+        else:
+            new_ckdata.append(cmp)
 
 
 
-def test(new_uv,uv):
 
-    result={}
-    result['new_uv_ratio'] = {}
-    newuv=new_uv['新访UV']
-    uv = uv['活跃UV']
+    return new_ckdata
 
-    for item,itemvalue in newuv.items():
-        if item=='trend':
-            newuv_trend = itemvalue
-            uv_trend = uv[item]
+result=data_merge(rawdata2)
+a=12
 
-            trend={}
-            for key in newuv_trend.keys():
-                try:
-                   ratio=round(newuv_trend[key] /uv_trend [key] *100,2)
-                   trend[key]=ratio
-                except Exception:
-                    continue
-            if trend != {}:
-                result['new_uv_ratio'].update({'trend':trend})
 
-        if item =="platform":
-            newuv_platform = itemvalue
-            uv_platform = uv[item]
-
-            platform={}
-            for key,newuvvalue in newuv_platform.items():
-                platform[key]={}
-
-                uvvalue=uv_platform[key]
-
-                value = 0
-                for vthk,vthv in newuvvalue.items():
-                    try:
-                       if vthk=="value":
-                            value=round(newuvvalue[vthk] / uvvalue[vthk]*100,2)
-                            platform[key].update({vthk:value})
-
-                       else:
-                           a=newuvvalue['value'] / (1+newuvvalue[vthk] /100)
-
-                           b=uvvalue['value'] / (1 + uvvalue[vthk] / 100)
-
-                           hb_tb_ratio_value= round(a/b *100,2)
-                           platform[key].update({vthk:round((value/hb_tb_ratio_value -1)*100,2)})
-                    except Exception:
-                        continue
-            if platform != {}:
-                result['new_uv_ratio'].update({'platform':platform})
-
-    return result
-
-print(test(new_uv,uv))

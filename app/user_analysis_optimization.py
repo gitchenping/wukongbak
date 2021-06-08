@@ -1,11 +1,11 @@
-from utils import util,tb_hb,decorate
-
+from utils import util,tb_hb,decorate,db
+from utils.load import readini
 from db.dao.user_analysis import sql_user_analysis_drill_op,sql_user_analysis_overview_op
 from api.service.user_analysis import api_user_analysis_drill_op,api_user_analysis_overview_op
 from resources.map import user_dict
+from utils.date import get_realtime
 import logging.config
 from os import path
-
 
 
 #日志设置
@@ -15,7 +15,7 @@ userlogger=logging.getLogger('user')
 
 #url
 filepath=path.join(path.dirname(path.dirname(__file__)),"conf","config.ini")
-cf=util.readini(filepath)
+cf=readini(filepath)
 url=cf.get('api','user_analysis_api')
 
 #ck 连接 、名称
@@ -24,23 +24,8 @@ ck_db={
     'host':"http://10.0.5.80:8123",
     'headers':{'X-ClickHouse-User': 'membersbi', 'X-ClickHouse-Key': 'dangdangbi'}
 }
+ck_conn=db.CK(ck_db)
 
-#各指标对应的计算库表
-'''
-test_indicator_dict={"new_uv":"新访UV" ,#'mdata_flows_user_realtime_day_all',
-           "new_uv_ratio":"新访UV占比",  #'mdata_flows_user_realtime_day_all'
-           "register_number":"新增注册用户" ,    #'mdata_customer_new_all'
-           "new_create_parent_uv_sd":"新增收订用户",  #'dm_order_create_day' 
-           "new_create_parent_uv_zf":"新增支付用户" ,             #'dm_order_pay_day'
-           "new_create_parent_uv_ck": "新增出库用户",             #'dm_order_send_day'
-           "uv":"活跃UV" ,        #'mdata_flows_user_realtime_day_all'
-           "create_parent_uv_sd":"收订用户",    #'dm_order_create_day'
-           "create_parent_uv_zf":"支付用户",    #'dm_order_pay_day'
-           "create_parent_uv_ck":"出库用户",    #'dm_order_send_day'
-           "daycount_ratio_sd":"收订下单频次",    #'dm_order_create_day'
-           "daycount_ratio_zf":"支付下单频次"    #'dm_order_pay_day'
-           }
-'''
 
 #测试指标（tab模块）
 test_indicator_dict = dict(user_dict)
@@ -53,7 +38,7 @@ def user_drill(data,indicator_name,indicator):
         return
 
     apidata = api_user_analysis_drill_op(url,datacopy,indicator_name)
-    sqldata = sql_user_analysis_drill_op(datacopy,ck_db,indicator,indicator_name)
+    sqldata = sql_user_analysis_drill_op(datacopy,ck_conn,indicator,indicator_name)
 
     diff = -1
     try:
@@ -65,15 +50,18 @@ def user_drill(data,indicator_name,indicator):
     return diff
 
 
-    pass
-
 
 @decorate.complog(userlogger)
 def user_overview(data):
     datacopy = dict(data)
+    indicator_dict=dict(test_indicator_dict)
 
-    apidata = api_user_analysis_overview_op(url,datacopy, test_indicator_dict)
-    sqldata = sql_user_analysis_overview_op(datacopy,test_indicator_dict,ck_db)
+    if datacopy['bd_id'] !='all' or datacopy['shop_type'] !='all':
+        if indicator_dict.__contains__('register_number'):
+            indicator_dict.pop('register_number')
+
+    apidata = api_user_analysis_overview_op(url,datacopy, indicator_dict)
+    sqldata = sql_user_analysis_overview_op(datacopy,indicator_dict,ck_conn)
 
     diff=-1
     try:
@@ -83,8 +71,6 @@ def user_overview(data):
         print(data)
 
     return diff
-
-    pass
 
 
 def user_analysis_op(datetype,date_str):
@@ -104,7 +90,7 @@ def user_analysis_op(datetype,date_str):
 
             for platform in platformlist:
 
-                for bd_id in ['1','2', '4','5','6']:    #['1','2', '4','5','6']:         #['all', '2', '4','5','6','1']:            # 事业部id：all-全部 1-出版物事业部 2-日百 3-数字业务事业部 4-文创 5-其它 6-服装
+                for bd_id in ['all','1','2', '4','5','6']:    #['1','2', '4','5','6']:         #['all', '2', '4','5','6','1']:            # 事业部id：all-全部 1-出版物事业部 2-日百 3-数字业务事业部 4-文创 5-其它 6-服装
 
                     for shop_type in ['all','1','2']:                 # ['all','1','2']经营方式 all-ALL 1-自营 2-招商
 
@@ -120,25 +106,30 @@ def user_analysis_op(datetype,date_str):
                                   'date': date_str
                                   }
 
-                            # data={'source': '1', 'platform': 'all', 'parent_platform': 'all', 'bd_id': '1', 'shop_type': 'all',
-                            #       'eliminate_type': 'all', 'date_type': 'd', 'date': '2021-05-19'}
-
-                            # user_overview(data)
+                            #debug
+                            # data={'source': 'all', 'platform': 'all', 'parent_platform': 'all',
+                            #                             #  'bd_id': '1', 'shop_type': '1', 'eliminate_type': '5', 'date_type': 'd', 'date': '2021-06-03'}
+                            #                             # user_overview(data)
+                            #
+                            # continue
                             for indicator,indicator_name in test_indicator_dict.items():
-
-
                                 data['field_str'] =  indicator
-                                # data= {'source': 'all', 'platform': 'all', 'parent_platform': 'all', 'bd_id': '2', 'shop_type': '2',
-                                #        'eliminate_type': '5', 'date_type': 'm', 'date': '2021-05-20', 'field_str': 'new_create_parent_uv_sd'}
+                                #debug
+                                data= {'source': 'all', 'parent_platform': 'all','platform': 'all',
+                                       'bd_id': 'all', 'shop_type': 'all',
+                                 'eliminate_type': 'all', 'date_type': 'd', 'date': '2021-06-06', 'field_str': 'new_uv_ratio'}
 
                                 user_drill(data,test_indicator_dict[data['field_str']],data['field_str'])
 
 def run_job():
     '''用户分析'''
-    date_str='2021-05-20'
+    date_str='2021-06-03'
 
-    date_type = ['wtd','mtd','qtd','day']           # 日、周、月、季度
+    date_type = ['day','wtd','mtd','qtd','hour']           #时、 日、周、月、季度
 
     for datetype in date_type:
+
+        if datetype.startswith('h'):
+            date_str=get_realtime()
 
         user_analysis_op(datetype[0],date_str)

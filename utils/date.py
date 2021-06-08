@@ -3,6 +3,25 @@ import datetime
 import math
 import calendar
 
+#返回实时时间，精确到小时
+def get_realtime():
+    '''
+
+    :return: 2021-06-01 13
+    '''
+    datetimenow = datetime.datetime.now()
+    year = str(datetimenow.year)
+    month = str(datetimenow.month)
+    day = str(datetimenow.day)
+    hour = str(datetimenow.hour - 1)
+
+    date_str = year + "-" + (len(month) < 2 and '0' + month or month) + "-" + (
+            len(day) < 2 and '0' + day or day)
+    hour_str = len(hour) < 2 and '0' + hour or hour
+
+    return date_str+" "+hour_str
+
+
 '''获取月份所在的季度起始日期'''
 def get_sd_ed_q(m):
     m=int(m)
@@ -130,7 +149,7 @@ def get_enddate_in_w_m_q(date,datetype):
 def get_tb_hb_date(date,datetype):
     tb_hb_date=None
 
-    if datetype=='h':
+    if datetype.startswith('h'):
         date=date.split(' ')[0]
     datelist=date.split('-')
 
@@ -280,6 +299,13 @@ def get_trend_where_date(data):
     wheredata=''
 
     templist=datestr.split('-')
+
+    if datetype.startswith('h'):     #小时的话只取当天
+        wheredate=datestr.split(' ')
+        date_1=wheredate[0]
+        date_2=wheredate[1]
+        wheredata = " and date_str in ('" + date_1 + "') and hour_str<='"+str(date_2)+"'"
+
     if datetype == 'day' or datetype == 'd':       #最近七天
         i=0
         end_date_datetime = datetime.datetime.strptime(datestr, '%Y-%m-%d')
@@ -413,7 +439,12 @@ def get_trendkey(datetype,date):
 '''返回trend的格式化键值对'''
 def get_trend_data(data,datetype):
     trend={}
-    if datetype == 'day' or datetype=='d':
+    if datetype.startswith('h'):
+        for ele in data:
+            key=ele[1]+"点"
+            trend[key]=round(float(ele[0]),2)
+
+    elif datetype == 'day' or datetype=='d':
 
         for ele in data:
             datelist = ele[1].split('-')

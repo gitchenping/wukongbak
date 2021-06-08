@@ -1,16 +1,9 @@
 import configparser
 import os
+from utils.load import readconfini
+
 #装饰器函数
 
-
-
-
-def readconfini(path=''):
-    cf = configparser.ConfigParser()
-    allpath=os.path.join(path, "config.ini")
-    cf.read(allpath, encoding='utf-8')
-
-    return cf
 
 '''环境变量预加载'''
 def loadenv(**kwargs):

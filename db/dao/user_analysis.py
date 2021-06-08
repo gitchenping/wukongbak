@@ -1,19 +1,20 @@
 from utils import util
 from ._sql import is_platform_show,get_bd_where,get_platform_where,get_time_where,get_shoptype_where,get_eliminate_where,get_drill_tb_hb
-from ._sql import get_sql_for_user_analysis_overview_op,get_overview_tb_hb
+from ._sql import get_overview_tb_hb
 from ._sql import get_where_for_analysis_overview_op,is_show_for_user_drill,get_plat_column,get_bd_column
-from utils import tb_hb
+from utils.tb_hb import get_tb_hb_key_dict
 from utils.date import get_trend_where_date,get_trend_data
 import numpy as np
 import requests
 import re
-from resources.map import customer_dict,new_old_customer_dict,bd_id_dict,app_dict,source_dict,parent_platform_dict,user_drill_cat_name_dict
+from resources.map import customer_dict,new_old_customer_dict,bd_id_dict, \
+    bd_id_cat,app_dict,source_dict,parent_platform_dict,user_drill_cat_name_dict,parent_platform_cat
 
 
 #用户分支优化各指标计算逻辑
 user_indicator_op_cal_dict={
     "new_uv":['uniqExactMerge(device_id_state) as new_uv','mdata_flows_user_realtime_day_all'],  #"新访UV"
-    "new_uv_ratio":['new_uv/uv as new_uv_ratio',''],  #"新访uv占比"
+    "new_uv_ratio":['new_uv / uv *100 as new_uv_ratio','mdata_flows_user_realtime_day_all'],  #"新访uv占比"
     "register_number":['count(distinct cust_id) as register_number','mdata_customer_new_all'] ,    #"新增注册用户"
     "new_create_parent_uv_sd":['groupBitmapMerge(cust_id_state) as new_create_parent_uv_sd','dm_order_create_day'],  #"新增收订用户"
     "new_create_parent_uv_zf":['groupBitmapMerge(cust_id_state) as new_create_parent_uv_zf','dm_order_pay_day'],             #"新增支付用户"
@@ -24,6 +25,21 @@ user_indicator_op_cal_dict={
     "create_parent_uv_ck":['groupBitmapMerge(cust_id_state) as create_parent_uv_ck','dm_order_send_day'],#"出库用户",
     "daycount_ratio_sd":['groupBitmapMerge(parent_id_state)/groupBitmapMerge(cust_id_state) as daycount_ratio_sd','dm_order_create_day'],#"收订下单频次",
     "daycount_ratio_zf":['groupBitmapMerge(parent_id_state)/groupBitmapMerge(cust_id_state) as daycount_ratio_zf','dm_order_pay_day'] #"支付下单频次"
+}
+
+user_indicator_op_realtime_cal_dict={
+    "new_uv":['count(distinct if(new_id=1, device_id, null)) AS new_uv','mdata_flows_user_realtime_all'],  #"新访UV"
+    "new_uv_ratio":['round(count(distinct if(new_id=1, device_id, null))/count(distinct device_id)*100,0) AS new_uv_ratio','mdata_flows_user_realtime_all'],  #"新访uv占比"
+    # "register_number":['count(distinct cust_id) as register_number','mdata_customer_new_all'] ,    #"新增注册用户"
+    "new_create_parent_uv_sd":["count(distinct if(new_id='1' AND data_type='1', cust_id, null)) AS new_create_parent_uv_sd",'kpi_order_info_all_v2'],  #"新增收订用户"
+    "new_create_parent_uv_zf":["count(distinct if(new_id='1' AND data_type='2', cust_id, null)) AS new_create_parent_uv_zf",'kpi_order_info_all_v2'],             #"新增支付用户"
+    "new_create_parent_uv_ck": ["count(distinct if(new_id='1' AND data_type='3', cust_id, null)) AS new_create_parent_uv_ck",'kpi_order_info_all_v2'],             #"新增出库用户"
+    "uv":['count(distinct device_id) AS uv','mdata_flows_user_realtime_all'] ,        #"活跃UV"
+    "create_parent_uv_sd":["count(distinct  if(data_type='1', cust_id, null)) AS create_parent_uv_sd",'kpi_order_info_all_v2'],#"收订用户"
+    "create_parent_uv_zf":["count(distinct  if(data_type='2', cust_id, null)) AS create_parent_uv_zf",'kpi_order_info_all_v2'],#'"支付用户"
+    "create_parent_uv_ck":["count(distinct  if(data_type='3', cust_id, null)) AS create_parent_uv_ck",'kpi_order_info_all_v2'],#"出库用户",
+    # "daycount_ratio_sd":['groupBitmapMerge(parent_id_state)/groupBitmapMerge(cust_id_state) as daycount_ratio_sd','dm_order_create_day'],#"收订下单频次",
+    # "daycount_ratio_zf":['groupBitmapMerge(parent_id_state)/groupBitmapMerge(cust_id_state) as daycount_ratio_zf','dm_order_pay_day'] #"支付下单频次"
 }
 
 #根据new_uv uv获取占比
@@ -80,6 +96,94 @@ def get_new_uv_ratio(new_uv,uv):
     return result
 
 
+def get_sql_for_user_analysis_overview_op(data,indicator,user_indicator_cal_dict,method=1):
+    '''用户分析优化'''
+
+    date_type=data['date_type']
+    if date_type=='d':
+        new_flag='day'
+        column_date = 'date_str'
+    elif date_type=='w':
+        new_flag = 'week'
+        column_date='toStartOfWeek(toDate(date_str), 1) as date_str'
+    elif date_type=='m':
+        new_flag = 'month'
+        column_date='toStartOfMonth(toDate(date_str)) as date_str'
+    elif date_type=='q':
+        new_flag='quarter'
+        column_date = 'toStartOfQuarter(toDate(date_str)) as date_str'
+    else:                               #小时
+        column_date = 'toDate(date_str) as date_str'
+
+
+    # where=" where bd_id IN (1,4,9,15,16) AND platform IN (1,2) and shop_type=1 and  date_str IN ('2021-05-12','2020-05-12','2021-05-05','2021-05-11') "
+    groupby = "  group by date_str "
+    orderby = " order by date_str desc"
+
+
+    #根据指标拼接sql，一个
+
+    sqlset_dict={}
+
+    for ename,cname in indicator.items():
+
+        if ename=='new_uv_ratio':
+            continue
+        where=get_where_for_analysis_overview_op(data,ename)
+
+        column = user_indicator_cal_dict[ename][0]+" ,"+column_date
+        table = 'bi_mdata.'+user_indicator_cal_dict[ename][1]
+
+        sql="select " + column + " from " + table + " t "+where + groupby + orderby
+        sqlset_dict[ename]=sql
+
+    if method==1:
+        #新访UV占比
+        if sqlset_dict.__contains__('uv') and sqlset_dict.__contains__('new_uv'):
+            uv_ratio_sql="select "+ user_indicator_cal_dict['new_uv']+",t1.date_str  from ("+sqlset_dict['new_uv']+") t1 "+" left join ("+sqlset_dict['uv']+") t2 on t1.date_str=t2.date_str "+orderby
+
+            sqlset_dict['new_uv_ratio']=uv_ratio_sql
+
+            return sqlset_dict
+    else:
+        #第二种方法写作一个sql,使用full join
+        i=1
+        sql_list=[]
+        outer_column=[]
+        for ename, sql in sqlset_dict.items():
+            # outer_column.append("t"+str(i)+"."+ename)
+            outer_column.append(ename)
+            sql_list.append("("+sql+") t" +str(i))
+            i+=1
+
+        length=len(sql_list)
+        sql_list = [sql_list[0]] + [sql_list[i] + " on t1" + ".date_str=t" + str(i + 1) + ".date_str" for i in
+                                    range(1, length)]
+        sql = ' full join '.join(sql_list)
+
+        #最后算new_uv_ratio
+        new_uv_ratio_column=''
+        if indicator.__contains__('new_uv_ratio') :
+            uv_index=outer_column.index('uv')+1
+            new_uv_index=outer_column.index('new_uv') + 1
+
+            new_uv_ratio_column="t"+str(new_uv_index)+".new_uv" +" / "+"t"+str(uv_index)+".uv *100" +" as new_uv_ratio"
+
+        outer_column_t=["t"+str(i+1)+"."+outer_column[i] for i in range(0,len(outer_column))]  #列名
+        all_column_datestr_list=["t"+str(i+1)+"."+"date_str" for i in range(0,len(outer_column))] #时间
+
+        if new_uv_ratio_column != '':
+            outer_column.append('new_uv_ratio')
+            outer_column_t.append(new_uv_ratio_column)
+            all_column_datestr_list.append('t'+str(new_uv_index)+".date_str")       #与new_uv 时间保持一致
+
+        outer_column_str=",".join(outer_column_t)
+        all_column_datestr=','.join(all_column_datestr_list)
+
+        final_sql="select "+ outer_column_str+","+all_column_datestr+" from "+sql
+
+
+        return final_sql,outer_column
 
 def sql_user_analysis_overview(data,ck_tables,data_type_dict,conn=None):
 
@@ -109,86 +213,73 @@ def sql_user_analysis_overview(data,ck_tables,data_type_dict,conn=None):
     return sqldata
 
 
-def sql_user_analysis_overview_op(data, test_indicator_dict, ck_db=None):
+def sql_user_analysis_overview_op(data, test_indicator_dict, ck_conn=None,is_novalue_key_show=False,defaultvalue='--'):
+    '''
 
+    :param data: 筛选条件
+    :param test_indicator_dict: 所有的测试指标字典
+    :param ck_conn: 自定义ck连接
+    :param is_novalue_key_show: 指标没有数值的话是否参与比较
+    :param defaultvalue: 缺失的时候默认值
+    :return: 来自数据库的数据
+    '''
+    indicator_dict=dict(test_indicator_dict)
     date_hour = data['date'].split(' ')       #对于时的情况，传值形式为2021-05-21 13
 
     date=date_hour[0]
     datetype = data['date_type']
 
+    # 根据datetype，获取同环比键
+    tbhb_keydict = get_tb_hb_key_dict(datetype)
+
     sqldata={}
+    method=2
+    user_indicator_cal_dict=user_indicator_op_cal_dict
+    if datetype.startswith('h'):
+        user_indicator_cal_dict=user_indicator_op_realtime_cal_dict
 
-    #当选择事业部或者经营方式时，新增注册用户数 隐藏不显示
-    indicator_dict=dict(test_indicator_dict)
-    if data['bd_id'] !='all' or data['shop_type'] !='all':
-        indicator_dict.pop('register_number')
+    sql_dict_str,column_list=get_sql_for_user_analysis_overview_op(data,indicator_dict,user_indicator_cal_dict,method)
 
-    sqldict=get_sql_for_user_analysis_overview_op(data,indicator_dict,user_indicator_op_cal_dict)
-    # sql='select 2+2'
-    # conn.execute(sql)
-    # rawdata=conn.fetchall()
+    if method==1:              #两种处理方法：1、一个指标一个sql处理，2,所有指标sql汇总一个大sql
+        #依次处理每个指标
+        for ename,sql in sql_dict_str.items():
+            each_item_sqldata={}
+            cname=test_indicator_dict[ename]
 
-    #依次处理每个指标
-    for ename,sql in sqldict.items():
+            # r=requests.get(headers=ck_db['headers'],url=ck_db['host'],params={'query':sql})
+            rawdata=ck_conn.cmd_linux(sql)
 
-        r=requests.get(headers=ck_db['headers'],url=ck_db['host'],params={'query':sql})
+            if len(rawdata)>0:
 
-        '''debug
-             rawdata=[[360,338,1.14,1.14,'2021-05-12',],
-                    [None,273,1.09,1.05,'2021-05-11'],
-                    [198,184,1.1,1.04,'2021-05-05'],
-                    [216,196,1.06,1.06,'2020-05-12']]
-
-            '''
-        if r.status_code == 200 and len(r.text) > 0:
-            rtext=r.text.strip('\n')
-            rawdata = [ele.split('\t') for ele in rtext.split('\n')]
-
-            each_indicator_list=[[float(ele[0]), ele[1]] for ele in rawdata if
-                                       ele[0] is not None and ele[0] != '0']
-
-            each_item_sqldata = get_overview_tb_hb(each_indicator_list, test_indicator_dict[ename], date,
-                                                   datetype,misskeyshow=False)
-            if each_item_sqldata[test_indicator_dict[ename]]['value']!='--':
+                each_item_sqldata[cname] = get_overview_tb_hb(rawdata,tbhb_keydict,ename, date,datetype,misskeyshow=False)
                 sqldata.update(each_item_sqldata)
-        # else:
-        #     sqldata[ename]={}
+            else:
+                sqldata[cname]={}              #和api 保持一致
+    else:
+        rawdata = ck_conn.ck_get(sql_dict_str)
 
-    #新访uv占比
-    # if indicator_dict.__contains__('new_uv_ratio') :
-    #     new_uv_value=sqldata['新访UV']['value']
-    #     uv_value=sqldata['活跃UV']['value']
-    #     if uv_value is not None or uv_value !=0 or uv_value!='--':
-    #         sqldata['新访UV占比']=round( new_uv_value / uv_value *100 ,2)
+        length = len(rawdata)
+        if length > 0:
+            length = len(rawdata[0])
+            rawdata_array=np.array(rawdata)
 
+            for i in range(length // 2):
+                #依次取i列和i+length/2列
+                temp = rawdata_array[:,[i,i + length // 2]]
+                templist = temp.tolist()
+                ename = column_list[i]
+                cname = test_indicator_dict[ename]
+
+                sql_result= get_overview_tb_hb(templist, tbhb_keydict, date, datetype, misskeyshow=False)
+                if sql_result  == {}:
+                    if is_novalue_key_show:
+                        sqldata[cname] = {}
+                else:
+                    sqldata[cname]=sql_result
+
+        pass
 
     return sqldata
-
-    '''
-    
-    # 将rawdata转换为narray类型
-            raw_data_array = np.array(rawdata)
-
-            i = 0
-            for indicator_name in indicator_dict.keys():  # 循环处理每个指标
-
-                each_indicator = raw_data_array[:, [i, -1]]
-                each_indicator_list = each_indicator.tolist()
-                each_indicator_list = [[float(ele[0]), ele[1]] for ele in each_indicator_list if
-                                       ele[0] is not None and ele[0] != '0']
-
-                each_item_sqldata = get_overview_tb_hb(each_indicator_list, test_indicator_dict[indicator_name], date,
-                                                       datetype)
-
-                sqldata.update(each_item_sqldata)
-
-                i += 1
-                pass
-
-
-    return sqldata
-    '''
-
 
 
 def sql_user_analysis_drill(datacopy, ck_tables, test_indicator_dict, data_type_dict,conn=None):
@@ -350,7 +441,7 @@ def sql_user_analysis_drill(datacopy, ck_tables, test_indicator_dict, data_type_
     return sql_data
 
 
-def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
+def sql_user_analysis_drill_op(datacopy,conn,ename='',cname=''):
     '''
         用户分析下钻页
     :param datacopy:
@@ -364,78 +455,111 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
     sql_drill_data = {}
     itemdict={}
     date_type=datacopy['date_type']
-    if date_type == 'd':
+
+    groupby=' group by date_str'
+    if date_type.startswith('h'):
+        column_date=' hour_str'
+        groupby = ' group by hour_str'
+        groupby_new_flag = "new_id"
+    elif date_type == 'd':
         column_date = 'date_str'
-        new_flag="day"
+        groupby_new_flag =  "day_new_flag"
     elif date_type == 'w':
         column_date = 'toStartOfWeek(toDate(date_str), 1) as date_str'
-        new_flag = "week"
+        groupby_new_flag =  "week_new_flag"
     elif date_type == 'm':
         column_date = 'toStartOfMonth(toDate(date_str)) as date_str'
-        new_flag = "month"
+        groupby_new_flag =  "month_new_flag"
     else:
         column_date = 'toStartOfQuarter(toDate(date_str)) as date_str'
-        new_flag = "quarter"
+        groupby_new_flag =  "quarter_new_flag"
 
 
     source = datacopy['source']
     parentplatform = datacopy['parent_platform']
 
-    date = datacopy['date'].split(' ')[0]
+    date = datacopy['date']
     datetype=datacopy['date_type']
+
+    table_alias = ''
+    if datetype not in ['d', 'h']:
+        table_alias = ' t'
+
+    user_indicator_cal_dict = user_indicator_op_cal_dict
+    if datetype.startswith('h'):
+        user_indicator_cal_dict = user_indicator_op_realtime_cal_dict
+    table = "bi_mdata." + user_indicator_cal_dict[ename][1] + table_alias
+
+    # 根据datetype，获取可能的同环比键
+    tbhb_keydict = get_tb_hb_key_dict(datetype)
 
     where=get_where_for_analysis_overview_op(datacopy,ename)
 
-    column = user_indicator_op_cal_dict[ename][0] + "," + column_date
+    column = user_indicator_cal_dict[ename][0] + "," + column_date
+    if ename == "new_uv_ratio":
+
+        new_uv_where = get_where_for_analysis_overview_op(datacopy,'new_uv')
+        uv_where = get_where_for_analysis_overview_op(datacopy,'uv')
+
+        column = column.replace('date_str',' t1.date_str')
 
 
-    table_alias=''
-    if datetype!='d':
-        table_alias=' t'
-    table="bi_mdata."+user_indicator_op_cal_dict[ename][1]+table_alias
+        table=" (select "+user_indicator_cal_dict['new_uv'][0] +","+column_date + " from bi_mdata."+ user_indicator_cal_dict['new_uv'][1] + new_uv_where+groupby+" ) t1 left join "+ \
+            "( select "+user_indicator_cal_dict['uv'][0] +","+column_date+" from bi_mdata."+ user_indicator_cal_dict['uv'][1]+uv_where +groupby+") t2 on t1.date_str=t2.date_str "
 
-    if ename =="new_uv_ratio":          #新访uv占比 特殊计算
+        groupby = groupby.replace('date_str', ' t1.date_str')
 
-        new_uv_info = sql_user_analysis_drill_op(datacopy, ck_db, ename='new_uv', cname='新访UV')
-        uv_info = sql_user_analysis_drill_op(datacopy, ck_db, ename='uv', cname='活跃UV')
-
-        new_uv_ratio={}
-        if new_uv_info['新访UV'] !={} and uv_info['活跃UV']!={} :
+        '''
+        new_uv_info = sql_user_analysis_drill_op(datacopy, conn, ename='new_uv', cname='新访UV')
+        uv_info = sql_user_analysis_drill_op(datacopy, conn, ename='uv', cname='活跃UV')
+        
+        new_uv_ratio = {}
+        if new_uv_info['新访UV'] != {} and uv_info['活跃UV'] != {}:
             # uv_info['活跃UV'].pop('uv')
 
-            new_uv_ratio=get_new_uv_ratio(new_uv_info,uv_info)
-            if new_uv_ratio['新访UV占比']=={}:
-                new_uv_ratio['新访UV占比']['trend']={}
+            new_uv_ratio = get_new_uv_ratio(new_uv_info, uv_info)
+            if new_uv_ratio['新访UV占比'] == {}:
+                new_uv_ratio['新访UV占比']['trend'] = {}
                 if is_platform_show(datacopy):
                     new_uv_ratio['新访UV占比']['platform'] = {}
 
         return new_uv_ratio
+        '''
+
 
 
     # trend
     trend = {}  # 存放trend 结果
 
     trend_date=get_trend_where_date(datacopy)
-    trenddate=trend_date.replace(' and ', '', 1).lstrip('(t.')
+    trenddate = trend_date.replace(' and ', '', 1).lstrip('(t.')
 
-    #日期替换
+    if date_type.startswith('h'):
+        trendwhere=" where "+trenddate
+    else:
+        #日期替换
+        trendwhere=re.sub('date_str .*?\)',trenddate,where)
 
-    trendwhere=re.sub('date_str .*?\)',trenddate,where)
+
+    trendtable = table
+    trendgroupby = groupby
+    if ename == "new_uv_ratio":
+        trendtable = re.sub('date_str in .*?\)',trenddate,table)
+        trendwhere=''
+        trendgroupby=''
 
 
-    trendsql = " select " + column + " from " + table + trendwhere + " group by date_str "
+    trendsql = " select " + column + " from " + trendtable + trendwhere + trendgroupby
 
-    r = requests.get(headers=ck_db['headers'], url=ck_db['host'], params={'query': trendsql})
-
-    if r.status_code == 200 and len(r.text) > 0:
-        rtext=r.text.strip('\n')
-        rawdata = [ele.split('\t') for ele in rtext.split('\n')]
-
-        trend=get_trend_data(rawdata,datetype)
-
+    rawdata=conn.ck_get(trendsql)
+    trend=get_trend_data(rawdata,datetype)
 
     itemdict['trend'] = trend
 
+
+    #下面的分布中，小时 时间字段不再使用hour_str
+    if  date_type.startswith('h'):
+        column=column.replace('hour_str', 'date_str', 1)
 
     # 平台分布
     if is_platform_show(datacopy):
@@ -452,7 +576,11 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
 
         elif source == '1' and parentplatform == 'all':  # 1-all-all
 
-            column_plat = get_plat_column(ename)
+            is_str = False
+            if datetype.startswith('h'):
+                is_str = True
+
+            column_plat = get_plat_column(ename,parent_platform_cat,is_str)
 
             platdict = parent_platform_dict
 
@@ -468,21 +596,20 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
 
         order_by += ',date_str desc'
 
+        if ename == 'new_uv_ratio':
+            table = " (select " +column_plat+ user_indicator_cal_dict['new_uv'][0] + "," + column_date + " from bi_mdata." + \
+                    user_indicator_cal_dict['new_uv'][1] + new_uv_where + group_by + " ) t1 left join " + \
+                    "( select " +column_plat+user_indicator_cal_dict['uv'][0] + "," + column_date + " from bi_mdata." + \
+                    user_indicator_cal_dict['uv'][1] + uv_where + group_by + ") t2 on t1.date_str=t2.date_str "
+
+            where=''
+            group_by=''
+            order_by=''
 
         platsql = " select  " + column_plat + column + " from " + table + where + group_by + order_by
+        rawdata = conn.ck_get(platsql)
 
-        r = requests.get(headers=ck_db['headers'], url=ck_db['host'], params={'query': platsql})
-
-        if r.status_code == 200 and len(r.text) > 0:
-            rtext = r.text.strip('\n')
-            rawdata = [ele.split('\t') for ele in rtext.split('\n')]
-
-            raw_new_data=[]
-            for ele in rawdata:
-                ele[1]=float(ele[1])
-                raw_new_data.append(ele)
-
-            plat = get_drill_tb_hb(rawdata, platdict, date, datetype)
+        plat = get_drill_tb_hb(rawdata, tbhb_keydict,platdict, date, datetype,misskeyshow=False)
 
 
         itemdict['platform'] = plat
@@ -498,7 +625,12 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
         else:
             bdnamedict = user_drill_cat_name_dict
 
-        column_bd = get_bd_column(ename,bdnamedict)
+        is_str = False
+        if datetype.startswith('h'):
+            if ename in ['uv', 'new_uv']:
+                is_str = True
+
+        column_bd = get_bd_column(bdnamedict,is_str)
 
         group_by = " group by _bd_id,date_str"
         order_by = " order by _bd_id ,date_str desc"
@@ -508,80 +640,37 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
 
         rawdata=[]
         if bdid=='all':
-            r = requests.get(headers=ck_db['headers'], url=ck_db['host'], params={'query': bdsql})
-
-            if r.status_code == 200 and len(r.text) > 0:
-                rtext = r.text.strip('\n')
-                rawdata = [ele.split('\t') for ele in rtext.split('\n')]
+            rawdata = conn.ck_get(bdsql)
 
         else:
 
-            rawdata=util.cmd_linux(bdsql)
+            rawdata=conn.cmd_linux(bdsql)
 
-        if rawdata!=[]:
-
-            raw_new_data = []
-            for ele in rawdata:
-                ele[1] = float(ele[1])
-                raw_new_data.append(ele)
-
-            bd = get_drill_tb_hb(rawdata, bdnamedict, date, datetype,misskeyshow=False)
+        bd = get_drill_tb_hb(rawdata,tbhb_keydict, bdnamedict, date, datetype,misskeyshow=False)
 
         itemdict['bd'] = bd
 
-    # if source == '1' and parentplatform == 'all':
-    #     p_newwhere = " where " + newwhere.replace("source in ('1') and", '')
-    #
-    #     # 下钻app的时候子类分别去重再加和
-    #     '''
-    #     column = 'sum(create_parent_uv) as _create_parent_uv,date_str'
-    #     column_plat_inner_sql = "select " + "  source,platform,count(distinct cust_id) AS create_parent_uv,date_str " + \
-    #                             " from " + ck_tables + p_newwhere + " group by source,platform,date_str"
-    #     ck_tables = "(" + column_plat_inner_sql + ")"
-    #     p_newwhere = ''
-    #     '''
-    #
-    # else:
-    #     p_newwhere = " where " + newwhere
 
-
+    # 新老（访）客分布
     if is_show_for_user_drill(ename,'customer'):
-        #新老客分布
+
         customer = {}
-        if ename=='uv':
+        if ename=='uv':                          #新老访客
             customerdict= new_old_customer_dict
-
-            groupby_new_flag="new_id"
-            order_by = " order by new_id," + "date_str desc"
-            group_by = " group by date_str" + ",new_id"
-
             customer_key='uv'
         else:
             customerdict= customer_dict
-
-            groupby_new_flag = new_flag + "_new_flag"
-            order_by = " order by " + groupby_new_flag + "," + "date_str desc"
-            group_by = " group by date_str" + "," + new_flag + "_new_flag"
-
             customer_key='customer'
 
-        column_customer=user_indicator_op_cal_dict[ename][0] + "," + column_date
+        order_by = " order by " + groupby_new_flag + "," + "date_str desc"
+        group_by = " group by date_str" + "," + groupby_new_flag
 
-        customersql = "select " + groupby_new_flag + "," + column_customer + " from " + table \
+
+        customersql = "select " + groupby_new_flag + "," + column + " from " + table \
                       + where + group_by + order_by
 
-        r = requests.get(headers=ck_db['headers'], url=ck_db['host'], params={'query': customersql})
-
-        if r.status_code == 200 and len(r.text) > 0:
-            rtext = r.text.strip('\n')
-            rawdata = [ele.split('\t') for ele in rtext.split('\n')]
-
-            raw_new_data = []
-            for ele in rawdata:
-                ele[1] = float(ele[1])
-                raw_new_data.append(ele)
-
-            customer = get_drill_tb_hb(rawdata, customerdict, date, datetype,misskeyshow=False)
+        rawdata = conn.ck_get(customersql)
+        customer = get_drill_tb_hb(rawdata,tbhb_keydict, customerdict, date, datetype,misskeyshow=False)
 
         itemdict[customer_key] = customer
 
@@ -615,11 +704,9 @@ def sql_user_analysis_drill_op(datacopy,ck_db,ename='',cname=''):
 
         quantitlesql="select "+coloumn_quantile+" from ("+table+") t "+" where "+time_where+groupby+orderby
 
-        r = requests.get(headers=ck_db['headers'], url=ck_db['host'], params={'query': quantitlesql})
+        rawdata = conn.ck_get(quantitlesql)
 
-        if r.status_code == 200 and len(r.text) > 0:
-            rtext = r.text.strip('\n')
-            rawdata = [ele.split('\t') for ele in rtext.split('\n')]
+        if  len(rawdata) > 0:
 
             namelist=['最大值','平均值','最小值','中位数']
 

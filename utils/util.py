@@ -9,8 +9,29 @@ import pymysql
 import redis
 import re
 from .decorate import loadenv
-import configparser
+
 from sshtunnel import SSHTunnelForwarder
+
+
+
+
+def is_number(s):
+    if isinstance(s,str) and s.lower()=='nan':
+        return False
+    try:
+        float(s)
+        return True
+    except Exception:
+        pass
+
+    # try:
+    #     import unicodedata
+    #     unicodedata.numeric(s)
+    #     return True
+    # except (TypeError, ValueError):
+    #     pass
+
+    return False
 
 '''数值(精度)转换'''
 def format_precision(data,selfdefine=0):
@@ -129,61 +150,6 @@ def diff_dict(data1, data2, absvalue=0.5):
                 diff_key_value[key + ' 其他错误'] = e.__repr__()
     return diff_key_value
 
-'''数据库连接'''
-@loadenv(db='db_ck')
-def connect_clickhouse(host=None,port=None, user=None, password=None, database=None,collection=None):
-    conn = connect(host=host,port=port,user=user,password=password, database=database)
-    # conn = connect(host=host,user=user, password=password, database=database)
-    return conn.cursor()
-
-@loadenv(db='db_ck')
-def client_ck(host=None,port=None, user=None, password=None, database=None,collection=None):
-    """链接ck数据库"""
-    conn = Client(host=host,port=port,user=user,password=password, database=database)
-    return conn
-
-
-def connect_sqlserver(db):
-    """连接sql server数据库"""
-    connect = pymssql.connect('10.4.10.184', 'readuser', 'password', db)
-    cursor = connect.cursor()
-    return connect, cursor
-
-
-@loadenv(db='db_hive')
-def connect_hive(host=None,port=None, user=None, password=None, database=None,collection=None):
-    #Password should be set if and only if in LDAP or CUSTOM mode; Remove password or use one of those modes
-    conn = hive.Connection(host=host,port=port, username=user, database=database)
-    return conn.cursor()
-
-@loadenv(db='db_mysql')
-def connect_mysql(host=None,port=None, user=None, password=None, database=None,collection=None):
-    conn=pymysql.connect(host=host,port=port,user=user,password=password,db=database)
-    return conn.cursor()
-
-
-def close_db(conn, cursor):
-    """关闭数据库"""
-    cursor.close()
-    conn.close()
-
-
-
-#连接mongodb
-@loadenv(db='db_mongo')
-def connect_mongodb(host=None,port=None, user=None, password=None, database=None,collection=None):
-    """链接mongodb"""
-    client = pymongo.MongoClient("mongodb://"+host+":"+port+"/")
-    client.admin.authenticate(user,password, mechanism='SCRAM-SHA-1')
-
-    db = client[database]
-    coll = db[collection]
-    return coll
-
-@loadenv(db='db_redis')
-def get_redis(host=None,port=None, user=None, password=None, database=None,collection=None):
-    r = redis.Redis(host=host, port=port, db=database)
-    return r
 
 #davinci
 def login_davinci():
@@ -213,54 +179,6 @@ def do_log(s, user_name, passwd):
 
 
 
-def readini(path):
-    cf=configparser.ConfigParser()
-    cf.read(path,encoding='utf-8')
-    return cf
-
-def connect_mysql_from_jump_server(mysql_ip, db_port,db_user, db_passwd, db,
-                                   ip='10.255.254.49',
-                                   username='root',
-                                   passwd='dell1950'):
-    """
-    使用跳板机连接远程服务器
-    :param ip: 跳板机地址
-    :param username:跳板机用户名
-    :param passwd: 跳板机密码
-    :param mysql_ip: 目标数据库服务器地址
-    :param db_user:
-    :param db_passwd:
-    :param db:
-    :return:
-    """
-    server = SSHTunnelForwarder(
-        ssh_address_or_host=(ip, 22),
-        ssh_username=username,
-        ssh_password=passwd,
-        remote_bind_address=(mysql_ip, db_port)
-    )
-    server.start()
-    db = pymysql.connect(
-        host='127.0.0.1',
-        port=server.local_bind_port,
-        user=db_user,
-        passwd=db_passwd,
-        db=db
-    )
-    cursor = db.cursor()
-    return server, cursor
 
 
-#通过shell 命令执行ck sql
-def cmd_linux(sql):
 
-    cmd='curl "http://membersbi:dangdangbi@10.0.5.80:8123" -d "'+sql+'"'
-    rawresult=os.popen(cmd).readlines()     #返回一个列表
-
-    result=[]
-    if len(rawresult)>0:
-
-        for ele in rawresult:
-            result.append(ele.strip('\n').split('\t'))
-
-    return result

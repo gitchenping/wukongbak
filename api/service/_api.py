@@ -2,6 +2,7 @@ import requests
 from utils import util
 import json
 
+
 '''请求重试'''
 def retry(maxretry=3):
     def decorator(func):
@@ -54,14 +55,6 @@ def post(url,data=None,headers=None,token=None):
     return -1
 
 
-
-tb_hb_name_dict = {
-    'value_ori': 'value',
-    'value':'value',
-    'tb_week': '同比上周',
-    'tb_year': '同比去年',
-    'value_hb': '环比'
-}
 
 def is_platform_show(data):
     '''下钻页平台是否显示'''
@@ -120,25 +113,19 @@ def user_drillpage_item(data,indicator=None):
     return itemslist
 
 
-def get_tb_hb_item(data,novaluekeyshow=True):
+def get_tb_hb_item(data,tb_hb_name_dict,novaluekeyshow,defaultvalue):
     '''返回api请求结果中的同环比键值对'''
     ele=dict(data)
+
     valuedict={}
 
+    for key,value in tb_hb_name_dict.items():
+        if ele.__contains__(key):
+            valuedict[value] =ele[key]
+        else:
+            if novaluekeyshow:     #显示缺失值
+                valuedict[value]=defaultvalue
 
-    if ele.__contains__('tb_week'):
-        _tb_week = ele['tb_week']
-        if _tb_week !='--':
-            valuedict[tb_hb_name_dict['tb_week']] = util.format_precision(_tb_week, selfdefine='--')
-
-    if ele.__contains__('tb_year'):
-        _tb_year = ele['tb_year']
-        if _tb_year != '--':
-            valuedict[tb_hb_name_dict['tb_year']] = util.format_precision(_tb_year, selfdefine='--')
-
-    if ele.__contains__('value_hb'):
-        _value_hb = ele['value_hb']
-        if _value_hb != '--':
-            valuedict[tb_hb_name_dict['value_hb']] = util.format_precision(_value_hb, selfdefine='--')
+    valuedict=util.json_format(valuedict,defaultvalue)
 
     return valuedict

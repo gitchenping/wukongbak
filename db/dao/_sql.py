@@ -1,53 +1,112 @@
 from utils.date import get_tb_hb_date,get_month_end_day
-from utils.tb_hb import tb_hb_cal,get_tb_hb_key
-from resources.map import user_drill_catgory_path_dict
+from utils.tb_hb import tb_hb_cal,get_tb_hb_key_list
+from utils.util import is_number
+from resources.map import user_drill_catgory_path_dict,source_dict,parent_platform_cat,bd_id_cat,bd_id_dict,shop_type_dict
 
-def get_platform_where(data,yinhao=False):
-    '''获取platform对应的过滤条件,库不一样，字段代码在sql中可能需要加引号'''
+
+'''获取platform对应的过滤条件'''
+def get_platform_where(data,is_str=False,is_raw=False):
+    '''
+    @
+    :param data:
+    :param is_str:
+    :param is_raw:
+    :return:
+    '''
 
     source = data['source']
     parentplatform = data['parent_platform']
     platform = data['platform']
+
+    sourcedict=dict(source_dict)
     #
-    if yinhao:          #默认不加
+    if is_str:          #默认不加
         _yin="'"
     else:
         _yin=""
 
-    sourcewhere = ''
+    source_where = ''
+    platform_where=''
+    source_data = []
+    platform_data = []
+
     if source == 'all':
-        sourcelist=['1','2','3','4']
+        sourcedict.pop('all')
+        source_data = sourcedict.keys()
     else:
-        sourcelist=[source]
-    sourcewhere = "(" + ','.join([_yin + ele + _yin for ele in sourcelist]) + ")"
-    #
-    platformwhere = ''
-    if source == '1' and parentplatform == '3':
-        platformlist=['12','20']
+        source_data = [source]
+        if parentplatform == 'all' and platform == 'all':
+            pass
+        elif parentplatform != 'all' and platform == 'all':
+            if is_raw:
+                platform_data = [parentplatform]
+            else:
+                platform_data = parent_platform_cat[parentplatform]
+        else:
+            platform_data = [platform]
 
-    elif source == '1' and parentplatform == '4':
-        platformlist = ['0']
+    source_where += " source in (" + ','.join([_yin + ele + _yin for ele in source_data]) + ")"
+    if platform_data != []:
+        platform_where = " and platform in (" + ','.join([_yin + ele + _yin for ele in platform_data]) + ")"
 
-    elif source == '1' and parentplatform == '1' and platform == 'all':  #
-        platformlist = ['1', '2']
+    return source_where + platform_where
 
-    elif source == '1' and parentplatform == '2' and platform == 'all':
-        platformlist = ['3', '4','5','6','7','8','9']
 
-    elif source=='1' and parentplatform=='all':
-        platformlist = ['0','1','2','3', '4', '5', '6', '7', '8', '9','12','20']
 
-    else:
-        platformlist = [platform]
+def get_platform_where_realtime(data,indicator):
+    '''实时platform条件'''
+    source = data['source']
+    parentplatform = data['parent_platform']
+    platform = data['platform']
 
-    platformwhere = "(" + ','.join([_yin + ele + _yin for ele in platformlist]) + ")"
+    platwhere_uv=''
+    platwhere=''
+    if parentplatform == "all":
+        if source !='all':
+            platwhere=" source = '"+source+"'"
 
-    if source=='1':
-        platformwhere=" and platform in "+platformwhere
-    else:
-        platformwhere = ''
+        else:
+            platwhere = " source in ('1','2','3','4')"
+        platwhere_uv = platwhere
+    elif parentplatform == '1':
+        if platform == 'all':
+            platwhere_uv = "  from_platform in ('3','7','2') "
+            platwhere="  platform in ('1','2') "
+        elif platform == '1':
+            platwhere_uv = "  from_platform in ('2') "
+            platwhere = " platform in ('1') "
+        elif platform == '2':
+            platwhere_uv = " from_platform in ('3','7') "
+            platwhere = " platform in ('2') "
+    elif parentplatform == '2':
 
-    return " source in "+sourcewhere+platformwhere
+        if platform == '4':
+            platform_uv = '21'
+            platform_=platform
+        elif platform == '3':
+            platform_uv='26'
+            platform_=platform
+        elif platform == '5':
+            platform_uv='23'
+            platform_=platform
+        elif platform=='all':
+            platform_uv="26','21','23','6','7','8','9"
+            platform_="3','4','5','6','7','8','9"
+        else:
+            platform_ = platform
+            platform_uv =  platform
+
+        platwhere_uv = " from_platform in ('"+platform_uv+"')"
+        platwhere = " platform in ('"+platform_+"')"
+    elif parentplatform == '3':
+        platwhere_uv=" from_platform in ('12','20') "
+        platwhere = " platform in ('12','20') "
+
+    elif parentplatform == '4':
+        platwhere_uv = " from_platform in ('0') "
+        platwhere = " platform in ('0') "
+
+    return platwhere_uv,platwhere
 
 
 def is_platform_show(data):
@@ -58,79 +117,88 @@ def is_platform_show(data):
     parentplatform = datacopy['parent_platform']
     platform = datacopy['platform']
 
-    show=True                                               #默认显示
-    if source not in ['2', '3', '4']:                       # 天猫、抖音、拼多多下钻页没有平台分布
-        if parentplatform not in ['2', '3', '4']:           # 轻应用\H5\PC没有平台分布
-
-            if parentplatform != 'all':
-                if platform =='all':                    # 安卓、IOS没有平台分布
-                    show=True
-                else:
-                    show=False
-            else:
-                show=True
-        else:
-            show = False
+    show=True                                                   #默认显示
+    if source in ['2', '3', '4']:                               # 天猫、抖音、拼多多下钻页没有平台分布
+        show=False
     else:
-        show= False
+        if parentplatform  in ['2', '3', '4']:                  # 轻应用\H5\PC没有平台分布
+            show = False
+        else:
+            if parentplatform == '1' and platform !='all':     #安卓、IOS没有平台分布
+                show = False
     return show
 
+'''获取bd对应的过滤条件'''
+def get_bd_where(data,is_str=False,is_raw=False):
+    '''
+    @ 下钻页平台分布 where 筛选条件
+    :param data:
+    :param is_raw: 直接返回bd、还是返回bd细分类cat
+    :param is_str: 在sql中是否需要加引号，默认不加
+    :return:
+    '''
 
-def get_bd_where(data,yinhao=False):
-    '''获取bd对应的过滤条件'''
     bd = data['bd_id']
-    if yinhao:  # 默认不加
+    bdid_dict = dict(bd_id_dict)
+    bdid_cat = dict(bd_id_cat)
+
+    bdwhere=" and bd_id in "
+    bdwhere_data=[]
+
+    if is_str:
         _yin = "'"
     else:
         _yin = ""
-    if bd == '1':                    #出版物
-        bd_id = [5,12]
-    elif bd == '2':                 #百货
-        bd_id = [1,4,9,15,16]
-    elif bd == '3':                 #数字
-        bd_id = [6]
-    elif bd == '4':                 #文创
-        bd_id = [20,21,23]
-    elif bd=='5':                   #其他
-        bd_id = [1,3,4,9,15,16,5,12,6,20,21,23]
-    elif bd=='6':                   #服装
-        bd_id = [3]
-    else:
-        bd_id =''                    #[1, 3, 4, 5,6, 9, 12, 15, 16, 20, 21, 23
 
-    if bd == '5':
-        bdwhere = " and bd_id not in "
-    else:
-        bdwhere=" and bd_id in "
+    if is_raw:              #取值bd
+        if bd !='all':
+            bdwhere_data=[bd]
+        else:
+            bdid_dict.pop('all')
+            bdwhere_data=bdid_dict.keys()
+    else:                  #使用bd 下细分 catgory
+        if bd != 'all':
+            bdwhere_data=bd_id_cat[bd]
+            if bd == '5':
+                bdwhere = " and bd_id not in "
 
-    if bd_id !='':
-
-        bdwhere += "(" + ','.join([_yin + str(ele) + _yin for ele in bd_id]) + ")"
+    if bdwhere_data != []:
+        bdwhere += "(" + ','.join([_yin + str(ele) + _yin for ele in bdwhere_data]) + ")"
     else:
         bdwhere=''
+
     return bdwhere
 
-def get_shoptype_where(data,yinhao=False):
-    '''获取shoptype对应的过滤条件'''
-    shoptype= data['shop_type']
 
-    if yinhao:  # 默认不加
+'''获取shoptype对应的过滤条件'''
+def get_shoptype_where(data,is_str=False):
+    '''
+
+    :param data:
+    :param yinhao:
+    :return:
+    '''
+
+    shoptype= data['shop_type']
+    shoptype_dict = dict(shop_type_dict)
+
+    if is_str:  # 默认不加
         _yin = "'"
     else:
         _yin = ""
 
-    if shoptype == '1':
-        shop_type = [1]
-    elif shoptype == '2':
-        shop_type = [2]
+    shoptype_data = []
+    if shoptype == 'all':
+        # shoptype_dict.pop('all')
+        # shoptype_data = shoptype_dict.keys()
+        pass
     else:
-        shop_type = ''
-    if shop_type !='':
-        shoptypewhere=' and shop_type in '
+        shoptype_data = [shoptype]
 
-        shoptypewhere += "(" + ','.join([_yin + str(ele) + _yin for ele in shop_type]) + ")"
+    if shoptype_data != []:
+        shoptypewhere = " and shop_type in (" + ','.join([_yin + str(ele) + _yin for ele in shoptype_data]) + ")"
     else:
-        shoptypewhere=''
+        shoptypewhere = ''
 
     return shoptypewhere
 
@@ -180,9 +248,11 @@ def get_time_where(data):
 
         datewhere += ' and date_str in ' + "('" + today+"','"+yesterday+"','"+last_week_day+"','"+last_year_day+"')"
 
+        if datetype.startswith('h'):
+            hour=date.split(' ')[1]
+            datewhere+=" and hour_str <= '"+hour+"'"
+
     else:                   #周、月、季返回环比、同比去年
-        hb_date=tb_hb_date[0]
-        tb_date=tb_hb_date[1]
 
         for ele in tb_hb_date:
             if ele[0] is not None:
@@ -192,31 +262,39 @@ def get_time_where(data):
 
 
 #平台分布列
-def get_plat_column(ename):
+def get_plat_column(namedict,is_str):
+    '''
+
+    :param namedict: 平台字典
+    :param is_str: sql中出现的platform代码数字是否需要加引号
+    :return:
+    '''
 
     yinhao=''
-    if ename in ['uv','new_uv']:
+    if is_str:
         yinhao="'"
 
-    column_plat = "(case when platform in ("+yinhao+'0'+yinhao+") then '4' " \
-                  "when source="+yinhao+'1'+yinhao+" and platform in ("+yinhao+'12'+yinhao+","+yinhao+'20'+yinhao+") then '3' " \
-                  "when source="+yinhao+'1'+yinhao+" and platform in ("+yinhao+'1'+yinhao+","+yinhao+'2'+yinhao+") then '1' " \
-                  "when source="+yinhao+'1'+yinhao+" and platform in ("+yinhao+'3'+yinhao+","+yinhao+'4'+yinhao+','+yinhao+'5'+yinhao+","\
-                  +yinhao+'6'+yinhao+","+yinhao+'7'+yinhao+','+yinhao+'8'+yinhao+','+yinhao+'9'+yinhao+\
-                  ") then '2' else '5' end) as _platform,"
+    column_plat=''
+    for key, value in namedict.items():
+        if value != []:
+            column_plat += " when source ='1' and platform in " + "(" + ','.join(
+                [yinhao + str(ele) + yinhao for ele in value]) + ")" + " then '" + key + "'"
+    column_plat += " else '" + key + "' end"
+    column_plat = "( case " + column_plat + " ) as _platform,"
 
     return column_plat
 
+
 #事业部分布列
-def get_bd_column(ename,namedict):
+def get_bd_column(namedict,is_str):
     yinhao = ''
-    if ename in ['uv', 'new_uv']:
+    if is_str:
         yinhao = "'"
 
+    column_bd = '( case'
+    namedictcopy = dict(namedict)
     if len(namedict) == 13:  #事业部细分
 
-        namedictcopy=dict(namedict)
-        column_bd = 'case'
         namedictcopy.pop('13')
 
         for key in namedictcopy.keys():
@@ -225,17 +303,18 @@ def get_bd_column(ename,namedict):
         column_bd += " else '13' end as _bd_id,"
 
     else:
-        column_bd = "(case  when bd_id in("+yinhao+'5'+yinhao+","+yinhao+'12'+yinhao+") then '1' " \
-                    "when bd_id in("+yinhao+'1'+yinhao+','+yinhao+'4'+yinhao+','+ \
-                            yinhao+'9'+yinhao+","+yinhao+'15'+yinhao+','+yinhao+'16'+yinhao+") then '2' " \
-                    "when bd_id IN ("+yinhao+'3'+yinhao+") THEN '6' " \
-                    "when bd_id in("+yinhao+'20'+yinhao+","+yinhao+'21'+yinhao+','+yinhao+'23'+yinhao+") then '4' " \
-                    "else '5' end ) as _bd_id,"
+        namedictcopy.pop('all')
+        for key, value in namedictcopy.items():
+            if key!='5':
+                column_bd += " when bd_id in " + "(" + ','.join(
+                    [yinhao + str(ele) + yinhao for ele in bd_id_cat[key]]) + ")" + " then '" + key + "'"
+
+        column_bd += " else '5' end ) as _bd_id,"
 
     return column_bd
 
 
-#是否显示计算下钻项
+#用户分析是否显示计算下钻项
 def is_show_for_user_drill(indicator,item):
 
     if item =='bd':
@@ -253,73 +332,117 @@ def is_show_for_user_drill(indicator,item):
     return False
 
 
+#数据合并计算
+def data_merge(ck_data):
+    '''
+    根据时间日期、首位分类进行数据合并
+    :param ck_data: 细分的数据，加和 合并，如[['1','3',100,'2021-06-06'],['1','20',120,'2021-06-06'],
+            ['1','4',100,'2021-06-06'],['1','3',100,'2021-06-05'],['1','20',100,'2021-06-05'],
+            ['2','5',110,'2021-06-06'],['2','6',80,'2021-06-06'],['2','5',200,'2021-06-05']]
+    :return:[['1',320,'2021-06-06'],['1',200,'2021-06-05'],['2',190,'2021-06-06'],['2',200,'2021-06-05']]
+    '''
+
+    # 数据预处理
+    ckdata = [[ele[0], float(ele[-2]), ele[-1]] for ele in ck_data if is_number(ele[-2]) and ele[1] != '0']
+    # 依据时间排序、分类排序
+    ckdata = sorted(ckdata, key=lambda s: s[2], reverse=True)
+    ckdata = sorted(ckdata, key=lambda s: s[0])
+
+    length=len(ckdata)
+    new_ckdata=[]
+
+    cmp=[None,0,None]
+
+    for ele in ckdata:
+
+        if ele[0] == cmp[0] and ele[-1] == cmp[-1]:
+            new_ckdata[-1][1] = new_ckdata[-1][1] + ele[1]
+
+        else:
+            new_ckdata.append(ele)
+            cmp = ele
+
+    return new_ckdata
+
+
+
 #模块首页同环比计算
-def get_overview_tb_hb(ck_data,name,date,datetype,misskeyshow=True,misskeyvalue='--'):
+def get_overview_tb_hb(ck_data,tbhb_keydict,date,datetype,misskeyshow=True,misskeyvalue='--'):
     '''
 
     :param ck_data: 二维列表，
-    :param name: 指标名称
+    :param cname: 指标名称
     :param date:
     :param datetype:
     :param misskeyshow:
     :param misskeyvalue:
     :return:
     '''
-    tb_hb_key_list, default_tb_hb_key_list = get_tb_hb_key(ck_data, date, datetype)
 
-    tempdict = {}
+    #数据预处理
+    ck_data=[[float(ele[0]), ele[1]] for ele in ck_data if is_number(ele[0]) and ele[0] != '0']
+    #依据时间排序
+    ck_data=sorted(ck_data, key=lambda s: s[1], reverse=True)
 
-    if len(tb_hb_key_list)==0:
+    #实际可以计算的同环比键
+    tb_hb_key_list = get_tb_hb_key_list(ck_data, date, datetype,tbhb_keydict)
+
+    valuedict = {}
+
+    if len(tb_hb_key_list) == 0 or ck_data == []:
         # tempdict[name]={'value':'--'}
-        tempdict[name] ={}
+        valuedict ={}            #该指标没有值，不能计算同环比
 
     else :                       # 可以进行同环比计算
-        newdata = tb_hb_cal(ck_data, misskeyvalue)
+        newdata = tb_hb_cal(ck_data, tb_hb_key_list)
 
-        temp_2 = []
+        for key,value in tbhb_keydict.items():
+            if newdata.__contains__(key):
+                valuedict[value]=newdata[key]
+            else:
+                if misskeyshow:         # 显示缺失值
+                    valuedict[value] = misskeyvalue
 
-        for col in range(len(newdata[0]) - 1):
-
-            for raw in newdata:
-                temp_2.append(raw[col])
-
-        tempdict[name] = dict(zip(tb_hb_key_list, temp_2))
-
-        # 不能计算的同比、环比key，其值设置为指定值
-        if misskeyshow:
-            nokey = set(default_tb_hb_key_list) - set(tb_hb_key_list)
-            if len(nokey) > 0:
-                for ele in nokey:
-                    tempdict[name].update({ele: misskeyvalue})
-        #
-    return tempdict
+    return valuedict
 
 
 
-def get_drill_tb_hb(ck_data,name_dict,date,datetype,misskeyshow=True,misskeyvalue='--'):
+def get_drill_tb_hb(ck_data,tbhb_keydict,name_dict,date,datetype,misskeyshow=True,misskeyvalue='--'):
     '''
                             下钻页各指标同比环比计算
-    :param ck_data: 二维列表,第一列作为下钻分类
+    :param ck_data: 二维列表,第一列作为下钻分类，如[[1,100,'2021-05-12'],[1,120,'2021-05-11'],[1,90,'2021-05-05'],[1,80,'2020-05-12'],
+                                                    [2,120,'2021-05-12'],[2,100,'2021-05-11'],[2,110,'2021-05-05']]
     :param name_dict: 字典
     :param date: 时间字符串
     :param datetype: 时间类型
     :return: 同环比
     '''
+    sqldata={}
     tempdict={}
     temp = []
     i = 0
-    begin_index = ck_data[i][0]
+    ckdata = []
+    if ck_data == []:
+        return sqldata
+    else:
+        # 数据预处理
+        ckdata = [[ele[0],float(ele[1]),ele[2]] for ele in ck_data if is_number(ele[1]) and ele[1] != '0']
+        # 依据时间排序、分类排序
+        ckdata = sorted(ckdata, key=lambda s: s[2], reverse=True)
+        ckdata = sorted(ckdata, key=lambda s: s[0])
+
+    begin_index = ckdata[i][0]
 
     is_need_cal = False
-    length = len(ck_data)
+    length = len(ckdata)
     while i <= length - 1:
 
-        if begin_index == ck_data[i][0]:
-            temp.append(ck_data[i][1:])  # 取值和时间
-            key = str(begin_index)
+        if begin_index == ckdata[i][0]:
+            temp.append(ckdata[i][1:])  # 取值和时间
+            keystr = str(begin_index)
             i += 1
         else:
-            begin_index = ck_data[i][0]
+            begin_index = ckdata[i][0]
             is_need_cal = True
 
         if i == length:
@@ -327,33 +450,35 @@ def get_drill_tb_hb(ck_data,name_dict,date,datetype,misskeyshow=True,misskeyvalu
 
         if is_need_cal:
             # 计算环比、同比
-            tb_hb_key_list,default_tb_hb_key_list = get_tb_hb_key(temp, date, datetype)
+            tb_hb_key_list= get_tb_hb_key_list(temp, date, datetype,tbhb_keydict)
 
             if len(tb_hb_key_list) > 0:  # 可以进行同环比计算
-                newdata = tb_hb_cal(temp,misskeyvalue)
+                newdata = tb_hb_cal(temp,tb_hb_key_list)
 
-                temp_2 = []
-                for col in range(len(newdata[0])-1):
 
-                    for raw in newdata:
-                        temp_2.append(raw[col])
+                #没有的同环比key，值是否设置为默认值'--'
+                for key, value in tbhb_keydict.items():
+                    if newdata.__contains__(key):
+                        tempdict[value] = newdata[key]
+                    else:
+                        if misskeyshow:  # 显示缺失值
+                            tempdict[value] = misskeyvalue
 
-                name = name_dict[key]
-                tempdict[name] = dict(zip(tb_hb_key_list, temp_2))
+                sqldata[name_dict[keystr]] = tempdict
 
-                #没有的key，值设置为'--'
-                if misskeyshow:
-                    nokey=set(default_tb_hb_key_list)-set(tb_hb_key_list)
-                    if len(nokey)>0:
-                        for ele in nokey:
-                            tempdict[name].update({ele:misskeyvalue})
-                #
-                temp = []
-                is_need_cal = False
-            else:
-                temp=[]
-                is_need_cal = False
-    return tempdict
+
+            #
+            temp = []
+            tempdict={}
+            is_need_cal = False
+
+    if misskeyshow:
+        for key,value in name_dict.items():
+            if not sqldata.__contains__(value):
+                sqldata[value] = {}        # 赋值为空
+
+    return sqldata
+
 
 def get_where_for_report(data,uv=True):
     '''实时报表字段、筛选条件'''
@@ -417,136 +542,6 @@ def get_where_for_report(data,uv=True):
     return where,column_category
 
 
-def get_uv_sql_for_report(data,tablename,reportname='category'):
-    '''实时报表-uv'''
-    where,column_category=get_where_for_report(data)
-
-    if reportname=='category':
-        if 'category_path2' not in where:
-            uvwhere = where
-        else:
-            uvwhere=where+" and category != '"+data['categoryPath']+"'"+" and category !='' "
-    else:
-        uvwhere = where
-
-    column=''
-    orderbyname=''
-    if reportname=='bussiness':
-        orderbyname="_bd_id"
-        column="case when bd_id_prod in (5,12) then '1'" \
-               " when bd_id_prod in (1,4,9,15,16) then '2'" \
-               " when bd_id_prod in (3) then '6'" \
-               " when bd_id_prod in (20,21,23) then '4'" \
-               " when bd_id_prod in (6) then '3'" \
-               " else '5' end "+ " as "+orderbyname
-    else:
-        orderbyname="category"
-        column=column_category+" as "+orderbyname
-    column+=',COUNT(DISTINCT device_id) AS UV,toString(date_str) as date_str'
-
-    order_by=" order by "+ orderbyname+",date_str desc"
-
-    sql=" select "+column+" from "+tablename+" where "+uvwhere+" group by "+orderbyname+",date_str "+order_by
-    return sql
-
-sd_zf_report_map={
-    #指标
-    'sd_zf_amount':"SUM(case when data_type='{}'then bargin_price * order_quantity else null end) AS amount",   #金额
-    'sd_zf_package':"COUNT(DISTINCT case when data_type='{}'then order_id else null end) AS package",     #包裹量
-    'sd_zf_customer':"COUNT(DISTINCT case when data_type='{}'then cust_id else null end) AS customer",       #人数
-    'sd_zf_new_customer':"COUNT(DISTINCT CASE WHEN data_type='{}' and new_id = '1' then cust_id else null end) AS new_customer" #新客
-}
-
-def get_sd_info_sql_for_report(data,tablename,reportname):
-    '''实时报表收订-其他指标'''
-    where, column_category = get_where_for_report(data,False)
-
-    where += " and data_type in ('1','4')"
-
-
-    if reportname!='bussiness':       #品类
-        if 'category_path2' not in where:
-            sdwhere = where
-        else:
-            sdwhere = where + " and category != '" + data['categoryPath'] + "'" + " and category !='' "
-
-        sd_zf_category = column_category + " as category"
-        column=sd_zf_category+","
-        groupby_orderby=" group by "+"category,date_str"+" order by category,date_str desc limit 4"
-    else:
-        sdwhere = where
-
-        column = "bd_id" + ","
-        groupby_orderby = " group by " + "bd_id,date_str" + " order by bd_id,date_str desc"
-
-    for cloumn_key in sd_zf_report_map.keys():
-        column+=sd_zf_report_map[cloumn_key].format('1')+","
-
-    sd_zf_order="COUNT(DISTINCT case when data_type = '1' then  parent_id else null end) AS order_sum"
-
-    #收订
-    sd_cancel = "COUNT(DISTINCT case when data_type='4' then parent_id else null end) AS order_cancel"
-    sd_cancel_rate="(case when order_sum!=0 then order_cancel /order_sum *100 else null end ) as sd_cancel_rate"
-
-    column+=sd_cancel_rate+",date_str,"+sd_zf_order+","+sd_cancel
-
-    sd_sql="select "+column+ \
-           " from "+tablename+ \
-           " where "+sdwhere+groupby_orderby
-    return sd_sql
-
-
-def get_zf_info_sql_for_report(data,tablename,reportname):
-    '''实时报表支付-其他指标'''
-    where, column_category = get_where_for_report(data,False)
-
-    where += " and data_type in ('2','4')"
-
-    sd_zf_order = "COUNT(DISTINCT case when data_type = '2' then  parent_id else null end) AS order_sum"
-    if reportname != 'bussiness':  # 品类
-        if 'category_path2' not in where:
-            zfwhere = where
-        else:
-            zfwhere = where + " and category != '" + data['categoryPath'] + "'" + " and category !='' "
-
-        sd_zf_category = column_category + " as category"
-        column = sd_zf_category + ","
-
-        for cloumn_key in sd_zf_report_map.keys():
-            column += sd_zf_report_map[cloumn_key].format('2') + ","
-        column += "date_str," + sd_zf_order
-
-        a_sql = " select " + column + " from " + tablename + " where " + zfwhere + " group by " + "category,date_str"
-
-        b_sql = " select COUNT(DISTINCT parent_id) as cancel_num,date_str,category from (" + \
-                "select parent_id,COUNT(DISTINCT data_type ) AS num,date_str," + column_category + " as category" + \
-                " from " + tablename + " where " + zfwhere + " group by parent_id,date_str,category having num>1) a" + \
-                " group by category,date_str"
-        groupbyname = "category"
-        groupby_orderby = " order by category,date_str desc limit 4"
-    else:
-        zfwhere = where
-        column = "bd_id" + ","
-
-        for cloumn_key in sd_zf_report_map.keys():
-            column += sd_zf_report_map[cloumn_key].format('2') + ","
-        column += "date_str," + sd_zf_order
-
-        a_sql = " select " + column + " from " + tablename + " where " + zfwhere + " group by " + "bd_id,date_str"
-
-        b_sql = " select COUNT(DISTINCT parent_id) as cancel_num,date_str,bd_id from (" + \
-                "select parent_id,COUNT(DISTINCT data_type ) AS num,date_str," + " bd_id" + \
-                " from " + tablename + " where " + zfwhere + " group by parent_id,date_str,bd_id having num>1) a" + \
-                " group by bd_id,date_str"
-        groupbyname="bd_id"
-        groupby_orderby=" order by bd_id,date_str desc"
-
-    zf_sql = "select " +groupbyname+" ,amount,package,customer,new_customer, " + \
-            "case when a.order_sum!=0 then b.cancel_num /a.order_sum* 100 else null end as zf_cancel_rate,date_str "+ \
-             " from (" +a_sql  +") a left join ("+ \
-             b_sql+") b"+" on a."+groupbyname+" = b."+groupbyname+" and a.date_str = b.date_str"+ groupby_orderby
-
-    return zf_sql
 
 def gen_sqldata(sql,cursor,offset=1000):
     '''
@@ -569,12 +564,11 @@ def gen_sqldata(sql,cursor,offset=1000):
 
 
 #用户分析优化sql
-
 def get_where_for_analysis_overview_op(data,indicator,overview=True):
     '''
 
     :param data:
-    :param indicator:
+    :param indicator: 指标的英文名称 ename
     :param overview: 默认首页时间，否则下钻页时间条件
     :return:
     '''
@@ -591,33 +585,98 @@ def get_where_for_analysis_overview_op(data,indicator,overview=True):
     #指标名称
     ename=indicator
 
-    yinhao = False
-    if ename in ['new_uv', 'register_number', 'uv','new_uv_ratio']:
-        yinhao = True
-        bdid = "bd_id != '6' and "
+    where = " where "
+    platyinhao=False
+    is_raw = False
+
+    #plat
+    if date_type.startswith('h'):
+        tempplat = get_platform_where_realtime(data, indicator)
+        if ename in ['new_uv', 'uv', 'new_uv_ratio']:
+            plat = tempplat[0]
+        else:
+            plat = tempplat[1]
+        where += plat
     else:
-        bdid = "bd_id != 6 and "
+        if ename in ['new_uv', 'register_number', 'uv', 'new_uv_ratio']:
+            platyinhao = True
+        where += get_platform_where(data, platyinhao,is_raw)
+
+    #bd
+    bdid=''
+    bd_id_columnname = 'bd_id'
+    bdyinhao = False
+    is_raw = False
+
+    if date_type != 'h':
+        if ename in ['new_uv', 'register_number', 'uv','new_uv_ratio']:
+            bdyinhao = True
+            bdid = " and bd_id != '6'"
+        else:
+            bdid = " and bd_id != 6"
 
     if ename in ['register_number']:
-        yinhao = True
+        bdyinhao = True
         bdid = ''
 
-    where = ' where ' + bdid
-    where += get_platform_where(data, yinhao)
-    where += get_bd_where(data, yinhao)
-    where += get_shoptype_where(data, yinhao)
-    if ename not in ['new_uv', 'register_number', 'uv','new_uv_ratio']:
+    where += bdid
+
+    if date_type.startswith('h'):
+        if ename in ['uv', 'new_uv', 'new_uv_ratio']:
+            is_raw = False
+            bdyinhao = False
+            bd_id_columnname = 'bd_id_prod'
+        else:
+            is_raw = True
+            bdyinhao = True
+    else:
+        if ename in ['uv', 'new_uv', 'new_uv_ratio']:
+            bdyinhao = True
+
+    bdwhere = get_bd_where(data, bdyinhao, is_raw)
+    where += bdwhere.replace('bd_id', bd_id_columnname)
+
+
+    #shoptype
+    shopyinhao = False
+
+    if date_type.startswith('h'):
+
+        shopyinhao = True
+        if ename in ['uv', 'new_uv', 'new_uv_ratio']:
+            if data['shop_type'] == '1':
+                where +=" and shop_type IN ('0','1')"
+            else:
+                where += " and shop_type IN ('2')"
+        else:
+            where += get_shoptype_where(data, shopyinhao)
+
+    else:
+        if ename in ['uv', 'new_uv', 'new_uv_ratio']:
+            shopyinhao = True
+
+        where += get_shoptype_where(data, shopyinhao)
+
+
+    #eliminate
+    if ename not in ['new_uv', 'register_number', 'uv','new_uv_ratio'] and date_type !='h':
         where += get_eliminate_where(data)
+
     where += get_time_where(data)
 
-    append_where = ''
-    if ename == 'new_uv':
-        append_where = " and new_id=1 and type='prod' "
 
-    if ename == 'uv':
+    #其他附加筛选条件
+    append_where = ''
+
+    if ename == 'new_uv' and date_type !='h':
+        append_where = " and new_id=1"
+        if data['bd_id'] !='all':
+            append_where += " and type='prod' "
+
+    if ename == 'uv' and date_type !='h' and data['bd_id'] !='all':
         append_where = " and type='prod' "
 
-    if ename.startswith('new_create'):
+    if ename.startswith('new_create') and date_type !='h':
         append_where = " and {}_new_flag=1 ".format(new_flag)
 
     if ename == "register_number":
@@ -628,73 +687,3 @@ def get_where_for_analysis_overview_op(data,indicator,overview=True):
     return newwhere
 
 
-def get_sql_for_user_analysis_overview_op(data,indicator,user_indicator_op_cal_dict):
-    '''用户分析优化'''
-
-    date_type=data['date_type']
-    if date_type=='d':
-        new_flag='day'
-        column_date = 'date_str'
-    elif date_type=='w':
-        new_flag = 'week'
-        column_date='toStartOfWeek(toDate(date_str), 1) as date_str'
-    elif date_type=='m':
-        new_flag = 'month'
-        column_date='toStartOfMonth(toDate(date_str)) as date_str'
-    else:
-        new_flag='quarter'
-        column_date = 'toStartOfQuarter(toDate(date_str)) as date_str'
-
-
-    # where=" where bd_id IN (1,4,9,15,16) AND platform IN (1,2) and shop_type=1 and  date_str IN ('2021-05-12','2020-05-12','2021-05-05','2021-05-11') "
-    groupby = "  group by date_str "
-    orderby = " order by date_str desc"
-
-    #根据指标拼接sql，一个
-    sqlset_dict={}
-    i=1
-    outer_column=[]
-    indicator_list=[]
-    for ename,cname in indicator.items():
-
-        if ename=='new_uv_ratio':
-            continue
-        where=get_where_for_analysis_overview_op(data,ename)
-
-        column = user_indicator_op_cal_dict[ename][0]+" ,"+column_date
-        table = 'bi_mdata.'+user_indicator_op_cal_dict[ename][1]
-
-        sql="select " + column + " from " + table + " t "+where + groupby + orderby
-        sqlset_dict[ename]=sql
-
-    #新访UV占比
-    if sqlset_dict.__contains__('uv') and sqlset_dict.__contains__('new_uv'):
-        uv_ratio_sql="select t1."+"new_uv / t2.uv*100 as new_uv_ratio,t1.date_str  from ("+sqlset_dict['new_uv']+") t1 "+" left join ("+sqlset_dict['uv']+") t2 on t1.date_str=t2.date_str "+orderby
-
-        sqlset_dict['new_uv_ratio']=uv_ratio_sql
-
-
-    return sqlset_dict
-
-    #组装sql  ，此处有bug
-    outer_column.append(ename)
-    length=len(sql_list)
-    sql_list=[sql_list[0]]+[sql_list[i] + " on t1" + ".date_str=t" + str(i + 1) + ".date_str" for i in range(1, length)]
-    sql = ' left join '.join(sql_list)
-
-    #最后算new_uv_ratio
-
-    if indicator.__contains__('new_uv_ratio') :
-        uv_index=outer_column.index('uv')+1
-        new_uv_index=outer_column.index('new_uv') + 1
-
-        new_uv_ration_column="t"+str(new_uv_index)+".new_uv" +" / "+"t"+str(uv_index)+".uv *100" +" as new_uv_ratio"
-
-    outer_column=["t"+str(i+1)+"."+outer_column[i] for i in range(0,len(outer_column))]
-
-    outer_column.insert(1,new_uv_ration_column)
-
-    final_sql="select "+",".join(outer_column) +", t1.date_str from "+sql +orderby
-
-
-    return final_sql
