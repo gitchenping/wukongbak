@@ -46,7 +46,7 @@ log_config = {
             'backupCount': 10,                       #备份的文件个数
             'filename': "logs/logger_test.txt", #日志文件名
             'level': 'INFO',# 日志等级
-            'formatter': 'detail', #调用上面的哪个格式
+            'formatter': 'detail', #调用formatters的哪个格式
             'encoding': 'utf-8', #编码
         }
     },

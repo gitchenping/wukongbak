@@ -1,17 +1,7 @@
 import os
 import requests
 import json
-from clickhouse_driver import Client,connect
-import pymssql
-# from pyhive import hive
-import pymongo
-import pymysql
-import redis
 import re
-from .decorate import loadenv
-
-from sshtunnel import SSHTunnelForwarder
-
 
 
 
@@ -85,8 +75,8 @@ def json_format(data,selfdefine):
 def simplediff(data1,data2):
     '''
 
-    :param data1:
-    :param data2:
+    :param data1: test result,作为参照
+    :param data2: dev result
     :return: 不同的键值对
     '''
     diff_key_value={}
@@ -95,19 +85,27 @@ def simplediff(data1,data2):
         try:
             data2_value = data2[key]
         except KeyError:
-            diff_key_value[key] = 'mysql 中此键值不存在'
+            diff_key_value[key] = 'dev table 中此键值不存在'
             continue
         if isinstance(data1_value,dict):
-            diff_key_value[key]=simplediff(data1_value,data2_value)
+
+            diff_key_value[key] = simplediff(data1_value,data2_value)
             if diff_key_value[key]=={}:
                 diff_key_value.pop(key)
         else:
-            if data1_value!=data2_value:
-                diff_key_value[key] = (data1_value, data2_value)
+            if data1_value != data2_value:
+                diff_key_value[key] = {'test':data1_value, 'dev':data2_value}
     return diff_key_value
 
 '''两个字典比较'''
 def diff_dict(data1, data2, absvalue=0.5):
+    '''
+
+    :param data1: test result
+    :param data2: dev result
+    :param absvalue: 允许误差
+    :return:
+    '''
     diff_key_value = {}
     temp_data1 = dict(data1)
     temp_data2 = dict(data2)
@@ -139,13 +137,13 @@ def diff_dict(data1, data2, absvalue=0.5):
                         continue
                     if isinstance(data1_value, str) and isinstance(data2_value, str):
                         if data1_value != data2_value:
-                            diff_key_value[key] = (data1_value, data2_value)
+                            diff_key_value[key] = {'test':data1_value, 'dev':data2_value}
                     else:
                         if abs(data1_value - data2_value) > absvalue:
                             # diff_key_value_list.append({key: (temp_data1[key], temp_data2[key])})
-                            diff_key_value[key] = (data1_value, data2_value)
+                            diff_key_value[key] = {'test':data1_value, 'dev':data2_value}
             except TypeError as e:
-                diff_key_value[key + ' 运算类型错误'] = (data1_value, data2_value)
+                diff_key_value[key + ' 运算类型错误'] = {'test':data1_value, 'dev':data2_value}
             except Exception as e:
                 diff_key_value[key + ' 其他错误'] = e.__repr__()
     return diff_key_value
@@ -177,8 +175,50 @@ def do_log(s, user_name, passwd):
     else:
         return False, ''
 
+'''找到一个列表中，有指定相同字段的子元素'''
+def  find_same_id_list(i,data,totalnum=1):
+    '''
+
+    :param i: 开始寻找位置
+    :param data: 列表,已按id排序好
+    :param totalnum: 相同字段元素个数限制
+    :return:
+    '''
+
+    length=len(data)
+    result = {}
+
+    if i < length and i >= 0:
+
+        ele = data[i]
+        id = ele[0]
+
+        #剩余字段如何组织
+        result[id] = {ele[1]: ele[2]}
+
+        loop_down = 1
+        # 向下找相同的custid
+        while loop_down <= totalnum and i + loop_down <= length - 1:
+            nextele = data[i + loop_down]
+
+            if nextele[0] != id:
+                break
+            result[id].update({nextele[1]: nextele[2]})
+            loop_down += 1
+
+        # 向上找3 - loop_down 个
+        loop_up = 1
+        while loop_up <= totalnum - loop_down and i - loop_up >= 0:
+            forwardele = data[i - loop_up]
+
+            if forwardele[0] != id:
+                break
+
+            result[id].update({forwardele[1]: int(forwardele[2])})
+            loop_up += 1
 
 
+    return result
 
 
 
