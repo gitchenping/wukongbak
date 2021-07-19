@@ -418,7 +418,7 @@ def test_channel_mina_detail(init_start=200000,init_end=300000):
         with open('logs/mini_view_new.pickle', 'wb') as f:
             pickle.dump(openid_new_data, f)
     else:
-        with open('logs/mini_base.pickle', 'rb') as f:
+        with open('logs/mini_view_new.pickle', 'rb') as f:
             openid_new_data = pickle.load(f)
     df_2['is_new_visit'] = df_2['distinct_id'].map(openid_parse)
 
