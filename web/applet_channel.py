@@ -138,7 +138,7 @@ def getunionidfromurl(url):
 
 def getallianceid(union_id):
     allianceid = ''
-    unions = union_id.lower().split('-')
+    unions = union_id.split('-')
     if len(unions) >=2:
         if unions[0] == 'p':
             allianceid = unions[1]
@@ -319,13 +319,13 @@ def test_channel_mina_detail(init_start=200000,init_end=300000):
     '''
 
 
-    if not os.path.exists(parent + "/logs/mini_base.pickle"):
+    if not os.path.exists("logs/mini_base.pickle"):
         hive_cursor.execute(miniprogramhour_sql.format(date=data_date))
         base_data = hive_cursor.fetchall()
-        with open(parent + '/logs/mini_base.pickle', 'wb') as f:
+        with open('logs/mini_base.pickle', 'wb') as f:
             pickle.dump(base_data, f)
     else:
-        with open(parent + '/logs/mini_base.pickle', 'rb') as f:
+        with open('logs/mini_base.pickle', 'rb') as f:
             base_data = pickle.load(f)
 
 
@@ -379,14 +379,14 @@ def test_channel_mina_detail(init_start=200000,init_end=300000):
     df_2 = df_2.drop(['lanuch_info'],axis=1)        #舍弃该列
 
     #联盟账户字典
-    if not os.path.exists(parent + "/logs/mini_lianmeng.pickle"):
+    if not os.path.exists("logs/mini_lianmeng.pickle"):
         hive_cursor.execute(lianmeng_sql)
         lianmeng_data = hive_cursor.fetchall()
         lianmeng_data = dict(lianmeng_data)
-        with open(parent + '/logs/mini_lianmeng.pickle', 'wb') as f:
+        with open('logs/mini_lianmeng.pickle', 'wb') as f:
             pickle.dump(lianmeng_data, f)
     else:
-        with open(parent + '/logs/mini_lianmeng.pickle', 'rb') as f:
+        with open('logs/mini_lianmeng.pickle', 'rb') as f:
             lianmeng_data = pickle.load(f)
 
     temp_channel = df_2[['channel1', 'channel2','allianceid']].apply(lianmeng_channel, axis=1)
@@ -411,14 +411,14 @@ def test_channel_mina_detail(init_start=200000,init_end=300000):
     df_2['is_first_visit']  = df_2['row_num'].map(lambda x:'1' if x==1.0 else '2')
 
     #新访openid
-    if not os.path.exists(parent + "/logs/mini_view_new.pickle"):
+    if not os.path.exists("logs/mini_view_new.pickle"):
         hive_cursor.execute(mini_view_new_sql.format(date=data_date))
         openid_new_data = hive_cursor.fetchall()
         openid_new_data = dict(openid_new_data)
-        with open(parent + '/logs/mini_view_new.pickle', 'wb') as f:
+        with open('logs/mini_view_new.pickle', 'wb') as f:
             pickle.dump(openid_new_data, f)
     else:
-        with open(parent + '/logs/mini_base.pickle', 'rb') as f:
+        with open('logs/mini_base.pickle', 'rb') as f:
             openid_new_data = pickle.load(f)
     df_2['is_new_visit'] = df_2['distinct_id'].map(openid_parse)
 
