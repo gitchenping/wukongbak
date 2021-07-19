@@ -1,5 +1,6 @@
 import logging.config
 from utils import util
+from utils.db import connect_mongodb
 
 logging.config.fileConfig("logging.conf")
 viewlogger=logging.getLogger('view')

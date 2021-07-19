@@ -9,6 +9,10 @@
 import re
 import happybase
 from utils.db import connect_mysql_from_jump_server
+from utils import util,log
+from concurrent import futures
+
+report = log.set_logger('test.txt')
 
 table={
     '图书畅销榜':'bang_bestsell_bk_24hours',
@@ -17,8 +21,9 @@ table={
     '童书新书榜':'bang_newhot_bk_24hours_ts'
 }
 
-
-
+conn = happybase.Connection(host='10.5.24.53', port=9090, timeout=10000)
+# visit habse
+table1 = happybase.Table('ddse_product_clonefromsnapshot', conn)
 
 def bangfile_bangsql(bang_info_list,datadict):
 
@@ -73,20 +78,26 @@ def bangfile_to_hbase():
                 # temp_data={}
                 # for key,value in data.items():
                 #     temp_data[key.decode()] = value.decode()
-
-                hbase_rank_name = data[b'a:rank_name'].decode()
-                hbase_rank_id = data[b'a:rank_id'].decode()
-                hbase_rank_url = data[b'a:rank_url'].decode()
-
-
-                print('now check '+ rowkey)
-                if not (hbase_rank_name == rank_name and hbase_rank_id == rank_id and hbase_rank_url == rank_url) :
-                    print('hbase and bangfile is different: '+ rowkey)
-
-
+                print('now check ' + rowkey)
+                if data != {}:
+                    try:
+                        hbase_rank_name = data[b'a:rank_name'].decode()
+                        hbase_rank_id = data[b'a:rank_id'].decode()
+                        hbase_rank_url = data[b'a:rank_url'].decode()
+                    except Exception as e:
+                        print('hbase data unnormal :' + rowkey)
+                        continue
 
 
-#推荐榜单测试
+                    if not (hbase_rank_name == rank_name and hbase_rank_id == rank_id and hbase_rank_url == rank_url) :
+                        print('hbase and bangfile is different: '+ rowkey)
+                else:
+
+                    print('no such key in hbase :' + rowkey)
+
+
+
+#推荐榜单测试（单进程）
 def test_reco_bang():
 
     file = 'part-0000.txt'
@@ -144,3 +155,72 @@ def test_reco_bang():
 
     with open('./loadfile/'+file,'r',encoding='UTF-8') as bang_line_info:
         bangfile_bangsql(bang_line_info,data_dict)
+
+
+
+def task(line):
+    # print('total '+str(workers)+" workers")
+    lineinfo = line.split('\t')
+
+    rowkey = lineinfo[0]
+
+    info = ''
+    diff ={}
+    # if not rowkey[-3:].startswith('0'):  # hue 查询
+    if True:
+        rank_url = lineinfo[1]
+        rank_id = lineinfo[2]
+        rank_name = lineinfo[-1].strip('\n')
+
+        hbasekey = rowkey[-3:] + rowkey
+        data = table1.row(hbasekey)  # 字典(内容字节形式）
+
+        # if not rowkey[-3:].startswith('0'):  # hue 查询
+        if data != {}:
+            try:
+                hbase_rank_name = data[b'a:rank_name'].decode()
+                hbase_rank_id = data[b'a:rank_id'].decode()
+                hbase_rank_url = data[b'a:rank_url'].decode()
+            except Exception as e:
+                # print(' :' + rowkey)
+                diff['info'] = 'hbase data unnormal'
+
+            if hbase_rank_name != rank_name:
+                diff['rank_name']={'hbase':hbase_rank_name,'file':rank_name}
+            if hbase_rank_url != rank_url:
+                diff['rank_url']={'hbase':hbase_rank_url,'file':rank_url}
+
+        else:
+            # print('no such key in hbase :' + rowkey)
+            diff['info'] = 'no such key in hbase'
+
+    return diff,rowkey
+
+def afterfun(res):
+    r = res.result()
+    if r[0] != {}:
+
+        info = " Fail-" + str(r[0])
+    else:
+        info = ' Pass-'
+
+    report.info(r[1] + info)
+
+
+#多进程版本
+def dotask():
+    file = 'part-0000.txt'
+    workers=2
+
+    with futures.ProcessPoolExecutor(workers) as executor:
+        with open('./loadfile/' + file, 'r', encoding='UTF-8') as bang_line_info:
+
+            for each_line in bang_line_info:
+                future = executor.submit(task, each_line)
+                future.add_done_callback(afterfun)
+
+        # for ele in tasklist:
+        #     future = executor.submit(task,ele)
+        #     future.add_done_callback(afterfun)
+
+    print('main thread done')

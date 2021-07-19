@@ -68,6 +68,7 @@ def parse_jsonlabel_to_list(query_data):
                     temp={key:ele}
                     alist.append(temp)
         return alist
+
 import requests
 import json
 from kafka import KafkaProducer,KafkaConsumer

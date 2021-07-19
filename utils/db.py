@@ -7,6 +7,7 @@ import pymssql
 import pymongo
 import pymysql
 import redis
+import happybase
 from .decorate import loadenv
 import configparser
 from sshtunnel import SSHTunnelForwarder
@@ -69,6 +70,12 @@ def connect_mongodb(host=None, port=None, user=None, password=None, database=Non
 def get_redis(host=None, port=None, user=None, password=None, database=None, collection=None):
     r = redis.Redis(host=host, port=port, db=database)
     return r
+
+
+@loadenv(db='db_hbase')
+def connect_hbase(host=None, port=None, user=None, password=None, database=None, collection=None):
+    conn = happybase.Connection(host=host, port=port, timeout=10000)
+    return conn
 
 
 # davinci

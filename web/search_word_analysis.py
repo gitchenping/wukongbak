@@ -1,6 +1,7 @@
 #encoding=utf-8
 from utils import util
 from utils.decorate import complog
+from utils import log
 import math
 
 #口径定义
@@ -50,7 +51,7 @@ def search_top1000(s,token,data):
         final_api_result = {ele['搜索词']: ele['sum(搜索次数)'] for ele in apidata}
 
     # 数据库
-    final_sql_result = filters.get_search_top1000_sql_content(data)
+    final_sql_result = get_search_top1000_sql_content(data)
     # api和sql比对
     util.diff_search(final_api_result, final_sql_result)
 
@@ -161,7 +162,7 @@ def searchword(s,token,data):
                 for _key,_value in item.items():
                     item[_key]= util.format_precision(_value)
                 #传item去数据库查询
-                sql_item=filters.get_search_word_sql_content_2(item)
+                sql_item=get_search_word_sql_content_2(item)
                 util.diff_search(item, sql_item)
         #         final_api_result[key]=item
         #

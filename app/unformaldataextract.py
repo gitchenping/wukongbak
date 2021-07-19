@@ -177,7 +177,7 @@ def data_extract():
         for s in datelist[31:]:
             log.setLogName(logger,'./jingying_logs/' + s + '_jingying.log')
             # 每天、每月、每季循环
-            api.jingying_analysis(datetype, s, logger)
+            jingying_analysis(datetype, s, logger)
             # diff.overview_diff(datetype,date,2)
             logger.removeHandler(logger.handlers[0])
 

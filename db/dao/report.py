@@ -1,10 +1,10 @@
-from ._sql import get_uv_sql_for_report,get_where_for_report
+from ._sql import get_where_for_report
 from ._sql import get_drill_tb_hb
-from utils import util
+from utils import util,db
 from resources.map import bd_id_dict
 
 #sql 链接
-conn_ck = util.connect_clickhouse(host='10.7.30.148')
+conn_ck = db.connect_clickhouse(host='10.7.30.148')
 
 sd_zf_report_map={
     #指标

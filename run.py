@@ -8,6 +8,7 @@ from app import user_analysis_optimization
 # from web import reco_analysis
 # from web import crm
 # from web  import report_table
+from web import reco_bang
 
 if __name__=="__main__":
 
@@ -24,4 +25,6 @@ if __name__=="__main__":
    # reco_analysis.reco_test()
    #report_table.report_product_test()
    # crm.crm_test()
-   user_analysis_optimization.run_job()
+   # user_analysis_optimization.run_job()
+   # reco_bang.bangfile_to_hbase()
+   reco_bang.dotask()

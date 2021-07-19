@@ -17,7 +17,7 @@ def log(*args,**kwargs):
 '''
 
 
-'''自定义日志配置'''
+'''自定义日志配置字典'''
 '''
 #使用示例
 config.dictConfig(log_config)
@@ -65,21 +65,49 @@ log_config = {
         }
     }
 }
+
 '''改变logger,改变输出日志目的地'''
 '''
 #使用示例后
-使用新logger前，调用remove函数去除上一次使用的logger
+使用新logger前，调用remove函数去除上一次使用的handler
 _logger.removeHandler(logger.handlers[0])
 '''
 def setLogName(_logger,filename):
+    _logger.setLevel(level=logging.INFO)
+
     handler = logging.FileHandler(filename, mode='w')
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(message)s')
     handler.setFormatter(formatter)
     _logger.addHandler(handler)
 
-'''日志文件路径设置'''
-def set_logger(logpath='logs/'):
+
+
+'''返回一个经过设置的logger,每个进程可以声明一次'''
+def get_logger(filename):
+    '''
+
+    :param _logger: logging.getLogger()
+    :param filename: 日志路径
+    :return:
+    '''
+    _logger = logging.getLogger()
+    _logger.setLevel(level=logging.INFO)
+
+    #handler
+    handler = logging.FileHandler(filename, mode='a')
+    handler.setLevel(logging.INFO)
+    #日志格式
+    formatter = logging.Formatter('%(message)s')
+    handler.setFormatter(formatter)
+
+    _logger.addHandler(handler)
+    return _logger
+
+
+
+'''日志文件路径设置,一个模块只能声明一次'''
+def set_logger(logpath=''):
     log_config['handlers']['file']['filename'] = 'logs/'+logpath
     config.dictConfig(log_config)
     report = logging.getLogger('file')

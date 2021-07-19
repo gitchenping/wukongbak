@@ -2,7 +2,7 @@ import os
 import requests
 import json
 import re
-
+import threading
 
 
 def is_number(s):
@@ -71,7 +71,7 @@ def json_format(data,selfdefine):
     return newdata
 
 
-'''两个字典的简单比较（固定一个字典）'''
+'''两个字典的简单比较（固定一个字典为基准）'''
 def simplediff(data1,data2):
     '''
 
@@ -98,7 +98,7 @@ def simplediff(data1,data2):
     return diff_key_value
 
 '''两个字典比较'''
-def diff_dict(data1, data2, absvalue=0.5):
+def diff_dict(data1 : dict, data2 : dict, absvalue=0.5) -> dict:
     '''
 
     :param data1: test result
@@ -217,8 +217,32 @@ def  find_same_id_list(i,data,totalnum=1):
             result[id].update({forwardele[1]: int(forwardele[2])})
             loop_up += 1
 
-
     return result
+
+'''自定义线程类，实例化时传入一个函数及其参数'''
+class myThread(threading.Thread):
+    def __init__(self,func,*arg,**kwargs):
+        '''
+
+        :param func: task 函数
+        :param arg:  task 包裹位置参数
+        :param kwargs: task 包裹关键字参数
+        '''
+        threading.Thread.__init__(self)
+        self.arg = arg
+        self.kw = kwargs
+        self.func = func
+
+    def run(self):
+        self.result= self.func(*self.arg,**self.kw)
+
+    #返回值
+    def get_result(self):
+        try:
+            return self.result
+        except Exception:
+            return None
+
 
 
 
