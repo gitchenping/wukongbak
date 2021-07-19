@@ -8,7 +8,8 @@ from app import user_analysis_optimization
 # from web import reco_analysis
 # from web import crm
 # from web  import report_table
-from web import reco_bang
+# from web import reco_bang
+from web import applet_channel
 
 if __name__=="__main__":
 
@@ -27,4 +28,5 @@ if __name__=="__main__":
    # crm.crm_test()
    # user_analysis_optimization.run_job()
    # reco_bang.bangfile_to_hbase()
-   reco_bang.dotask()
+   # reco_bang.dotask()
+   applet_channel.test_channel_mina_detail()
