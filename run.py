@@ -9,7 +9,7 @@ from app import user_analysis_optimization
 # from web import crm
 # from web  import report_table
 # from web import reco_bang
-from web import applet_channel
+from web import applet_channel_new
 
 if __name__=="__main__":
 
@@ -29,4 +29,4 @@ if __name__=="__main__":
    # user_analysis_optimization.run_job()
    # reco_bang.bangfile_to_hbase()
    # reco_bang.dotask()
-   applet_channel.test_channel_mina_detail()
+   applet_channel_new.test_channel_mina_detail()

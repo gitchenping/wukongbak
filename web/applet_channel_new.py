@@ -141,7 +141,6 @@ def task(item,itemfilter,lock):
                   creationtime=item[itemfilter.index('creation_time')],url=item[itemfilter.index('url')],date=item[itemfilter.index('data_date')])
 
     ck_sql = "select "+columns+" from "+table+" where "+where
-
     ck_data = ck_conn.ck_get(ck_sql)
 
     dev_result = []
