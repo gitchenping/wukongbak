@@ -38,7 +38,6 @@ liebian_lanuchs ={"scene":[1007,1008,1048,1047,1155]}
 def get_liebian_unionid():
     global liebian_urls
     global unionids
-
     sql ='''
         select
             channel_id,
@@ -47,16 +46,13 @@ def get_liebian_unionid():
         from 
             dim.wechat_channel
     '''
-
     hive_cursor.execute(sql)
     liebian_unionid_list = hive_cursor.fetchall()
-
     liebian_urls = {}
     unionids = {}
     for item in liebian_unionid_list:
-        key = item[0].lower()
+        key = item[0]
         value = item[1]
-
         if value.startswith('分享裂变') :
             liebian_urls[key] = value
         else:
@@ -210,9 +206,6 @@ def channel_parse(url_lanuchinfo):
     lanuch_info = url_lanuchinfo['lanuch_info']
     url = url_lanuchinfo['url']
     union_id = url_lanuchinfo['union_id']
-    #'{"path":"pages/signInAward/index","query":{"share_id":"ebJzlJCAMJzIeCDl","shareDate":"20210704","roundNum":"01",
-    # "ald_share_src":"0f44d981855f5ca6933cd7e846ed24d9","behavior":"share"},"scene":1044,"shareTicket":"87bafa08-1bd2-44b2-af20-e4348404f87a","referrerInfo":{},"locationInfo":{"isPrivateMessage":false},"mode":"default"}'
-    #
     try:
         scene_info = json.loads(lanuch_info)['scene']
     except Exception as e:
@@ -236,7 +229,6 @@ def channel_parse(url_lanuchinfo):
         channels = 'null'
         if not unionids.__contains__(union_id):
             union_id_part = union_id.split('-')
-
             while len(union_id_part) > 2:
                 union_id_part.pop(-1)
                 temp_union_id = '-'.join(union_id_part)
@@ -245,7 +237,6 @@ def channel_parse(url_lanuchinfo):
                     break
         else:
             channels = unionids[union_id]
-
         if channels != 'null':
             channels = channels.split('|')
             channel1 = channels[0]
@@ -253,7 +244,6 @@ def channel_parse(url_lanuchinfo):
             channel3 = channels[2]
             channel4 = channels[3]
             channel5 = channels[4]
-
     return channel1,channel2,channel3,channel4,channel5
 
 #联盟渠道
