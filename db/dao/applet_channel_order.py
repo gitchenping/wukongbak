@@ -241,7 +241,7 @@ wechat_order_detail_sql ='''
                 channel5,
                 item_id
             from dwd.channel_mini_wechat_order_attri_detail
-            where where data_date>='{last2month}' and data_date<='{date}'
+            where  data_date>='{last2month}' and data_date<='{date}'
             ) t1
         on (t.item_id=t1.item_id)
     
@@ -315,7 +315,7 @@ wechat_order_detail_sql ='''
                 channel5,
                 item_id
             from dwd.channel_mini_wechat_order_attri_detail
-            where where data_date>='{lastyear}' and data_date<='{date}'
+            where  data_date>='{lastyear}' and data_date<='{date}'
             ) t1
         on (t.order_id=t1.order_id)
     )
