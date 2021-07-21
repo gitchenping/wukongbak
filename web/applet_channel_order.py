@@ -103,7 +103,7 @@ def test_applet_channel_order():
         with open('logs/mini_channel_order.pickle', 'rb') as f:
             order_data = pickle.load(f)
 
-   
+
 
 
 
