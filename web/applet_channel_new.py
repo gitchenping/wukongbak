@@ -185,7 +185,7 @@ def getallianceid(union_id):
     if len(unions) >=2:
         if unions[0] == 'p':
             allianceid = unions[1]
-        allianceid = allianceid.rstrip('m')
+        allianceid = allianceid.rstrip('m').strip()
     return allianceid
 
 #union_id,allianceid 解析规则

@@ -252,12 +252,18 @@ def task(item,itemfilter,lock):
 
     ck_data = ck_conn.ck_get(ck_sql)
 
+    dev_result = []
     if ck_data !=[]:
-        dev_result = dict(zip(result_key,ck_data[0]))
-    else:
-        dev_result = {}
 
-    diff_result = util.simplediff(test_result,dev_result)
+        for ele in ck_data:
+            dev_result.append(dict(zip(result_key,ele)))
+    else:
+        dev_result.append({})
+
+    for ele in dev_result:
+        diff_result = util.simplediff(test_result,ele)
+        if diff_result == {}:
+            break
 
     return where,diff_result,lock
 
@@ -289,7 +295,7 @@ def test_channel_mina_detail(init_start=200000,init_end=300000):
             select 
                 openid as distinct_id,
                 permanentid,
-                `time`  as creation_time,
+                `time` as creation_time,
                 url,
                 (case when platform='wechat_mina' then '4' else platform end) as platform,
                 lanuch_info,

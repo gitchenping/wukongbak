@@ -60,6 +60,31 @@ def get_startdate_in_w_m_q(date,datetype):
         startdate=str(year)+get_sd_ed_q(m)[0]
     return startdate
 
+#获取当前日志的上x周，上x月，上x年
+def get_lastdate_in_w_m_q(date,datetype,delta=1):
+    templist = date.split('-')
+
+    monthint = int(templist[1])
+    yearint = int(templist[0])
+
+    if datetype.startswith('m') :                          #datetype='day' or 'd'
+        new_month = monthint - delta
+        new_year = yearint
+        if new_month <0:
+            new_month = new_month + 12
+            new_year = yearint -1
+
+        templist[0] = str(new_year)
+        templist[1] = len(str(new_month))<2 and '0'+str(new_month) or str(new_month)
+
+    elif datetype.startswith('y'):
+        templist[0] = str(yearint - delta)
+
+    newdate= '-'.join(templist)
+
+    return newdate
+
+
 '''返回月末最后一天'''
 def get_month_end_day(date):
     a=datetime.datetime.strptime(date, '%Y-%m-%d')
@@ -468,3 +493,5 @@ def get_trend_data(data,datetype):
             trend[key] = round(float(ele[0]),2)
 
     return trend
+
+
