@@ -10,13 +10,13 @@ import time
 import json
 from concurrent import futures
 from multiprocessing import Manager
-from db.dao.applet_channel_order import wechat_order_detail_sql
+from db.dao.applet_channel_order import wechat_order_detail_create_sql
 
 
 #logger
 report = log.set_logger('applet_order.txt')
 # hive连接
-hive_cursor= db.connect_hive()
+# hive_cursor= db.connect_hive()
 #ck 连接
 #conn_ck = db.connect_clickhouse(host='10.0.5.80')
 ck_db={
@@ -90,7 +90,7 @@ def test_applet_channel_order():
     lastyear = date.get_lastdate_in_w_m_q(data_date,'y',1)
 
 
-    sql = wechat_order_detail_sql.format(date =data_date,week_monday = week_monday,
+    sql = wechat_order_detail_create_sql.format(date =data_date,week_monday = week_monday,
                                          quarter_day =quarter_day,last2month =last2month,
                                          lastyear =lastyear)
 
