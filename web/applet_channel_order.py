@@ -10,7 +10,7 @@ import time
 import json
 from concurrent import futures
 from multiprocessing import Manager
-from db.dao.applet_channel_order import wechat_order_detail_create_sql
+from db.dao.applet_channel_order import wechat_order_detail_create_sql,wechat_order_detail_pay_sql,wechat_order_detail_send_sql
 
 
 #logger
@@ -125,28 +125,50 @@ def test_applet_channel_order():
     lastyear = date.get_lastdate_in_w_m_q(data_date,'y',1)
 
 
-    sql = wechat_order_detail_create_sql.format(date =data_date,week_monday = week_monday,
-                                         quarter_day =quarter_day,last2month =last2month,
-                                         lastyear =lastyear)
+    order_dict={
+                # '收订':1,
+                 '支付':2,
+                 '出库':3
 
-    if not os.path.exists("logs/mini_channel_order.pickle"):
-        hive_cursor.execute(sql)
-        order_data = hive_cursor.fetchall()
-        with open('logs/mini_channel_order.pickle', 'wb') as f:
-            pickle.dump(order_data, f)
-    else:
-        with open('logs/mini_channel_order.pickle', 'rb') as f:
-            order_data = pickle.load(f)
+    }
 
-    workers = 2
-    lock = Manager().Lock()
-    # 'distinct_id','permanentid','creation_time','url','data_date'
+    for key,value in order_dict.items():
 
-    with futures.ProcessPoolExecutor(workers) as executor:
-        for item in order_data[0:100000]:
-            item_zip = zip(mini_wechat_order_detail_table.keys(),item)
-            future = executor.submit(task, item_zip, lock)
-            future.add_done_callback(task_after)
+        if key =='收订':
+
+            sql = wechat_order_detail_create_sql
+            data_dir ='mini_channel_create_order.pickle'
+        elif key =='支付':
+
+            sql = wechat_order_detail_pay_sql
+            data_dir = 'mini_channel_pay_order.pickle'
+        else:
+            sql = wechat_order_detail_send_sql
+            data_dir = 'mini_channel_send_order.pickle'
+
+
+        if not os.path.exists("logs/"+data_dir):
+
+            sql = sql.format(date=data_date, week_monday=week_monday,
+                             quarter_day=quarter_day, last2month=last2month,
+                             lastyear=lastyear)
+            hive_cursor.execute(sql)
+            order_data = hive_cursor.fetchall()
+            with open('logs/'+data_dir, 'wb') as f:
+                pickle.dump(order_data, f)
+        else:
+            with open('logs/'+data_dir, 'rb') as f:
+                order_data = pickle.load(f)
+
+        workers = 2
+        lock = Manager().Lock()
+        # 'distinct_id','permanentid','creation_time','url','data_date'
+
+        with futures.ProcessPoolExecutor(workers) as executor:
+            for item in order_data[0:100000]:
+                item_zip = zip(mini_wechat_order_detail_table.keys(),item)
+                future = executor.submit(task, item_zip, lock)
+                future.add_done_callback(task_after)
 
 
 
