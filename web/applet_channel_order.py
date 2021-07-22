@@ -3,7 +3,6 @@
 
 '''
 from utils import db,util,log,date
-import pandas as pd
 import os
 import pickle
 import time
@@ -16,7 +15,8 @@ from db.dao.applet_channel_order import wechat_order_detail_create_sql,wechat_or
 #logger
 report = log.set_logger('applet_order.txt')
 # hive连接
-hive_cursor= db.connect_hive()
+if os.name == 'posix':
+    hive_cursor= db.connect_hive()
 #ck 连接
 #conn_ck = db.connect_clickhouse(host='10.0.5.80')
 ck_db={
@@ -166,7 +166,13 @@ def test_applet_channel_order():
         #单进程
         # for item in order_data:
         #     item_zip = zip(mini_wechat_order_detail_table.keys(), item)
-        #     task(item_zip, lock)
+        #     r=task(item_zip, lock)
+        #     if r[1] !={}:
+        #         r[-1].acquire()
+        #         report.info(r[0]+'- Fail ')
+        #         report.info('--diff info : '+str(r[1]))
+        #         r[-1].release()
+
 
         #多进程
         with futures.ProcessPoolExecutor(workers) as executor:

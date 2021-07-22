@@ -3,7 +3,6 @@ import requests
 import json
 from clickhouse_driver import Client,connect
 import pymssql
-# from pyhive import hive
 import pymongo
 import pymysql
 import redis
@@ -13,6 +12,8 @@ import configparser
 from sshtunnel import SSHTunnelForwarder
 from utils.load import readconfini
 
+if os.name == "posix":
+    from pyhive import hive
 
 @loadenv(db='db_ck')
 def connect_clickhouse(host=None, port=None, user=None, password=None, database=None, collection=None):
