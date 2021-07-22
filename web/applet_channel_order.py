@@ -16,7 +16,7 @@ from db.dao.applet_channel_order import wechat_order_detail_create_sql,wechat_or
 #logger
 report = log.set_logger('applet_order.txt')
 # hive连接
-hive_cursor= db.connect_hive()
+# hive_cursor= db.connect_hive()
 #ck 连接
 #conn_ck = db.connect_clickhouse(host='10.0.5.80')
 ck_db={
@@ -78,7 +78,7 @@ def task(itemzip,lock):
     table = 'bi_mdata.dwd_channel_mini_wechat_order_detail'
 
     where = '''distinct_id='{distinctid}' and creation_time='{creationtime}' 
-                and url='{url}' and order_status='{order_status}' and data_date='{date}'
+                and item_id='{item_id}' and order_status='{order_status}' and data_date='{date}'
             '''.format(distinctid=item_dict['distinct_id'],creationtime=item_dict['creation_time'],
                   item_id=item_dict['item_id'],order_status=item_dict['order_status'],date=item_dict['data_date'])
 
@@ -128,7 +128,7 @@ def test_applet_channel_order():
     order_dict={
                 # '收订':1,
                  '支付':2,
-                 '出库':3
+                 # '出库':3
 
     }
 
@@ -162,11 +162,25 @@ def test_applet_channel_order():
 
         workers = 2
         lock = Manager().Lock()
-        # 'distinct_id','permanentid','creation_time','url','data_date'
 
+        order_data = [
+            ('20210629213129071362600454745293283', 'null', 'null', '自然量', 'null', 'null', 'null', 'null', '278499289',
+             '42861309219', '42861309219', '42861309219003', 63, 63, '2', '2', '2', '2', '4', '2', '1', '12',
+             '2021-07-05'),
+            ('20210629213129071362600454745293283', 'null', 'null', '自然量', 'null', 'null', 'null', 'null',
+             '278499289',
+             '42861309219', '42861309219', '42861309219003', -63.2, -63, '2', '2', '2', '2', '4', '2', '2', '12',
+             '2021-07-05')
+            ]
+        #单进程
+        # for item in order_data:
+        #     item_zip = zip(mini_wechat_order_detail_table.keys(), item)
+        #     task(item_zip, lock)
+
+        #多进程
         with futures.ProcessPoolExecutor(workers) as executor:
-            for item in order_data[0:100000]:
-                item_zip = zip(mini_wechat_order_detail_table.keys(),item)
+            for item in order_data:
+                item_zip = zip(mini_wechat_order_detail_table.keys(), item)
                 future = executor.submit(task, item_zip, lock)
                 future.add_done_callback(task_after)
 

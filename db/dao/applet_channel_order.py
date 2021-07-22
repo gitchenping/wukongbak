@@ -123,7 +123,7 @@ from
 
 #支付
 wechat_order_detail_pay_sql ='''  
-pay_detail as (
+with pay_detail as (
     select
          t.platform,
          t.cust_id,
@@ -164,7 +164,7 @@ pay_detail as (
                 from dwd.cust_pay_new_detail
                 where trans_date>='{week_monday}' and trans_date<='{date}'
                 group by cust_id
-                ) create_week) t1 on (t.cust_id=t1.cust_id)
+                ) pay_week) t1 on (t.cust_id=t1.cust_id)
          left join(
             select cust_id from (
                 select
@@ -172,7 +172,7 @@ pay_detail as (
                 from dwd.cust_pay_new_detail
                 where trans_date>='{quarter_day}' and trans_date<='{date}'
                 group by cust_id
-            ) create_quarter) t2 on (t.cust_id=t2.cust_id)
+            ) pay_week) t2 on (t.cust_id=t2.cust_id)
     ),
 pay_channel_detail as(
         select
@@ -247,7 +247,7 @@ from
 
 #出库
 wechat_order_detail_send_sql ='''
-send_detail as (
+with send_detail as (
         select
              t.platform,
              t.cust_id,
