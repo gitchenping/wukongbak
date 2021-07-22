@@ -89,7 +89,10 @@ def task(itemzip,lock):
     if ck_data !=[]:
 
         for ele in ck_data:
-            dev_result.append(dict(zip(result_key,ele)))
+            temp = dict(zip(result_key,ele))
+            temp['out_profit'] = round(float(temp['out_profit']),2)
+            temp['out_pay_amount'] =round(float(temp['out_pay_amount']),2)
+            dev_result.append(temp)
     else:
         dev_result.append({})
 
@@ -141,7 +144,7 @@ def test_applet_channel_order():
 
     with futures.ProcessPoolExecutor(workers) as executor:
         for item in order_data[0:100000]:
-            item_zip = zip(mini_wechat_order_detail_table.keys,item)
+            item_zip = zip(mini_wechat_order_detail_table.keys(),item)
             future = executor.submit(task, item_zip, lock)
             future.add_done_callback(task_after)
 
