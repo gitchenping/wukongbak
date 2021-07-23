@@ -77,10 +77,16 @@ def task(itemzip,lock):
     columns = ','.join(result_key)
     table = 'bi_mdata.dwd_channel_mini_wechat_order_detail'
 
-    where = '''distinct_id='{distinctid}' and creation_time='{creationtime}' 
-                and item_id='{item_id}' and order_status='{order_status}' and data_date='{date}'
-            '''.format(distinctid=item_dict['distinct_id'],creationtime=item_dict['creation_time'],
-                  item_id=item_dict['item_id'],order_status=item_dict['order_status'],date=item_dict['data_date'])
+    if item_dict['order_status'] =='3':
+        order_item_id = item_dict['order_id']
+        order_item_name = 'order_id'
+    else:
+        order_item_id = item_dict['item_id']
+        order_item_name = 'item_id'
+
+    where = '''distinct_id='{distinctid}' and creation_time='{creationtime}' and {order_item_name}='{order_item_id}' and order_status='{order_status}' and data_date='{date}'
+            '''.format(distinctid=item_dict['distinct_id'],creationtime=item_dict['creation_time'],order_item_name=order_item_name,
+                  order_item_id=order_item_id,order_status=item_dict['order_status'],date=item_dict['data_date'])
 
     ck_sql = "select "+columns+" from "+table+" where "+where
     ck_data = ck_conn.ck_get(ck_sql)
@@ -109,8 +115,8 @@ def task_after(res):
 
     if r[1] !={}:
         r[-1].acquire()
-        report.info(r[0]+'- Fail ')
-        report.info('--diff info : '+str(r[1]))
+        report.info(r[0]+'-*-Fail-*- ')
+        report.info('--diff info : '+str(r[1])+"\n")
         r[-1].release()
 
 
@@ -126,9 +132,9 @@ def test_applet_channel_order():
 
 
     order_dict={
-                 '收订':1,
-                #  '支付':2,
-                 # '出库':3
+                 # '收订':1,
+                 #  '支付':2,
+                 '出库':3
 
     }
 
@@ -162,6 +168,8 @@ def test_applet_channel_order():
 
         workers = 2
         lock = Manager().Lock()
+
+
 
         #单进程
         # for item in order_data:

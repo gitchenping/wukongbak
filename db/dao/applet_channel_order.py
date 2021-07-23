@@ -311,7 +311,7 @@ send_channel_detail as(
         t.cust_id,
         t.parent_id,
         t.order_id,
-        t.item_id,
+        'null' as item_id,
         t.out_profit,
         t.out_pay_amount,
         t.day_new_flag,
@@ -319,7 +319,7 @@ send_channel_detail as(
         t.month_new_flag,
         t.quarter_new_flag,
         t.platform,
-        '2' as order_status,
+        '3' as order_status,
         t.sale_type,
         t.bd_id,
         t.data_date
@@ -364,7 +364,7 @@ send_channel_detail as(
             channel3,
             channel4,
             channel5,
-            item_id
+            order_id
         from dwd.channel_mini_wechat_order_attri_detail
         where  data_date>='{lastyear}' and data_date<='{date}'
         ) t1

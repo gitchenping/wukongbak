@@ -27,7 +27,8 @@ log_config = {
     'version': 1.0,
     'formatters': {
         'detail': {
-            'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            # 'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            'format': '%(asctime)s - %(message)s',
             'datefmt': "%Y-%m-%d %H:%M:%S" #如果不加这个会显示到毫秒。
         },
         'simple': {
