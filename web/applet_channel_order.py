@@ -170,7 +170,6 @@ def test_applet_channel_order():
         lock = Manager().Lock()
 
 
-
         #单进程
         # for item in order_data:
         #     item_zip = zip(mini_wechat_order_detail_table.keys(), item)
@@ -180,6 +179,7 @@ def test_applet_channel_order():
         #         report.info(r[0]+'- Fail ')
         #         report.info('--diff info : '+str(r[1]))
         #         r[-1].release()
+
 
 
         #多进程
