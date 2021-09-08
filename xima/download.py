@@ -91,6 +91,9 @@ def download_audio():
     print('专辑资源名称列表:')
     for ele in resource_name_list:
         print(ele)
+    choice_yes_or_no = input("are you sure to go on [y/yes/n/no]:")
+    if choice_yes_or_no.lower() in ['n','no']:
+        return
 
     #cookies 字符串中不能有空格、换行
     cookies="1&_device=android&654a4727-11c8-3cbf-8263-eec0d985e68a&8.3.3;1&_token=195711234&17BAB6905A5612FBA9B479F05E49D088cDv2B111CD57D6752A1A1B1446D79134130C64DBA9EBB2B03E23940DBAB77DC7ADE;channel=and-d10;impl=com.ximalaya.ting.android;osversion=29;fp=00311355412122b2vv349159180023a1232112711041000;device_model=Redmi+K30+5G+Speed;XIM=;c-oper=%E4%B8%AD%E5%9B%BD%E7%A7%BB%E5%8A%A8;net-mode=WIFI;freeFlowType=0;res=1080%2C2175;NSUP=42e8e1a3%2C421fd73b%2C1630979706141;AID=+f1X+JD6aJA=;manufacturer=Xiaomi;XD=G4gqXZCYTqJe2uGSHGiUwdGf8gbBpd2u+LptU/9Ro1vnB7hHXsIBBwM4uo2kB09iBUxHAdQVFowZ0IFtKFk6RrkirqRwEaWneq0oAc/qYZyhfHNSVb+aJlsjYWZumyIv;umid=654a472711c82cbf263eec0d985e68a;xm_grade=0;minorProtectionStatus=0;oaid=e2b5d3af13199dce;domain=.ximalaya.com;path=/;"
