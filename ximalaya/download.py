@@ -19,8 +19,9 @@ else:
 
 def progressbar(processnum,totalnum):
     scale=int(float(processnum)/totalnum*100)
-    j = '#'*scale
-    print('【'+j+'】->'+str(scale)+'%\r'),
+    j = '>'*scale
+    sys.stdout.write('\r')
+    sys.stdout.write('【' + j + '】->' + str(scale) + "%")
     sys.stdout.flush()
 
 def get_resource_list(vip):
@@ -140,11 +141,17 @@ def download_audio(vip = False):
                     if url not in audio_url_list: #去重
                         audio_url_list.append(url)
 
-
-    print("\nthere are total " + str(len(resource_name_list)) + " 集"+"，audio "+str(len(audio_url_list))+"集")
+    len_audio_url_list =len(audio_url_list)
+    len_resource_name = len(resource_name_list)
+    print("\nthere are total " + str() + " 集"+"，audio "+str(len_audio_url_list)+"集")
+    if len_audio_url_list != len_resource_name:
+        choice_yes_or_no = input("num not match !!! are you sure to go on [y/yes/n/no]:")
+        if choice_yes_or_no.lower() in ['n', 'no']:
+            return
     print("now begin downloading......")
 
     i = 1
+
     for resource_name, url in zip(resource_name_list, audio_url_list):
         # cmd = "curl -s -o '" + resource_name.encode(
         #     'utf-8') + ".m4a' " + '-H "user-agent:' + useragent + '"' + ' -H "Host:' + host + '"' + " -b loginmobile.txt '" + url + "'"
@@ -153,7 +160,7 @@ def download_audio(vip = False):
         with open('resource/'+resource_name+file_name_suffix, 'wb') as f:
             f.write(r.content)
 
-        progressbar(i, len(audio_url_list))
+        progressbar(i, len_audio_url_list)
         i += 1
 
 
