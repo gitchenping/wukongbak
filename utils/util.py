@@ -5,6 +5,31 @@ import re
 import threading
 
 
+#数据格式转换，便于比较、计算
+def data_change(data):
+    '''
+    格式转换
+    :param data:
+    :return:
+    '''
+    temp = dict(data)
+
+    for key,value in temp.items():
+        if value is None or value == 'inf':
+            temp[key] = '-'
+        elif isinstance(value,str):
+            try:
+               value_new = round(eval(value.strip('%')),2)
+            except Exception :
+                value_new = value
+            temp[key] = value_new
+        elif isinstance(value, float):
+            temp[key] = round(value,2)
+        else:
+            continue
+    return temp
+
+
 def is_number(s):
     if isinstance(s,str) and s.lower()=='nan':
         return False
@@ -98,7 +123,7 @@ def simplediff(data1,data2):
     return diff_key_value
 
 '''两个字典比较'''
-def diff_dict(data1 : dict, data2 : dict, absvalue=0.5) -> dict:
+def diff_dict(data1, data2, absvalue=0.5):
     '''
 
     :param data1: test result

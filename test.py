@@ -1,5 +1,6 @@
 
 from utils import log,db
+from db.dao.applet_channel_order import wechat_order_detail_create_sql,wechat_order_detail_pay_sql,wechat_order_detail_send_sql
 
 '''
     微信小程序渠道分析-订单
@@ -121,11 +122,55 @@ def test_applet_channel_order():
 
     data_date = '2021-07-05'
 
-    order_data =[('20210623191119422510345696493832042', '2021-07-05 13:47:41', 'p-324867m-397-20', '微信公众号', '服务号', '菜单栏', '', '', '707764162', '42862811212', '42862811212', '42862811212001', 0.0, 0.0, '2', '2', '2', '2', '4', '1', '1', '5', '2021-07-05'),
-                 ('20200213103907790737186704977675237', '2021-07-05 14:34:25', 'p-324867m-397-20', '微信公众号', '服务号', '菜单栏', '', '', '312446630', '42862786210', '42862786210', '42862786210001', 0.0, 0.0, '2', '2', '2', '2', '4', '1', '1', '5', '2021-07-05'),
-                 ('20210705213330348595200698797379680', 'null', 'null', '自然量', 'null', 'null', 'null', 'null', '338105705', '42862782655', '42862782655', '42862782655001', 0.0, 0.0, '2', '2', '2', '2', '4', '1', '1', '12', '2021-07-05'),
-                 ('20210620221547249883562833435216982', '2021-07-05 14:12:45', 'p-337647m', '联盟', '微信小程序', 'null', 'null', 'null', '29350166', '42862779156', '42862779156', '42862779156007', 0.0, 0.0, '2', '2', '2', '2', '4', '1', '1', '5', '2021-07-05'),
-                 ('20210705213926865327650917819696787', '2021-07-05 13:39:28', 'p-121416269m', '联盟', '评论联盟', 'null', 'null', 'null', '728557437', '42862749437', '42862749437', '42862749437003', 0.0, 0.0, '2', '1', '1', '1', '4', '1', '1', '5', '2021-07-05')]
+    week_monday = date.get_startdate_in_w_m_q(data_date, 'w')
+    quarter_day = date.get_startdate_in_w_m_q(data_date, 'q')
+
+    last2month = date.get_lastdate_in_w_m_q(data_date, 'm', 2)
+    lastyear = date.get_lastdate_in_w_m_q(data_date, 'y', 1)
+
+    order_dict = {
+        # '收订':1,
+        '支付': 2,
+        # '出库': 3
+
+    }
+
+    # for key, value in order_dict.items():
+    #
+    #     if key == '收订':
+    #
+    #         sql = wechat_order_detail_create_sql
+    #         data_dir = 'mini_channel_create_order.pickle'
+    #     elif key == '支付':
+    #
+    #         sql = wechat_order_detail_pay_sql
+    #         data_dir = 'mini_channel_pay_order.pickle'
+    #     else:
+    #         sql = wechat_order_detail_send_sql
+    #         data_dir = 'mini_channel_send_order.pickle'
+    #
+    #     if not os.path.exists("logs/" + data_dir):
+    #
+    #         sql = sql.format(date=data_date, week_monday=week_monday,
+    #                          quarter_day=quarter_day, last2month=last2month,
+    #                          lastyear=lastyear)
+    #         hive_cursor.execute(sql)
+    #         order_data = hive_cursor.fetchall()
+    #         with open('logs/' + data_dir, 'wb') as f:
+    #             pickle.dump(order_data, f)
+    #     else:
+    #
+
+    # with open('logs/mini_channel_pay_order.pickle', 'rb') as f:
+    #     order_data = pickle.load(f)
+
+    order_data = [('20210629213129071362600454745293283', 'null', 'null', '自然量', 'null', 'null', 'null', 'null', '278499289',
+     '42861309219', '42861309219', '42861309219003', 63, 63, '2', '2', '2', '2', '4', '2', '1', '12', '2021-07-05'),
+                  ('20210629213129071362600454745293283', 'null', 'null', '自然量', 'null', 'null', 'null', 'null',
+                   '278499289',
+                   '42861309219', '42861309219', '42861309219003', -63.2, -63, '2', '2', '2', '2', '4', '2', '2', '12',
+                   '2021-07-05')
+                  ]
 
     workers = 2
     lock = Manager().Lock()

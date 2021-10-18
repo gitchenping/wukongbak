@@ -5,10 +5,12 @@ def reco_api_data(token,requestdata):
     apidata=post(url,requestdata,token=token)
 
     rawdata={}
+    totalcount = 0
     if apidata != -1:
         jsondata = json.loads(apidata)
         rawdata = jsondata['payload']['resultList']
+        totalcount = jsondata['payload']['totalCount']
 
-    return rawdata
+    return rawdata,totalcount
 
     pass

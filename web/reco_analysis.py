@@ -1,9 +1,12 @@
 #encoding=utf-8
 import json
-from db.map.recommend_map import *
-from utils import util,log
-from db.dao.reco import get_sql_data_reco
-from api.service.reco import reco_api_data
+import random
+import math
+import requests
+from  utils import log,util,db
+from  db.map.recommend_map import *
+from  db.dao.reco import get_sql_data_reco
+from  api.service.reco import reco_api_data
 
 # ck和达芬奇比较
 '''
@@ -30,98 +33,144 @@ UV订单转化率：指当前查询的模块，带来的订单行数占推荐商
 #日志设置
 reco = log.set_logger('reco.txt')
 #推荐conn
-conn_ck = util.connect_clickhouse(host='10.7.30.177')
+conn_ck = db.connect_clickhouse(host='10.7.30.177')
 
-def ck_vs_davi(webdata,filters):
-    '''达芬奇数据和ck数据比对'''
-    filterdict=dict(filters)
-    data={}
-    if len(webdata)>0:
-        i=0
-        for data in webdata:
-            if data['商品ID']=='-1':
-                data={}
-                continue
+def get_ck_data(data):
+    '''
 
-            if data.__contains__('商品PV点击率') and data['商品PV点击率'] is not None :
-                data['商品PV点击率']=data['商品PV点击率']*100
-            if data.__contains__('商品UV点击率') and data['商品UV点击率'] is not None :
-                data['商品UV点击率']=data['商品UV点击率']*100
-            if data.__contains__('收订转化率') and data['收订转化率'] is not None :
-                data['收订转化率']=data['收订转化率']*100
-            break
-    else:
-        data={}
-
-    sqldata=get_sql_data_reco(data,filterdict,conn_ck)
-
-    davi_data = util.json_format(data, selfdefine='')
-    sql_data = util.json_format(sqldata, selfdefine='')
-
-    if data !={}:
-        filterdict['商品ID'] = data['商品ID']
-    filter=str(filterdict)
-
-    reco.info('筛选条件：'+filter)
-    util.diff(davi_data,sql_data,reco)
+    :param filters:
+    :return: 返回df
+    '''
+    filter = dict(data)
+    sqldata = get_sql_data_reco(filter,conn_ck)
+    return sqldata
 
 
-def product_analysis(s,token,url,requestload):
+
+
+
+def product_analysis(token,requestload):
     '''单品分析'''
-    start_date_str = '2021-02-01'
-    end_date_str = '2021-02-01'
+    start_date_str = '2021-10-01'
+    end_date_str = '2021-10-01'
 
-    for _,platform in platform_name.items():
-        for _,shoptype in shop_type_name.items():
-            for bd_key,bd_value in bd_name.items():
-                pathname_list = path2_name[bd_key]
-                for  pathname in pathname_list:
+    for product_id in ['','1454809379'][1:2]:
+        for _,platform in platform_name.items():
+            for _,shoptype in shop_type_name.items():
+                for bd_key,bd_value in bd_name.items():
+                    pathname_list = path2_name[bd_key]
+                    for  pathname in pathname_list:
 
-                    for page_key,page_value in page_name.items():
-                        module_list = module_name[page_key]
-                        for module in module_list:
+                        for page_key,page_value in page_name.items():
+                            module_list = module_name[page_key]
+                            for module in module_list:
 
-                            #debug params
-                            platform='安卓';shoptype='自营';
-                            bd_value='其他';pathname='全部';
-                            page_value='全部';module='全部'
+                                #debug params
+                                platform='安卓';
+                                # shoptype='自营';
+                                # bd_value='其他';pathname='全部';
+                                # page_value='全部';module='全部'
 
-                            #参数组合
-                            params=[
-                                    {'name': "start", 'value': "'"+start_date_str+"'"},
-                                    {'name': "end", 'value': "'"+end_date_str+"'"},
-                                    {'name': "platform", 'value':"'"+platform+"'"},
-                                    # {'name': "shop_type_name", 'value':"'"+shoptype+"'"},
-                                    {'name': "bd_id", 'value': "'" + bd_value + "'"},
-                                    {'name': "path2_name", 'value': "'" + pathname + "'"},
-                                    {'name': "page_name", 'value': "'" + page_value + "'"},
-                                    {'name': "model_cn_name", 'value': "'" + module + "'"}
-                                    ]
+                                #参数组合
+                                params=[
+                                        {'name': "start", 'value': "'"+start_date_str+"'"},
+                                        {'name': "end", 'value': "'"+end_date_str+"'"},
+                                        {'name': "platform", 'value':"'"+platform+"'"},
+                                        # {'name': "shop_type_name", 'value':"'"+shoptype+"'"},
+                                        {'name': "bd_id", 'value': "'" + bd_value + "'"},
+                                        {'name': "path2_name", 'value': "'" + pathname + "'"},
+                                        {'name': "page_name", 'value': "'" + page_value + "'"},
+                                        {'name': "model_cn_name", 'value': "'" + module + "'"}
+                                        ]
 
-                            filters=[
-                                # {'name': "平台", 'type': "filter", 'value':"'"+platform+"'", 'sqlType': "STRING", 'operator': "="},
-                                {'name': "经营方式", 'type': "filter", 'value':"'"+shoptype+"'", 'sqlType': "STRING",'operator': "="},
-                                # {'name': "事业部", 'type': "filter", 'value': "'" + bd_value + "'", 'sqlType': "STRING",'operator': "="},
-                                # {'name': "二级分类", 'type': "filter", 'value': "'" + pathname + "'", 'sqlType': "STRING",'operator': "="},
-                                # {'name': "页面", 'type': "filter", 'value': "'" + page_value + "'", 'sqlType': "STRING", 'operator': "="},
-                                # {'name': "模块名称", 'type': "filter", 'value': "'" + module + "'", 'sqlType': "STRING", 'operator': "="}
-                            ]
+                                filters=[
+                                    # {'name': "平台", 'type': "filter", 'value':"'"+platform+"'", 'sqlType': "STRING", 'operator': "="},
+                                    {'name': "经营方式", 'type': "filter", 'value':"'"+shoptype+"'", 'sqlType': "STRING",'operator': "="},
+                                    # {'name': "事业部", 'type': "filter", 'value': "'" + bd_value + "'", 'sqlType': "STRING",'operator': "="},
+                                    # {'name': "二级分类", 'type': "filter", 'value': "'" + pathname + "'", 'sqlType': "STRING",'operator': "="},
+                                    # {'name': "页面", 'type': "filter", 'value': "'" + page_value + "'", 'sqlType': "STRING", 'operator': "="},
+                                    # {'name': "模块名称", 'type': "filter", 'value': "'" + module + "'", 'sqlType': "STRING", 'operator': "="}
+                                ]
+                                if product_id != '':
+                                    prd = {'name': "商品ID", 'type': "filter", 'value': None, 'sqlType': "STRING",
+                                     'operator': "="}
+                                    prd['value'] ="'"+product_id+"'"
+                                    filters.append(prd)
 
-                            requestload['filters']=filters
-                            requestload['params']=params
+                                requestload['filters']=filters
+                                requestload['params']=params
 
-                            # print(params)
-                            rawdata=reco_api_data(token,requestload)
+                                #筛选条件
+                                filterdict = {}
+                                filterdict.update({ele['name']: ele['value'].strip("'") for ele in params})
+                                filterdict.update({ele['name']: ele['value'].strip("'") for ele in filters})
 
-                            filterdict = {}
-                            for ele in params:
-                                filterdict.update({ele['name']: ele['value'].strip("'")})
-                            filterdict['shop_type_name']=filters[0]['value'].strip("'")
-                            ck_vs_davi(rawdata,filterdict)
+                                print(filterdict)
+                                #查ck
+                                df = get_ck_data(filterdict)
+
+                                dev_total_page = 1
+                                pageno = 1
+                                pagesize = requestload['pageSize']
+
+                                while pageno <= dev_total_page:
+
+                                    api_data_list,api_data_total_num = reco_api_data(token,requestload)
+                                    if pageno == 1:
+                                        dev_total_page = math.ceil(api_data_total_num / pagesize)
+
+
+                                    # 每页随机挑选2个进行测试
+                                    length_api_data = len(api_data_list)
+                                    choice = random.sample([i for i in range(0, length_api_data)], min(2, length_api_data))
+
+                                    for i in choice:
+
+                                        api_item = api_data_list[i]
+                                        if api_item['商品ID'] == '-1':
+                                            continue
+
+                                        if api_item.__contains__('商品PV点击率') and api_item['商品PV点击率'] is not None:
+                                            api_item['商品PV点击率'] = api_item['商品PV点击率'] * 100
+                                        if api_item.__contains__('商品UV点击率') and api_item['商品UV点击率'] is not None:
+                                            api_item['商品UV点击率'] = api_item['商品UV点击率'] * 100
+                                        if api_item.__contains__('收订转化率') and api_item['收订转化率'] is not None:
+                                            api_item['收订转化率'] = api_item['收订转化率'] * 100
+
+                                        api_data = util.data_change(api_item)
+
+                                        # 数据库数据
+                                        temp_df = df[df['商品ID'] == api_data['商品ID']]
+                                        sql_data = {}
+                                        if not temp_df.empty:
+                                            sql_item = temp_df.iloc[0].to_dict()
+                                            sql_data = util.data_change(sql_item)
+
+                                        #diff
+                                        filterdict['商品ID']  = api_data['商品ID']
+                                        if sql_data =={} and api_data !={}:
+                                            print('test filters no data:'+str(filterdict))
+                                            break
+                                        diffvalue = util.simplediff(sql_data, api_data)
+
+
+                                    pageno += dev_total_page // 10 + 1  # 翻页
+                                    requestload['pageNo'] = pageno
+
+
+
+
+
+
 
 def reco_test():
     #登录
-    s,token=util.login_davinci()
+
+    token ='eyJhbGciOiJIUzUxMiJ9.eyJ0b2tlbl9jcmVhdGVfdGltZSI6MTYzNDI4MjA0NjgwOCwic3ViIjoiY2hlbnBpbmciL' \
+           'CJ0b2tlbl91c2VyX25hbWUiOiJjaGVucGluZyIsImV4cCI6MTYzNDM2ODQ0NiwidG9rZW5fdXNlcl9wYXNzd29yZCI6IkxEQVAifQ.' \
+           'o4sNvnK3dN1cBixOwnL2dhWGEmWnAM9K0fV-MjfL51-JwzN__gQFUGDsJKwezsGSWdI6cAJb9BlDuhxsYWOnBg'
+
+    # s,token=util.login_davinci()
 
     #请求负载
     requests_load={
@@ -142,13 +191,23 @@ def reco_test():
                         {'column': "平均点击位置", 'func': "sum"},
                         {'column': "人均点击次数", 'func': "sum"},
                         ],
-        "cache": False, "expired": 300, "flush": False, "nativeQuery": False,
+        "cache": False,
+        "expired": 300,
+        "flush": False,
+        "nativeQuery": False,
         "groups": ["日期",'商品ID','商品名称'],
         'limit':'',
         'nativeQuery':True,
         "orders": [],
         'pageNo':1,
-        'pageSize':20
+        'pageSize':20,
+        'params':None,
+        'filters':None
+
     }
 
-    product_analysis(s,token,requests_load)
+    product_analysis(token,requests_load)
+
+if __name__ == '__main__':
+
+    reco_test()
