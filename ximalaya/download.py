@@ -10,20 +10,19 @@ urllib3.disable_warnings()
 VIP = True
 if os.name == "posix":
     input_arg = sys.argv  #输入搜索关键字参数
-    if len(input_arg) == 1:
+    if len(input_arg) < 2:
         print("args is wrong,usage:python3 myscript.py search_word vip_flag")
-
-    elif len(input_arg) == 2:
-        search_keyword = input_arg[1]
-    elif len(input_arg) == 3:
-        temp = input_arg[2]
-        if temp not in [True,False]:
-            print("vip type is wrong,only support True or False")
-            exit(0)
-        VIP = temp
-    else:
-        print('args is wrong,usage:python3 myscript.py search_word vip_flag')
         exit(0)
+    else:
+        search_keyword = input_arg[1]
+        if len(input_arg) == 3:
+            temp = input_arg[2]
+            if temp not in [True,False]:
+                print("vip type is wrong,only support True or False")
+                exit(0)
+            VIP = temp
+    
+
 else:
     search_keyword = '人类群星闪耀时'
 
