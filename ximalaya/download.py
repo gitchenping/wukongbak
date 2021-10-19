@@ -17,11 +17,11 @@ if os.name == "posix":
         search_keyword = input_arg[1]
         if len(input_arg) == 3:
             temp = input_arg[2]
-            if temp not in [True,False]:
+            if temp not in ['True','False']:
                 print("vip type is wrong,only support True or False")
                 exit(0)
-            VIP = temp
-    
+            VIP = eval(temp)
+
 
 else:
     search_keyword = '人类群星闪耀时'
