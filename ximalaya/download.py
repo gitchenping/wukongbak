@@ -6,19 +6,30 @@ import time
 from requests.packages import urllib3
 urllib3.disable_warnings()
 
+#默认使用vip下载
+VIP = True
 if os.name == "posix":
     input_arg = sys.argv  #输入搜索关键字参数
-    if len(input_arg) > 1:
+    if len(input_arg) == 1:
+        print("args is wrong,usage:python3 myscript.py search_word vip_flag")
+
+    elif len(input_arg) == 2:
         search_keyword = input_arg[1]
+    elif len(input_arg) == 3:
+        temp = input_arg[2]
+        if temp not in [True,False]:
+            print("vip type is wrong,only support True or False")
+            exit(0)
+        VIP = temp
     else:
-        print('need a keyword to search !')
+        print('args is wrong,usage:python3 myscript.py search_word vip_flag')
         exit(0)
 else:
     search_keyword = '人类群星闪耀时'
 
 
 def progressbar(processnum,totalnum):
-    scale=int(float(processnum)/totalnum*100)
+    scale=int(processnum / totalnum *100)
     j = '>'*scale
     sys.stdout.write('\r')
     sys.stdout.write('【' + j + '】->' + str(scale) + "%")
@@ -68,7 +79,7 @@ def get_resource_list(vip):
     else:
         print("bad search,no resource find!")
 
-    choice_num = input("which resource would you like to download:")
+    choice_num = input("which resource would you like to download,input the index number:")
     resource_selected = albuminfo[int(choice_num) - 1]
 
     # 资源的集数、albumId
@@ -134,7 +145,7 @@ def download_audio(vip = False):
         #         if '.m4a' in url:
         #             audio_url_list.append(url)
 
-        with open('resource/new2.txt', 'r') as fp:
+        with open('resource/audio.txt', 'r') as fp:
             for line in fp:
                 url = line.strip('\n')
                 if '.m4a' in url:
@@ -143,15 +154,14 @@ def download_audio(vip = False):
 
     len_audio_url_list =len(audio_url_list)
     len_resource_name = len(resource_name_list)
-    print("\nthere are total " + str() + " 集"+"，audio "+str(len_audio_url_list)+"集")
+    print("\nthere are total " + str(len_resource_name) + " 集"+"，and audio "+str(len_audio_url_list)+"集")
     if len_audio_url_list != len_resource_name:
-        choice_yes_or_no = input("num not match !!! are you sure to go on [y/yes/n/no]:")
+        choice_yes_or_no = input("number not match !!!  go on or not 【y/yes/n/no】:")
         if choice_yes_or_no.lower() in ['n', 'no']:
             return
     print("now begin downloading......")
 
     i = 1
-
     for resource_name, url in zip(resource_name_list, audio_url_list):
         # cmd = "curl -s -o '" + resource_name.encode(
         #     'utf-8') + ".m4a' " + '-H "user-agent:' + useragent + '"' + ' -H "Host:' + host + '"' + " -b loginmobile.txt '" + url + "'"
@@ -162,13 +172,14 @@ def download_audio(vip = False):
 
         progressbar(i, len_audio_url_list)
         i += 1
+    print('')
 
 
 
 
 
 if __name__ == '__main__':
-    vip = True
+    vip = VIP
 
     download_audio(vip)
 
