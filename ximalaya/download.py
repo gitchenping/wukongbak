@@ -3,11 +3,12 @@ import json
 import sys
 import os
 import time
+import re
 from requests.packages import urllib3
 urllib3.disable_warnings()
 
 #默认使用vip下载
-VIP = True
+VIP = False
 if os.name == "posix":
     input_arg = sys.argv  #输入搜索关键字参数
     if len(input_arg) < 2:
@@ -22,9 +23,8 @@ if os.name == "posix":
                 exit(0)
             VIP = eval(temp)
 
-
 else:
-    search_keyword = '人类群星闪耀时'
+    search_keyword = '军事密码'
 
 
 def progressbar(processnum,totalnum):
@@ -166,6 +166,7 @@ def download_audio(vip = False):
         #     'utf-8') + ".m4a' " + '-H "user-agent:' + useragent + '"' + ' -H "Host:' + host + '"' + " -b loginmobile.txt '" + url + "'"
         # ret = os.popen(cmd)
         r = requests.get(url, headers=headers, verify=False)
+        resource_name = re.sub('[*/\?"\']', '',resource_name)
         with open('resource/'+resource_name+file_name_suffix, 'wb') as f:
             f.write(r.content)
 
