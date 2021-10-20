@@ -8,7 +8,7 @@ from requests.packages import urllib3
 urllib3.disable_warnings()
 
 #默认使用vip下载
-VIP = False
+VIP = True
 if os.name == "posix":
     input_arg = sys.argv  #输入搜索关键字参数
     if len(input_arg) < 2:
@@ -24,7 +24,7 @@ if os.name == "posix":
             VIP = eval(temp)
 
 else:
-    search_keyword = '军事密码'
+    search_keyword = '人类历史进程中的50'
 
 
 def progressbar(processnum,totalnum):
@@ -158,6 +158,10 @@ def download_audio(vip = False):
         choice_yes_or_no = input("number not match !!!  go on or not 【y/yes/n/no】:")
         if choice_yes_or_no.lower() in ['n', 'no']:
             return
+        else:
+            choice = input("please input a new starting number to go:")
+            resource_name_list = resource_name_list[int(choice):]
+
     print("now begin downloading......")
 
     i = 1
