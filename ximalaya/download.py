@@ -156,7 +156,7 @@ def download_audio(vip = False):
     print("\nthere are total " + str(len_resource_name) + " 集"+"，and audio "+str(len_audio_url_list)+"集")
     if len_audio_url_list != len_resource_name:
         choice_yes_or_no = input("number not match !!!  go on or not 【y/yes/n/no】:")
-        if choice_yes_or_no.lower() in ['n', 'no']:
+        if choice_yes_or_no.lower() not in ['y', 'yes']:
             return
         else:
             choice = input("please input a new starting number to go:")

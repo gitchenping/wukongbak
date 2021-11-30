@@ -47,8 +47,6 @@ def get_ck_data(data):
 
 
 
-
-
 def product_analysis(token,requestload):
     '''单品分析'''
     start_date_str = '2021-10-01'

@@ -1,182 +1,152 @@
-#encoding=utf-8
-from utils import util
-from utils.decorate import complog
-from utils import log
-import math
-
-#口径定义
 '''
-搜索次数（sum(search_times)）：关键词搜索事件条数（事件id）
-点击次数（sum(click_times)）：搜索结果页商品点击事件或加车事件的条数
-搜索UV（sum(search_uv)）：关键词搜索事件UUID去重用户数 即为搜索UV
-点击UV（sum(click_uv)）：搜索结果页商品点击事件或加车事件UUID去重用户数 
-搜索UV点击率（sum(搜索UV点击率)）：点击UV/搜索UV
-
-收订用户数（sum(create_cust_num)）：当天内用户对搜索商品点击、加购，且在当天内对此商品进行下单
-收订用户转化率（sum(收订用户转化率)）：收订人数/搜索UV
-收订单量（sum(create_parent_num)）：
-收订金额（sum(create_sale_amt)）：
-
-无结果搜索次数（sum(no_search_times)）：发起搜索请求且请求结果为0的次数
-无结果搜索次数占比（sum(无结果搜索次数占比)）：
-搜索无点击次数（sum(search_no_click)）：发起搜索请求且无点击行为的次数
-平均商品曝光最大位置（sum(avg_sku_max_ex_location)）：每次请求曝光商品最大位置
-平均商品点击最大位置（sum(avg_sku_max_cl_location)）：
-RPM（sum(RPM)）：搜索收订金额/搜索次数*1000
-搜索UV价值（sum(搜索UV价值)）：搜索收订金额/搜索UV
-
+搜索词分析
 '''
+import sys,os,requests
+import copy
+import json,math,random
 
-#日志logger
-report=log.set_logger('searchword.txt')
 
-def search_top1000(s,token,data):
-    '''top1000分析'''
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    searchword_api = "http://newwk.dangdang.com/api/v3/views/31/getdata"
-    temp_data = dict(data)
-    print('now runing ' + str(data))
+from db.dao.search_word_analysis import get_sql_data
+from utils.util import simplediff
+import json
 
-    req = s.post(url=searchword_api, json=temp_data, headers=headers)
-    try:
-        payload = util.get_search_word_api_content(req.content)
-        apiresult_num = int(payload['totalCount'])
 
-        apidata = payload['resultList']
-    except Exception:
-        apiresult_num = 0
+def get_api_data(s,url,data):
+    '''
 
-    final_api_result = {}
-    if apiresult_num > 0 and len(apidata) > 0:
-        final_api_result = {ele['搜索词']: ele['sum(搜索次数)'] for ele in apidata}
+    :param s:
+    :param url:
+    :param data: 请求参数
+    :return:
+    '''
+    raw_api_result = s.post(url, json = data)
+    result_list = []
+    api_total_num = 0
+    if raw_api_result.status_code == 200:
+        json_api_result = json.loads(raw_api_result.content)
+        result_list = json_api_result['payload']['resultList']
+        api_total_num = json_api_result['payload']['totalCount']
 
-    # 数据库
-    final_sql_result = get_search_top1000_sql_content(data)
-    # api和sql比对
-    util.diff_search(final_api_result, final_sql_result)
+    return result_list,api_total_num
 
-@util.retry(2)
-def post(s,token,data):
-    headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    searchword_api = "http://newwk.dangdang.com/api/v3/views/30/getdata"
-    temp_data = dict(data)
-    req = s.post(url=searchword_api, json=temp_data, headers=headers)
-    return req
+    pass
 
-def search_word(s,token,start_date,end_date):
-    platformdict={'全部':'1'}
-    # platformdict = {'安卓':'3','IOS':'2'}
-    #['9.0$cju1cmhizvi₰打кǎit~bao或點缶url链 https://m.tb.cn/h.4ejd06y?sm=227403']
-    for keyword in ['']:
 
-        if keyword!='':
-            filters_value=[{'name': "search_word", 'type': "filter", 'value': "'"+keyword+"'", 'sqlType': "STRING", 'operator': "="}]
-        else:
-            filters_value=[]
+def do_job(starttime,endtime,s,url):
 
-        for platform in platformdict.keys():
+    data = {
+        "aggregators": [{'column': "search_times", 'func': "sum"},
+                        {'column': "search_uv", 'func': "sum"},
+                        {'column': "click_times", 'func': "sum"},
+                        {'column': "click_uv", 'func': "sum"},
+                        {'column': "搜索UV点击率", 'func': "sum"},
+                        {'column': "create_cust_num", 'func': "sum"},
+                        {'column': "收订用户转化率", 'func': "sum"},
+                        {'column': "create_parent_num", 'func': "sum"},
+                        {'column': "create_sale_amt", 'func': "sum"},
+                        {'column': "create_quantity_num", 'func': "sum"},
+                        {'column': "no_search_times", 'func': "sum"},
+                        {'column': "无结果搜索次数占比", 'func': "sum"},
+                        {'column': "search_no_click", 'func': "sum"},
+                        {'column': "median_sku_max_ex_location", 'func': "sum"},
+                        {'column': "median_sku_max_cl_location", 'func': "sum"},
+                        {'column': "avg_sku_max_ex_location", 'func': "sum"},
+                        {'column': "avg_sku_max_cl_location", 'func': "sum"},
+                        {'column': "跳出率", 'func': "sum"},
+                        {'column': "RPM", 'func': "sum"},
+                        {'column': "搜索UV价值", 'func': "sum"},
+                        {'column': "next_search_word_time", 'func': "sum"},
+                        {'column': "zf_prod_sale_amt", 'func': "sum"},
+                        {'column': "out_pay_amount", 'func': "sum"}
+                        ],
+        "cache": "false", "expired": 300, "flush": "false", "nativeQuery": "false",
+        "groups": ["date_str", "平台", "搜索来源","search_word"],
+        "orders": [{'column': "date_str", 'direction': "desc"}, {'column': "sum(search_times)", 'direction': "desc"}],
+        "filters": None,
+        "params": [{"name": "start", "value": "'" + starttime + "'"},
+                   {"name": "end", "value": "'" + endtime + "'"}
+                   ],
+        "pageSize": 10,
+        "pageNo": 1
+    }
 
-            if platform!='全部':
-                params_value=[{'name': "platformname", 'value': "'"+platform+"'"}]
-            else:
-                params_value=[]
-            data = {
-                "aggregators": [{'column': "search_times", 'func': "sum"},
-                                {'column': "search_uv", 'func': "sum"},
-                                {'column': "click_times", 'func': "sum"},
-                                {'column': "click_uv", 'func': "sum"},
-                                {'column': "搜索UV点击率", 'func': "sum"},
-                                {'column': "create_cust_num", 'func': "sum"},
-                                {'column': "收订用户转化率", 'func': "sum"},
-                                {'column': "create_parent_num", 'func': "sum"},
-                                {'column': "create_sale_amt", 'func': "sum"},
-                                {'column': "no_search_times", 'func': "sum"},
-                                {'column': "无结果搜索次数占比", 'func': "sum"},
-                                {'column': "search_no_click", 'func': "sum"},
-                                {'column': "avg_sku_max_ex_location", 'func': "sum"},
-                                {'column': "avg_sku_max_cl_location", 'func': "sum"},
-                                {'column': "RPM", 'func': "sum"},
-                                {'column': "搜索UV价值", 'func': "sum"}
-                                ],
-                "cache": "false", "expired": 300, "flush": "false", "nativeQuery": "false",
-                "groups": ["date_str", "平台", "search_word"],
-                "orders": [{'column': "date_str", 'direction': "desc"},{'column': "sum(search_times)", 'direction': "desc"}],
-                "filters": filters_value,
-                "params": [{"name": "start", "value": "'" + start_date + "'"},
-                           {"name": "end", "value": "'" + end_date + "'"}
-                           ]+params_value,
-                "pageSize": 10,
-                "pageNo": 380
-            }
+    searchword_list = ['', '小王子', '唐诗宋词三百首小学生', '乡土中国'][3:4]
+    platform_list = ['安卓','IOS','',]
+    searchtype_list = ['','主动搜索','框内搜索词','下拉词引导','热搜榜','历史搜索','搜索发现']
 
-            data_top1000 = {
-                "aggregators": [{'column': "搜索次数", 'func': "sum"}
-                                ],
-                "cache": "false", "expired": 300, "flush": "false", "nativeQuery": "false",
-                "groups": ["搜索词"],
-                "orders": [],
-                "filters": filters_value,
-                "params": [{"name": "start", "value": "'" + start_date + "'"},
-                           {"name": "end", "value": "'" + end_date + "'"}
-                           ] + params_value
+    for searchword in searchword_list:
+        for platform in platform_list:
+            for searchtype in searchtype_list:
 
-            }
-            # search_top1000(s,token,data_top1000)
-            searchword(s,token,data)
+                temp_data = copy.deepcopy(data)
+                if searchword != '':
+                    temp_data['filters'] = [{'name': "search_word", 'type': "filter", 'value': "'{}'".format(searchword),
+                                        'sqlType': "STRING", 'operator': "="}]
+                if platform !='':
+                    temp_data['params'].append({'name': "platformname", 'value': "'{}'".format(platform)})
+                if searchtype !='':
+                    temp_data['params'].append({'name': "searchtype", 'value': "'{}'".format(searchtype)})
 
-@complog(report)
-def searchword(s,token,data):
-    '''搜索词分析'''
-    # headers = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    # searchword_api = "http://newwk.dangdang.com/api/v3/views/30/getdata"
-    # temp_data = dict(data)
-    # print('now runing ' + str(data))
+                #sql data
+                filter_where = {ele['name']: ele['value'].strip("'") for ele in temp_data['params'] if ele['name'] not in ['start','end']}
+                print(filter_where)
+                df = get_sql_data(temp_data)
 
-    search_times=100     #默认api请求查询次数
+                #挑选个别页面进行测试
+                dev_total_page = 1
+                pageno = 1
 
-    i=data['pageNo']
-    start_page=i
-    success_=0
-    fail_=0
-    while i<=search_times+start_page:
-        # req = s.post(url=searchword_api, json=temp_data, headers=headers)
-        req=post(s,token,data)
-        try:
-            payload = util.get_search_word_api_content(req.content)
-            apiresult_num = int(payload['totalCount'])
+                while pageno <= dev_total_page:
+                    api_result_list,api_result_total_num = get_api_data(s,url,temp_data)
 
-            apidata=payload['resultList']
-        except Exception:
-            apiresult_num=0
+                    length_api_result = len(api_result_list)
+                    if pageno == 1:
+                        dev_total_page = math.ceil(api_result_total_num / 20)
 
-        final_api_result={}
-        page_num=0
-        if apiresult_num > 0 and len(apidata)>0:
-            page_num = math.ceil(apiresult_num / 20)
+                    choice = random.sample([i for i in range(0, length_api_result)], min(2, length_api_result))
 
-            #数据进行处理-以日期_平台_搜索词为键，其他值为value
-            for item in apidata:
+                    for i in choice:
+                        api_data  = {key:value if not isinstance(value,float) else round(value,2) for key,value in api_result_list[i].items() }
+                        keyword =  api_data['search_word']
+                        date_str = api_data['date_str']
 
-                # key=item.pop('date_str')+"_"+item.pop('平台')+"_"+item.pop('search_word')
 
-                for _key,_value in item.items():
-                    item[_key]= util.format_precision(_value)
-                #传item去数据库查询
-                sql_item=get_search_word_sql_content_2(item)
-                util.diff_search(item, sql_item)
-        #         final_api_result[key]=item
-        #
-        #
-        #     #数据库
-        #     final_sql_result=filters.get_search_word_sql_content(i-1,data)
-        #
-        # #api和sql比对
-        # util.diff_search(final_api_result,final_sql_result)
+                        sqlresult_match = df[(df['search_word'] == keyword) & (df['date_str'] == date_str)]
+                        sqlresult_match = sqlresult_match.where(sqlresult_match.notnull(),None)
+                        sql_data  = dict(zip(sqlresult_match.columns, sqlresult_match.values.tolist()[0]))
 
-        i+=1
-        # temp_data['pageNo'] =i
-        data['pageNo'] = i
-        if i>page_num:
-            break
-    print("run "+str(apiresult_num)+" items ,success "+str(success_)+" items ,fail "+str(fail_)+" items")
+                        diffvalue = simplediff(sql_data,api_data)
+                        filter_where['search_word'] = keyword
+                        filter_where['date_str'] = date_str
+                        if diffvalue != {}:
 
+                            if os.name == 'posix':
+                                search_view_logger.info('筛选条件：'+str(filter_where)+" -Fail")
+                                search_view_logger.info(diffvalue)
+                                search_view_logger.info('')
+                            else:
+                                print(filter_where)
+                                print(diffvalue)
+                        else:
+                            search_view_logger.info('筛选条件：' + str(filter_where) + " -Pass")
+                    pageno += dev_total_page // 10 + 1  # 翻页
+                    temp_data['pageNo'] = pageno
+
+
+    pass
+
+
+
+if __name__ == '__main__':
+    starttime = '2021-10-01'
+    endtime = '2021-10-02'
+    url = "http://newwk.dangdang.com/api/v3/views/375/getdata"
+
+    token = "eyJhbGciOiJIUzUxMiJ9.eyJ0b2tlbl9jcmVhdGVfdGltZSI6MTYzNTk5MzEwMDgxMCwic3ViIjoiY2hlbnBpbmciLCJ0b2tlbl91c2VyX25hbWUiOiJjaGVucGluZyIsImV4cCI6MTYzNjA3OTUwMCwidG9rZW5fdXNlcl9wYXNzd29yZCI6IkxEQVAifQ." \
+            "FiRUb377H1vU2nSAuLuSEMT8qlWD4-lO-_lRaG6hzfyRi-GK6J_biRA-zDZAa2nIDKrA_afvt-o-QH1adLETqw"
+
+    s = requests.Session()
+    s.headers["Content-Type"] = "application/json"
+    s.headers['Authorization'] = "Bearer " + token
+
+    do_job(starttime, endtime, s,url)

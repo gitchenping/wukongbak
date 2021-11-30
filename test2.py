@@ -1,47 +1,26 @@
-from concurrent import futures
-import time
-import random
-import happybase
-from concurrent.futures._base import Future
-from utils import log
-from multiprocessing import Manager
-
-conn = happybase.Connection(host='10.5.24.53', port=9090, timeout=10000)
-# visit habse
-table = happybase.Table('ddse_product_clonefromsnapshot', conn)
-
-report = log.set_logger('test.txt')
-
-def task(line,lock):
-    # print('total '+str(workers)+" workers")
-    a= line*2
-    return line,a,lock
+import sys
 
 
-def afterfun(res):
-    r=res.result()
+def recursionBS(L, number, start, end):
+    '''
 
-    # r[-1].acquire()
-    report.info('calcaute ele '+str(r[0]))
-    report.info(r[1])
-    # r[-1].release()
+    :param L:数组列表
+    :param number:待查找数字
+    :param start:查找起始位置
+    :param end:查找结束位置
+    :return:
+    '''
+    if  start > end:
+        return -1
+    mid = (start + end) // 2
+    if L[mid] == number:
+        return mid
+    elif L[mid] > number:
+        left = recursionBS(L, number, start, mid - 1)
+        return left
+    else:
+        return recursionBS(L, number, mid + 1, end)
 
 
-
-def dotask():
-
-    workers=2
-    lock = Manager().Lock()
-    with futures.ProcessPoolExecutor(workers) as executor:
-            for each_line in [1,2,3,4,5]:
-                future = executor.submit(task, each_line,lock)
-                future.add_done_callback(afterfun)
-
-        # for ele in tasklist:
-        #     future = executor.submit(task,ele)
-        #     future.add_done_callback(afterfun)
-
-    print('main thread done')
-
-if __name__ == '__main__':
-    dotask()
+arr =[2,6,9,12]
+print(recursionBS(arr,2,0,len(arr)-1))

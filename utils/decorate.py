@@ -9,9 +9,9 @@ from utils.load import readconfini
 def loadenv(**kwargs):
     env = readconfini('./conf/')
     # host=env.get(kwargs['db'],'db_host')
-    port=env.get(kwargs['db'],'db_port')
-    user=env.get(kwargs['db'],'db_username')
-    password=env.get(kwargs['db'],'db_password')
+    # port=env.get(kwargs['db'],'db_port')
+    # user=env.get(kwargs['db'],'db_username')
+    # password=env.get(kwargs['db'],'db_password')
 
     def wrap_o(func):
         def wrap(**args):       #如果函数带参数，使用实参
@@ -26,7 +26,7 @@ def loadenv(**kwargs):
             if args.__contains__('port') and args['port'] is not None:
                 port = args['port']
             else:
-                port = env.get(kwargs['db'], 'db_port')
+                port = int(env.get(kwargs['db'], 'db_port'))
 
             #user
             if args.__contains__('user') and args['user'] is not None:

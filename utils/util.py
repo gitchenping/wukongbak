@@ -105,21 +105,24 @@ def simplediff(data1,data2):
     :return: 不同的键值对
     '''
     diff_key_value={}
-    for key in data1.keys():
-        data1_value = data1[key]
-        try:
-            data2_value = data2[key]
-        except KeyError:
-            diff_key_value[key] = 'dev table 中此键值不存在'
-            continue
-        if isinstance(data1_value,dict):
+    if data1 == {} and data2 != {}:
+        diff_key_value['keyerror'] ={'test':{},'dev':data2}
+    else:
+        for key in data1.keys():
+            data1_value = data1[key]
+            try:
+                data2_value = data2[key]
+            except KeyError:
+                diff_key_value[key] = 'dev table 中此键值不存在'
+                continue
+            if isinstance(data1_value,dict):
 
-            diff_key_value[key] = simplediff(data1_value,data2_value)
-            if diff_key_value[key]=={}:
-                diff_key_value.pop(key)
-        else:
-            if data1_value != data2_value:
-                diff_key_value[key] = {'test':data1_value, 'dev':data2_value}
+                diff_key_value[key] = simplediff(data1_value,data2_value)
+                if diff_key_value[key]=={}:
+                    diff_key_value.pop(key)
+            else:
+                if data1_value != data2_value:
+                    diff_key_value[key] = {'test':data1_value, 'dev':data2_value}
     return diff_key_value
 
 '''两个字典比较'''
