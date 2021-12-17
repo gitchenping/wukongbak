@@ -24,7 +24,8 @@ if os.name == "posix":
             VIP = eval(temp)
 
 else:
-    search_keyword = '人类历史进程中的50'
+    VIP = False
+    search_keyword = '多多读报'
 
 
 def progressbar(processnum,totalnum):
@@ -116,8 +117,10 @@ def download_audio(vip = False):
     resource_name_list,audio_url_list = get_resource_list(vip)
 
     print('专辑资源名称列表:')
+    i = 0
     for ele in resource_name_list:
-        print(ele)
+        print(str(i)+"、"+ele)
+        i+=1
     choice_yes_or_no = input("are you sure to go on [y/yes/n/no]:")
     if choice_yes_or_no.lower() in ['n','no']:
         return
@@ -153,7 +156,7 @@ def download_audio(vip = False):
 
     len_audio_url_list =len(audio_url_list)
     len_resource_name = len(resource_name_list)
-    print("\nthere are total " + str(len_resource_name) + " 集"+"，and audio "+str(len_audio_url_list)+"集")
+    print("there are total " + str(len_resource_name) + " 集"+"，and audio "+str(len_audio_url_list)+"集")
     if len_audio_url_list != len_resource_name:
         choice_yes_or_no = input("number not match !!!  go on or not 【y/yes/n/no】:")
         if choice_yes_or_no.lower() not in ['y', 'yes']:
@@ -161,6 +164,12 @@ def download_audio(vip = False):
         else:
             choice = input("please input a new starting number to go:")
             resource_name_list = resource_name_list[int(choice):]
+    else:
+        choice_start = input("please input a start number to go:")
+        choice_end = input("please input an end number:")
+
+        resource_name_list = resource_name_list[int(choice_start):int(choice_end)+1]
+        audio_url_list = audio_url_list[int(choice_start):int(choice_end)+1]
 
     print("now begin downloading......")
 
