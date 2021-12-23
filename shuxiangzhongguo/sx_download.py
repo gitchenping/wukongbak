@@ -49,8 +49,11 @@ def progressbar(processnum,totalnum):
 
 if __name__ == '__main__':
     if os.name != "posix":
-        windows_url ='http://shuxiang.chineseall.cn/v3/book/read/pFpcg/PDF/'
-        totalpage = 277
+        windows_url ='http://shuxiang.chineseall.cn/v3/book/read/Q8TJg/PDF/'
+        totalpage = 190
+    else:
+        windows_url = sys.argv[1]
+        totalpage = sys.argv[2]
 
     s,bookurl,totalpage = login(windows_url,totalpage)
     try:
