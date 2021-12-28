@@ -4,6 +4,7 @@ import sys
 import os
 import time
 import re
+import math
 from requests.packages import urllib3
 urllib3.disable_warnings()
 
@@ -25,7 +26,7 @@ if os.name == "posix":
 
 else:
     VIP = False
-    search_keyword = '多多读报'
+    search_keyword = '九边里面的故事'
 
 
 def progressbar(processnum,totalnum):
@@ -91,23 +92,28 @@ def get_resource_list(vip):
 
     # 获取资源下各集的名字
     starttime = str(int(round(time.time() * 1000)))
-    url_for_resource_name = "http://mobile.ximalaya.com/mobile/v1/album/track/ts-{}?" \
-                            "albumId={}&device=android&isAsc=true&isQueryInvitationBrand=true&" \
-                            "pageId=1&pageSize={}&pre_page=0".format(starttime, albumid, tracks_num)
-    r = requests.get(url_for_resource_name)
 
-    rjson = json.loads(r.text)
-    resourcelist = rjson['data']['list']
-
-    each_resource_name_list = [ele['title'] for ele in resourcelist]
+    loop_times = math.ceil(tracks_num / 200)
     audio_url_list = []
-    if not vip:
+    each_resource_name_list = []
+    for i in range(1,loop_times+1):
+        url_for_resource_name = "http://mobile.ximalaya.com/mobile/v1/album/track/ts-{}?" \
+                                "albumId={}&device=android&isAsc=true&isQueryInvitationBrand=true&" \
+                                "pageId={}&pageSize={}&pre_page=0".format(starttime, albumid,i, tracks_num)
+        r = requests.get(url_for_resource_name)
 
-        for ele in resourcelist:
-            if ele.__contains__('playUrl32') and ele['playUrl32'] !='':
-                audio_url_list.append(ele['playUrl32'])
-            else:
-                audio_url_list.append(ele['playUrl64'])
+        rjson = json.loads(r.text)
+        resourcelist = rjson['data']['list']
+
+        each_resource_name_list.extend([ele['title'] for ele in resourcelist])
+
+        if not vip:
+
+            for ele in resourcelist:
+                if ele.__contains__('playUrl32') and ele['playUrl32'] !='':
+                    audio_url_list.append(ele['playUrl32'])
+                else:
+                    audio_url_list.append(ele['playUrl64'])
 
     return each_resource_name_list,audio_url_list
     pass
@@ -168,6 +174,8 @@ def download_audio(vip = False):
         choice_start = input("please input a start number to go:")
         choice_end = input("please input an end number:")
 
+        len_audio_url_list = int(choice_end) - int(choice_start) +1
+        
         resource_name_list = resource_name_list[int(choice_start):int(choice_end)+1]
         audio_url_list = audio_url_list[int(choice_start):int(choice_end)+1]
 
