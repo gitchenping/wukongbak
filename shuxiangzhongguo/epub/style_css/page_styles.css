@@ -1,0 +1,19 @@
+.colcss-firstTitle {
+	text-align:center
+}
+.colcss-content {
+	font-size:1.8em;
+}
+.colcss-fourthTitle {
+	font-size:1.8em;
+}
+p {
+	line-height:1.8em;
+	text-indent:2em;
+	font-size:1.2em;
+}
+/*换行*/
+pre {
+	font-size:1.5em;
+	word-wrap:break-word;
+}

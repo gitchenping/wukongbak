@@ -31,7 +31,7 @@ def client_ck(host=None, port=None, user=None, password=None, database=None, col
 
 def connect_sqlserver(db):
     """连接sql server数据库"""
-    connect = pymssql.connect('10.4.10.184', 'readuser', 'password', db)
+    connect = pymssql.connect('10.255.254.194', 'readuser', 'password', db)
     cursor = connect.cursor()
     return connect, cursor
 

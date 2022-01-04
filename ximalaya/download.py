@@ -78,7 +78,8 @@ def get_resource_list(vip):
             i += 1
             print(info)
     else:
-        print("bad search,no resource find!")
+        print("bad search,no resource find! another search word instead")
+        sys.exit(-1)
 
     choice_num = input("which resource would you like to download,input the index number:")
     resource_selected = albuminfo[int(choice_num) - 1]

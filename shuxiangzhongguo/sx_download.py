@@ -40,10 +40,29 @@ def progressbar(processnum,totalnum):
 
 if __name__ == '__main__':
 
+    file_path = "resource/"
+    config = pdfkit.configuration(wkhtmltopdf='D:\\Program Files (x86)\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
+    options = {
+        'page-size': 'A4',
+        'margin-top': '1in',
+        'margin-right': '1.25in',
+        'margin-bottom': '1in',
+        'margin-left': '1.25in',
+        'encoding': "UTF-8",
+    }
+
+    html_file_list = os.listdir(file_path)
+    for each_file in html_file_list:
+        name, name_type = os.path.splitext(each_file)
+        pdfkit.from_file(configuration=config, options=options,
+                         input=file_path + each_file, output_path='epub/' + name + ".pdf",
+                         css='epub/style_css/page_styles.css')
+    sys.exit(0)
+
     if os.name != "posix":
-        book_url ='http://shuxiang.chineseall.cn/v3/book/read/Ng2Nj/EPUB/'
+        book_url ='http://shuxiang.chineseall.cn/v3/book/read/UtAfg/EPUB/'
         # book_url ='http://shuxiang.chineseall.cn/v3/book/read/Q8TJg/PDF/'
-        totalpage = 28
+        totalpage = 27
     else:                        #linux 平台
         book_url = sys.argv[1]
         totalpage = sys.argv[2]
@@ -90,10 +109,10 @@ if __name__ == '__main__':
         config = pdfkit.configuration(wkhtmltopdf='D:\\Program Files (x86)\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
         options = {
             'page-size': 'A4',
-            'margin-top': '0.8in',
-            'margin-right': '0.6in',
-            'margin-bottom': '0.6in',
-            'margin-left': '0.5in',
+            'margin-top': '1in',
+            'margin-right': '1.25in',
+            'margin-bottom': '1in',
+            'margin-left': '1.25in',
             'encoding': "UTF-8",
         }
 

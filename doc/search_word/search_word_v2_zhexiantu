@@ -1,0 +1,176 @@
+SELECT
+	date_str,
+	SUM(search_uv) AS search_uv,
+	SUM(search_pv) AS search_pv,
+	SUM(click_uv) AS click_uv,
+	SUM(click_pv) AS click_pv,
+	SUM(create_cust_num) AS create_cust_num,
+	CASE
+		WHEN search_uv > 0 THEN round(toFloat32(click_uv / search_uv),
+		2)
+		ELSE 0
+	END AS search_click_rate,
+	CASE
+		WHEN search_uv > 0 THEN round(toFloat32(create_cust_num / search_uv),
+		2)
+		ELSE 0
+	END AS search_cust_rate
+FROM
+	(
+	SELECT
+		today.*,
+		CASE
+			WHEN yestoday.search_pv != 0 THEN ROUND(toFloat32((today.search_pv - yestoday.search_pv) / ABS(yestoday.search_pv)),
+			3)
+			ELSE NULL
+		END AS spv,
+		CASE
+			WHEN yestoday.search_uv != 0 THEN ROUND(toFloat32((today.search_uv - yestoday.search_uv) / ABS(yestoday.search_uv)),
+			3)
+			ELSE NULL
+		END AS suv,
+		CASE
+			WHEN yestoday.click_pv != 0 THEN ROUND(toFloat32((today.click_pv - yestoday.click_pv) / ABS(yestoday.click_pv)),
+			3)
+			ELSE NULL
+		END AS cpv,
+		CASE
+			WHEN yestoday.click_uv != 0 THEN ROUND(toFloat32((today.click_uv - yestoday.click_uv) / ABS(yestoday.click_uv)),
+			3)
+			ELSE NULL
+		END AS cuv,
+		CASE
+			WHEN yestoday.create_parent_num != 0 THEN ROUND(toFloat32((today.create_parent_num - yestoday.create_parent_num) / ABS(yestoday.create_parent_num)),
+			3)
+			ELSE NULL
+		END AS cpn,
+		CASE
+			WHEN yestoday.create_cust_num != 0 THEN ROUND(toFloat32((today.create_cust_num - yestoday.create_cust_num) / ABS(yestoday.create_cust_num)),
+			3)
+			ELSE NULL
+		END AS ccn,
+		CASE
+			WHEN yestoday.create_sale_amt != 0 THEN ROUND(toFloat32((today.create_sale_amt - yestoday.create_sale_amt) / ABS(yestoday.create_sale_amt)),
+			3)
+			ELSE NULL
+		END AS csa,
+		CASE
+			WHEN yestoday.search_click_rate != 0 THEN ROUND(toFloat32((today.search_click_rate - yestoday.search_click_rate) / ABS(yestoday.search_click_rate)),
+			3)
+			ELSE NULL
+		END AS sclick_rate,
+		CASE
+			WHEN yestoday.search_cust_rate != 0 THEN ROUND(toFloat32((today.search_cust_rate - yestoday.search_cust_rate) / ABS(yestoday.search_cust_rate)),
+			3)
+			ELSE NULL
+		END AS scust_rate,
+		CASE
+			WHEN yestoday.search_amt_rate != 0 THEN ROUND(toFloat32((today.search_amt_rate - yestoday.search_amt_rate) / ABS(yestoday.search_amt_rate)),
+			3)
+			ELSE NULL
+		END AS samt_rate,
+		CASE
+			WHEN yestoday.rpm != 0 THEN ROUND(toFloat32((today.rpm - yestoday.rpm) / ABS(yestoday.rpm)),
+			3)
+			ELSE NULL
+		END AS rpm_rate
+	FROM
+		(
+		SELECT
+			date_str,
+			search_word,
+			SUM(search_uv) AS search_uv,
+			SUM(search_pv) AS search_pv,
+			SUM(click_uv) AS click_uv,
+			SUM(click_pv) AS click_pv,
+			SUM(create_cust_num) AS create_cust_num,
+			SUM(create_parent_num) AS create_parent_num,
+			SUM(create_sale_amt) AS create_sale_amt,
+			CASE
+				WHEN search_uv > 0 THEN round(toFloat32(click_uv / search_uv),
+				2)
+				ELSE 0
+			END AS search_click_rate,
+			CASE
+				WHEN search_uv > 0 THEN round(toFloat32(create_cust_num / search_uv),
+				2)
+				ELSE 0
+			END AS search_cust_rate,
+			CASE
+				WHEN search_uv > 0 THEN round(toFloat32(create_sale_amt / search_uv),
+				2)
+				ELSE 0
+			END AS search_amt_rate,
+			CASE
+				WHEN search_pv > 0 THEN round(toFloat32(create_sale_amt / search_pv * 1000),
+				2)
+				ELSE 0
+			END AS rpm
+		FROM
+			bi_mdata.realtime_search_word_all
+		WHERE
+			1 = 1
+			AND date_str = '2021-11-25'
+			AND toUInt32(hour_str) = (
+			SELECT
+				max(toUInt32(hour_str))
+			FROM
+				bi_mdata.realtime_search_word_all
+			WHERE
+				date_str = '2021-11-25')
+		GROUP BY
+			date_str,
+			search_word ) AS today
+	LEFT JOIN (
+		SELECT
+			date_str,
+			search_word,
+			SUM(search_uv) AS search_uv,
+			SUM(search_pv) AS search_pv,
+			SUM(click_uv) AS click_uv,
+			SUM(click_pv) AS click_pv,
+			SUM(create_cust_num) AS create_cust_num,
+			SUM(create_parent_num) AS create_parent_num,
+			SUM(create_sale_amt) AS create_sale_amt,
+			CASE
+				WHEN search_uv > 0 THEN round(toFloat32(click_uv / search_uv),
+				2)
+				ELSE 0
+			END AS search_click_rate,
+			CASE
+				WHEN search_uv > 0 THEN round(toFloat32(create_cust_num / search_uv),
+				2)
+				ELSE 0
+			END AS search_cust_rate,
+			CASE
+				WHEN search_uv > 0 THEN round(toFloat32(create_sale_amt / search_uv),
+				2)
+				ELSE 0
+			END AS search_amt_rate,
+			CASE
+				WHEN search_pv > 0 THEN round(toFloat32(create_sale_amt / search_pv * 1000),
+				2)
+				ELSE 0
+			END AS rpm
+		from
+			bi_mdata.realtime_search_word_all
+		WHERE
+			1 = 1
+			AND date_str = toString(subtractWeeks(toDate('2021-11-25'),
+			1))
+			AND toUInt32(hour_str) = (
+			SELECT
+				max(toUInt32(hour_str))
+			FROM
+				bi_mdata.realtime_search_word_all
+			WHERE
+				date_str = toString(subtractWeeks(toDate('2021-11-25'),
+				1)))
+		GROUP BY
+			date_str,
+			search_word ) AS yestoday ON
+		yestoday.search_word = today.search_word
+	HAVING
+		spv >= 0.66 )
+GROUP BY
+	date_str
