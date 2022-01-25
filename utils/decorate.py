@@ -60,7 +60,7 @@ def loadenv(**kwargs):
     pass
 
 '''日志记录'''
-def complog(logger=None):
+def complog(logger = None):
     def decorator(func):
         def wrapper(*args, **kw):
 
@@ -68,7 +68,7 @@ def complog(logger=None):
             filter = args[0]  # 第一个参数作为比较条件
             if logger is not None and result!={}:
 
-                logger.info('筛选条件: '+str(filter)+"-*-Fail-*-")
+                logger.info('比对条件: '+str(filter)+"-*-Fail-*-")
                 logger.info("diff info:" + str(result))
                 logger.info(' ')
             else:
