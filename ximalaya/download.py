@@ -25,8 +25,8 @@ if os.name == "posix":
             VIP = eval(temp)
 
 else:
-    VIP = False
-    search_keyword = '九边里面的故事'
+    VIP = True
+    search_keyword = '欧洲之门'
 
 
 def progressbar(processnum,totalnum):

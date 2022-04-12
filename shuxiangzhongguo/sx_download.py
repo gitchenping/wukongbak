@@ -41,6 +41,8 @@ def progressbar(processnum,totalnum):
 if __name__ == '__main__':
 
     file_path = "resource/"
+    '''
+    # epub 文件
     config = pdfkit.configuration(wkhtmltopdf='D:\\Program Files (x86)\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
     options = {
         'page-size': 'A4',
@@ -58,11 +60,11 @@ if __name__ == '__main__':
                          input=file_path + each_file, output_path='epub/' + name + ".pdf",
                          css='epub/style_css/page_styles.css')
     sys.exit(0)
-
+    '''
     if os.name != "posix":
-        book_url ='http://shuxiang.chineseall.cn/v3/book/read/UtAfg/EPUB/'
+        book_url ='http://shuxiang.chineseall.cn/v3/book/read/COIzg/PDF/'
         # book_url ='http://shuxiang.chineseall.cn/v3/book/read/Q8TJg/PDF/'
-        totalpage = 27
+        totalpage = 305
     else:                        #linux 平台
         book_url = sys.argv[1]
         totalpage = sys.argv[2]
@@ -106,22 +108,23 @@ if __name__ == '__main__':
     finally:
 
         #对 html 文件进行转换
-        config = pdfkit.configuration(wkhtmltopdf='D:\\Program Files (x86)\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
-        options = {
-            'page-size': 'A4',
-            'margin-top': '1in',
-            'margin-right': '1.25in',
-            'margin-bottom': '1in',
-            'margin-left': '1.25in',
-            'encoding': "UTF-8",
-        }
+        if pdf == 0:
+            config = pdfkit.configuration(wkhtmltopdf='D:\\Program Files (x86)\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
+            options = {
+                'page-size': 'A4',
+                'margin-top': '1in',
+                'margin-right': '1.25in',
+                'margin-bottom': '1in',
+                'margin-left': '1.25in',
+                'encoding': "UTF-8",
+            }
 
-        html_file_list = os.listdir(file_path)
-        for each_file in html_file_list:
-            name,name_type = os.path.splitext(each_file)
-            pdfkit.from_file(configuration= config,options = options,
-                             input = file_path+each_file,output_path='epub/'+name+".pdf",
-                             css = 'epub/style_css/page_styles.css')
+            html_file_list = os.listdir(file_path)
+            for each_file in html_file_list:
+                name,name_type = os.path.splitext(each_file)
+                pdfkit.from_file(configuration= config,options = options,
+                                 input = file_path+each_file,output_path='epub/'+name+".pdf",
+                                 css = 'epub/style_css/page_styles.css')
 
         print("")
         # logout

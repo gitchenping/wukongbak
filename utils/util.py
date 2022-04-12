@@ -106,7 +106,7 @@ def simplediff(data1,data2):
     '''
     diff_key_value={}
     if data1 == {} and data2 != {}:
-        diff_key_value['keyerror'] ={'test':{},'dev':data2}
+        diff_key_value['KeyError'] ={'test':{},'dev':data2}
     else:
         for key in data1.keys():
             data1_value = data1[key]
@@ -116,9 +116,8 @@ def simplediff(data1,data2):
                 diff_key_value[key] = 'dev table 中此键值不存在'
                 continue
             if isinstance(data1_value,dict):
-
                 diff_key_value[key] = simplediff(data1_value,data2_value)
-                if diff_key_value[key]=={}:
+                if diff_key_value[key] == {}:
                     diff_key_value.pop(key)
             else:
                 if data1_value != data2_value:
@@ -126,7 +125,7 @@ def simplediff(data1,data2):
     return diff_key_value
 
 '''两个字典比较'''
-def diff_dict(data1, data2, absvalue=0.5):
+def diff_dict(data1, data2, absvalue = 0.5):
     '''
 
     :param data1: test result
@@ -140,7 +139,6 @@ def diff_dict(data1, data2, absvalue=0.5):
     set_data1 = set(temp_data1.keys())
     set_data2 = set(temp_data2.keys())
     set_all = set_data1.union(set_data2)
-
     for key in set_all:
         skip = False                          #是否需要比较,键值对不匹配的跳过比较逻辑
         try:
