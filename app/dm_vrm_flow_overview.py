@@ -2,10 +2,18 @@
 供应商统一平台-流量概览 (流量、订单只看app平台)
 '''
 
-import os
-import sys
-import json,math,random
 
+import sys
+from sys import path
+import json,math,random
+import logging
+from utils.util import simplediff
+from utils.decorate import logrecord
+
+#logger
+filepath=path.join(path.dirname(path.dirname(__file__)),"conf","logging.conf")
+logging.config.fileConfig(filepath)
+supplier_logger=logging.getLogger('jingying_overview')
 
 #目标表结构
 flow_source ={
@@ -225,6 +233,7 @@ grouping sets(
 
 
 
+@logrecord(supplier_logger)
 def do_job(date):
 
     _flow_source_table = "dm_report.dm_vrm_flow_overview_{}"
@@ -271,16 +280,9 @@ def do_job(date):
                     else:
                         dev_item_hive = {}  # dev table miss
 
-                    diffvalue = diff(test_item_hive, dev_item_hive)
+                    diffvalue = simplediff(test_item_hive, dev_item_hive)
                     print(where)
-                    if diffvalue != {}:
-                        msg = where+" "+date_type+"-Fail-"
-                        supplier_logger.info(msg)
-                        supplier_logger.info(diffvalue)
-                        supplier_logger.info('')
-                    else:
-                        msg = where+" "+date_type+"-Success-"
-                        supplier_logger.info(msg + "\n")
+                    yield where,diffvalue
 
     pass
 

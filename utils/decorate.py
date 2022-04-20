@@ -65,7 +65,7 @@ def complog(logger = None):
         def wrapper(*args, **kw):
 
             result=func(*args, **kw)
-            filter = args[0]  # 第一个参数作为比较条件
+            filter = args[0]    # 原函数第一个参数作为比较条件
             if logger is not None and result!={}:
 
                 logger.info('比对条件: '+str(filter)+"-*-Fail-*-")
@@ -76,6 +76,24 @@ def complog(logger = None):
             # return result
         return wrapper
     return decorator
+
+
+def logrecord(logger = None):
+    def decorator(func):
+        def wrapper(*args, **kw):
+            where_result_ge = func(*args, **kw)  #原函数是一个生成器
+            if logger is not None :
+                for ge in where_result_ge:
+                    if ge[1] != {}:
+                        logger.info('筛选条件: '+ge[0] + " -*-Fail-*-")
+                        logger.info(ge[1])
+
+                    else:
+                        logger.info('筛选条件: ' + ge[0] + " -*-Pass-*-")
+                    logger.info(' ')
+        return wrapper
+    return decorator
+
 
 
 import functools
