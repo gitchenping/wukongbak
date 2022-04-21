@@ -7,6 +7,9 @@ import sys
 from os import path
 import logging
 import json,math,random,datetime
+from utils.decorate import logrecord
+from utils.util import simplediff
+from utils.db import PyHive
 
 #logger
 filepath=path.join(path.dirname(path.dirname(__file__)),"conf","logging.conf")
@@ -190,7 +193,7 @@ on a.supplier_num = b.supplier_num'''.format(date_end = date_end)
     sql = pay_sql+cancel_sql+t+_sql
     return sql
 
-
+@logrecord(supplier_logger)
 def do_job(date):
 
     _order_overview_table = "dm_report.dm_vrm_order_overview_{}"
@@ -202,6 +205,7 @@ def do_job(date):
     _where = "supplier_num = '{supplier_num}' and source_id = {source_id} and platform_id = {platform_id} and data_date = '{data_date}'"
     _dev_fetch_sql = "select " + columns_list + " from {table}  where {where} "
 
+    hive_db = PyHive()
 
     for date_type in ['d','wtd','mtd']:
         order_overview_table = _order_overview_table.format(date_type)
@@ -215,7 +219,7 @@ def do_job(date):
         test_sql = get_test_sql(date_begin,date_end)
         print(test_sql)
         try :
-            test_hive_result = get_hive_result(test_sql)
+            test_hive_result = hive_db.get_result_from_db(test_sql)
         except Exception as e:
             print(e.__repr__())
             test_hive_result = []
@@ -231,22 +235,24 @@ def do_job(date):
                                                     data_date=test_item_hive['data_date'])
                     dev_fetch_sql = _dev_fetch_sql.format(table = order_overview_table,where = where)
 
-                    dev_item_hive = get_hive_result(dev_fetch_sql)
+                    dev_item_hive = hive_db.get_result_from_db(dev_fetch_sql)
                     if len(dev_item_hive) > 0:
                         dev_item_hive = dict(zip(columns, dev_item_hive[0]))
                     else:
                         dev_item_hive = {}  # dev table miss
 
-                    diffvalue = diff(test_item_hive, dev_item_hive)
+                    diffvalue:dict = simplediff(test_item_hive, dev_item_hive)
                     print(where)
-                    if diffvalue != {}:
-                        where = where+" "+date_type+"-Fail-"
-                        supplier_logger.info(where)
-                        supplier_logger.info(diffvalue)
-                        supplier_logger.info('')
-                    else:
-                        where = where+" "+date_type+"-Success-"
-                        supplier_logger.info(where + "\n")
+                    # if diffvalue != {}:
+                    #     where = where+" "+date_type+"-Fail-"
+                    #     supplier_logger.info(where)
+                    #     supplier_logger.info(diffvalue)
+                    #     supplier_logger.info('')
+                    # else:
+                    #     where = where+" "+date_type+"-Success-"
+                    #     supplier_logger.info(where + "\n")
+                    yield where, diffvalue
+    hive_db.close_db()
 
     pass
 

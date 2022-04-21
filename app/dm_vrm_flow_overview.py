@@ -9,6 +9,7 @@ import json,math,random
 import logging
 from utils.util import simplediff
 from utils.decorate import logrecord
+from utils.db import PyHive
 
 #logger
 filepath=path.join(path.dirname(path.dirname(__file__)),"conf","logging.conf")
@@ -245,6 +246,7 @@ def do_job(date):
     _where = "supplier_num = '{supplier_num}' and source_id = {source_id} and platform_id = {platform_id}  and  data_date = '{data_date}'"
     _dev_fetch_sql = "select " + columns_list + " from {table}  where {where} "
 
+    hive_db = PyHive()
 
     for date_type in ['d','wtd','mtd']:
         order_overview_table = _flow_source_table.format(date_type)
@@ -258,7 +260,7 @@ def do_job(date):
         test_sql = get_test_sql(date_begin,date_end)
         print(test_sql)
         try :
-            test_hive_result = get_hive_result(test_sql)
+            test_hive_result = hive_db.get_result_from_db(test_sql)
         except Exception as e:
             print(e.__repr__())
             test_hive_result = []
@@ -274,7 +276,7 @@ def do_job(date):
                                                     data_date=test_item_hive['data_date'])
                     dev_fetch_sql = _dev_fetch_sql.format(table = order_overview_table,where = where)
 
-                    dev_item_hive = get_hive_result(dev_fetch_sql)
+                    dev_item_hive = hive_db.get_result_from_db(dev_fetch_sql)
                     if len(dev_item_hive) > 0:
                         dev_item_hive = dict(zip(columns, dev_item_hive[0]))
                     else:
@@ -283,6 +285,7 @@ def do_job(date):
                     diffvalue = simplediff(test_item_hive, dev_item_hive)
                     print(where)
                     yield where,diffvalue
+    hive_db.close_db()
 
     pass
 

@@ -7,13 +7,18 @@ import pymongo
 import pymysql
 import redis
 import happybase
-from .decorate import loadenv
+from .decorate import loadenv,loaddbenv
 import configparser
 from sshtunnel import SSHTunnelForwarder
 from utils.load import readconfini
 
 if os.name == "posix":
     from pyhive import hive
+
+def close_db(conn, cursor):
+    """关闭数据库"""
+    cursor.close()
+    conn.close()
 
 @loadenv(db='db_ck')
 def connect_clickhouse(host=None, port=None, user=None, password=None, database=None, collection=None):
@@ -47,12 +52,6 @@ def connect_hive(host=None, port=None, user=None, password=None, database=None, 
 def connect_mysql(host=None, port=None, user=None, password=None, database=None, collection=None):
     conn = pymysql.connect(host=host, port=port, user=user, password=password, db=database)
     return conn.cursor()
-
-
-def close_db(conn, cursor):
-    """关闭数据库"""
-    cursor.close()
-    conn.close()
 
 
 # 连接mongodb
@@ -216,3 +215,74 @@ class CK():
             rawdata = [ele.split('\t') for ele in rtext.split('\n')]
 
         return rawdata
+
+#数据库访问类
+class PyDB():
+
+    def __init__(self):
+        self.conn = None
+        self.cusor = None
+        pass
+
+    def close_db(self):
+        """关闭数据库"""
+        if self.cursor is not None:
+            self.cursor.close()
+        if self.conn is not None:
+            self.conn.close()
+
+    def get_result_from_db(self,sql):
+
+        self.cursor.execute(sql)
+        result = self.cursor.fetchall()
+        return result
+
+
+class PyCK_client(PyDB):
+    '''
+    clickhouse访问
+    '''
+
+    @loaddbenv(db='db_ck')
+    def __init__(self,host=None, port=None, user=None, password=None, database=None, collection=None):
+        self.conn = Client(host=host, port=port, user=user, password=password, database=database)
+        self.cursor = None
+        pass
+
+    def get_result_from_db(self,sql):
+
+        result = self.conn.execute(sql)
+        return result
+        pass
+
+
+class PyCK(PyDB):
+    '''
+    clickhouse 访问
+    '''
+
+    @loaddbenv(db='db_ck')
+    def __init__(self,host=None, port=None, user=None, password=None, database=None, collection=None):
+        self.conn = connect(host=host, port=port, user=user, password=password, database=database)
+        self.cursor = self.conn.cursor()
+
+
+
+class PyMysql(PyDB):
+    '''
+    mysql 访问
+    '''
+    @loaddbenv(db='db_mysql')
+    def __init__(self, host=None, port=None, user=None, password=None, database=None, collection=None):
+        self.conn = pymysql.connect(host=host, port=port, user=user, password=password, db=database)
+        self.cursor = self.conn.cursor()
+
+class PyHive(PyDB):
+    '''
+    hive 访问
+    '''
+    @loaddbenv(db='db_hive')
+    def __init__(self,host=None, port=None, user=None, password=None, database=None, collection=None):
+        # Password should be set if and only if in LDAP or CUSTOM mode; Remove password or use one of those modes
+        self.conn = hive.Connection(host=host, port=port, username=user, database=database)
+        self.cursor = self.conn.cursor()
