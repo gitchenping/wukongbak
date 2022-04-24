@@ -6,10 +6,11 @@ import time
 import re
 import math
 from requests.packages import urllib3
+import pandas as pd
 urllib3.disable_warnings()
 
 #默认使用vip下载
-VIP = True
+VIP = False
 if os.name == "posix":
     input_arg = sys.argv  #输入搜索关键字参数
     if len(input_arg) < 2:
@@ -26,7 +27,7 @@ if os.name == "posix":
 
 else:
     VIP = True
-    search_keyword = '欧洲之门'
+    search_keyword = '简读中国史'
 
 
 def progressbar(processnum,totalnum):
@@ -70,19 +71,36 @@ def get_resource_list(vip):
     search_resource_list = []
     if len(albuminfo) > 0:
         print('find relating resources listed below:')
-        i = 1
+        # i = 1
+        # for ele in albuminfo:
+        #     resource_name = ele['title']
+        #     resource_zhubo = ele['nickname']
+        #     info = str(i) + '、名称:' + resource_name + '  主播:' + resource_zhubo
+        #     i += 1
+        #     print(info)
+        columns_name = ['名称','主播','喜点','播放量','评分','简介']
+        data = []
         for ele in albuminfo:
-            resource_name = ele['title']
-            resource_zhubo = ele['nickname']
-            info = str(i) + '、名称:' + resource_name + '  主播:' + resource_zhubo
-            i += 1
-            print(info)
+            title = ele['title']
+            player = ele['nickname']
+            if ele['price_types'] != []:
+                xidian = ele['price_types'][0]['price']
+            else:
+                xidian = None
+
+            playnum = ele['play']
+            score = ele['score']
+            info = ele['intro']
+            data.append([title,player,xidian,playnum,score,info])
+        #生成pandas frame
+        df = pd.DataFrame(data, columns=columns_name)
+        print(df)
     else:
         print("bad search,no resource find! another search word instead")
         sys.exit(-1)
 
     choice_num = input("which resource would you like to download,input the index number:")
-    resource_selected = albuminfo[int(choice_num) - 1]
+    resource_selected = albuminfo[int(choice_num)]
 
     # 资源的集数、albumId
     tracks_num = resource_selected['tracks']
