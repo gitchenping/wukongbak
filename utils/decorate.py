@@ -7,44 +7,41 @@ from utils.load import readconfini
 
 '''环境变量预加载'''
 def loadenv(**kwargs):
-    env = readconfini('./conf/')
-    # host=env.get(kwargs['db'],'db_host')
-    # port=env.get(kwargs['db'],'db_port')
-    # user=env.get(kwargs['db'],'db_username')
-    # password=env.get(kwargs['db'],'db_password')
+    env = readconfini()
+
+    host=env.get(kwargs['db'],'db_host')
+    port=env.get(kwargs['db'],'db_port')
+    user=env.get(kwargs['db'],'db_username')
+    password=env.get(kwargs['db'],'db_password')
+    database = env.get(kwargs['db'],'db_name')
 
     def wrap_o(func):
         def wrap(**args):       #如果函数带参数，使用实参
+            nonlocal host
+            nonlocal port
+            nonlocal user
+            nonlocal password
+            nonlocal database
 
             #host
             if args.__contains__('host') and args['host'] is not None:
-                host=args['host']
-            else:
-                host = env.get(kwargs['db'], 'db_host')
+                host = args['host']
 
             # port
             if args.__contains__('port') and args['port'] is not None:
                 port = args['port']
-            else:
-                port = int(env.get(kwargs['db'], 'db_port'))
 
             #user
             if args.__contains__('user') and args['user'] is not None:
                 user = args['user']
-            else:
-                user = env.get(kwargs['db'], 'db_username')
 
             #password
             if args.__contains__('password') and args['password'] is not None:
                 password = args['password']
-            else:
-                password = env.get(kwargs['db'], 'db_password')
 
             #database
             if args.__contains__('database') and args['database'] is not None:
-                database=args['database']
-            else:
-                database = env.get(kwargs['db'], 'db_name')
+                database = args['database']
 
             #collection
             if args.__contains__('collection') and args['collection'] is not None:
@@ -61,40 +58,41 @@ def loadenv(**kwargs):
 
 #数据库环境加载2
 def loaddbenv(**kwargs):
-    env = readconfini('./conf/')
+    env = readconfini()
+    host = env.get(kwargs['db'], 'db_host')
+    port = env.get(kwargs['db'], 'db_port')
+    user = env.get(kwargs['db'], 'db_username')
+    password = env.get(kwargs['db'], 'db_password')
+    database = env.get(kwargs['db'], 'db_name')
 
     def wrap_o(func):
         def wrap_in(self,**args):       #如果函数带参数，使用实参
+            nonlocal host
+            nonlocal port
+            nonlocal user
+            nonlocal password
+            nonlocal database
 
             #host
             if args.__contains__('host') and args['host'] is not None:
                 host=args['host']
-            else:
-                host = env.get(kwargs['db'], 'db_host')
 
             # port
             if args.__contains__('port') and args['port'] is not None:
                 port = args['port']
-            else:
-                port = int(env.get(kwargs['db'], 'db_port'))
 
             #user
             if args.__contains__('user') and args['user'] is not None:
                 user = args['user']
-            else:
-                user = env.get(kwargs['db'], 'db_username')
+
 
             #password
             if args.__contains__('password') and args['password'] is not None:
                 password = args['password']
-            else:
-                password = env.get(kwargs['db'], 'db_password')
 
             #database
             if args.__contains__('database') and args['database'] is not None:
                 database=args['database']
-            else:
-                database = env.get(kwargs['db'], 'db_name')
 
             #collection
             if args.__contains__('collection') and args['collection'] is not None:

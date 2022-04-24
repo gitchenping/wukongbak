@@ -89,7 +89,9 @@ def get_resource_list(vip):
                 xidian = None
 
             playnum = ele['play']
-            score = ele['score']
+            score = 0
+            if ele.__contains__('score'):
+                score = ele['score']
             info = ele['intro']
             data.append([title,player,xidian,playnum,score,info])
         #生成pandas frame

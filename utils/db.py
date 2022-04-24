@@ -286,3 +286,4 @@ class PyHive(PyDB):
         # Password should be set if and only if in LDAP or CUSTOM mode; Remove password or use one of those modes
         self.conn = hive.Connection(host=host, port=port, username=user, database=database)
         self.cursor = self.conn.cursor()
+

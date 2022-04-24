@@ -14,17 +14,11 @@ father_path = os.path.abspath(parent + os.path.sep + "..")
 sys.path.append(father_path)
 
 import json
-import requests
+import requests,datetime
 import logging.config
 from itertools import combinations, chain
-from bi.wk_web.util.util import *
-from bi.wk_web.app.public_method import *
-from bi.wk_web.app.sql import *
-from bi.wk_web.app.product_real_sql import *
-from bi.wk_web.app.prod_map import get_all_filters, comparetype
 
-logging.config.fileConfig("%s/conf/logging.conf" % the_local)
-real_search_logger = logging.getLogger("real_searchword")
+
 
 ck_table = "bi_mdata.realtime_search_word_all"
 

@@ -8,7 +8,7 @@ import queue,random
 from threading import Thread
 import logging.config
 from utils.util import simplediff
-from utils.db import connect_hive
+from utils.db import PyHive
 
 table = "dm_report.usertags_reading_card_cust_buy_book_num"
 usertags_reading_card_cust_buy_book_num = {
@@ -20,13 +20,7 @@ usertags_reading_card_cust_buy_book_num = {
 logging.config.fileConfig("logging.conf")
 card_logger=logging.getLogger('view')
 
-def get_hive_result(sql):
-    """ 根据sql条件查询结果并返回"""
-    cursor = connect_hive()
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    cursor.close()
-    return result
+
 
 
 def get_test_hsql(date):
@@ -96,8 +90,9 @@ def w_job(q,date):
     dev_fetch_sql = "select "+ columns_list +" from "+table+" where cust_id = {cust_id} and data_date = '{data_date}'"
 
     sql = get_test_hsql(date)
+    hive_db = PyHive()
     print(sql)
-    test_hive_result = get_hive_result(sql)
+    test_hive_result = hive_db.get_result_from_db(sql)
     # test_hive_result = [(319188402,41,7),(697506404,10,1),(204778325,19,0)]
     test_hive_result_length = len(test_hive_result)
 
@@ -107,7 +102,7 @@ def w_job(q,date):
             test_item_hive = dict(zip(columns,test_hive_result[i]))
             dev_fetch_sql_format = dev_fetch_sql.format(cust_id = test_item_hive['cust_id'],data_date = date)
 
-            dev_item_hive = get_hive_result(dev_fetch_sql_format)
+            dev_item_hive = hive_db.get_result_from_db(dev_fetch_sql_format)
             if len(dev_item_hive) >0:
                 dev_item_hive = dict(zip(columns,dev_item_hive[0]))
             else:
@@ -116,8 +111,9 @@ def w_job(q,date):
             item_tuple = (test_item_hive,dev_item_hive)
             print(item_tuple)
             q.put(item_tuple)
+        hive_db.close_db()
 
-            pass
+        pass
 
 def r_job(q,date):
     '''

@@ -6,9 +6,13 @@ def readini(path):
     cf.read(path,encoding='utf-8')
     return cf
 
-def readconfini(path=''):
+#读配置文件conf/config.ini
+def readconfini():
+    current_file_abspath = os.path.abspath(__file__)
+    father_path= os.path.dirname(os.path.dirname(current_file_abspath))
+    full_path = os.path.join(father_path, "conf/config.ini")
+
     cf = configparser.ConfigParser()
-    allpath=os.path.join(path, "config.ini")
-    cf.read(allpath, encoding='utf-8')
+    cf.read(full_path, encoding='utf-8')
 
     return cf

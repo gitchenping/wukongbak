@@ -3,8 +3,16 @@ clickhouse  bi_mdata.realtime_search_word_bd2cat_all  事业部与二级类的�
 '''
 import os
 import sys
+import logging.config
 from utils.db import connect_hive,client_ck
 from utils.util import simplediff
+from os import path
+
+#logger
+filepath=path.join(path.dirname(path.dirname(__file__)),"conf","logging.conf")
+logging.config.fileConfig(filepath)
+real_search_logger=logging.getLogger('jingying_overview')
+
 
 sql='''select
 	t0.bd_id,
