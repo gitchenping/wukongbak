@@ -1,8 +1,10 @@
+'''
+装饰器函数
+'''
+
 import configparser
 import os
 from utils.load import readconfini
-
-#装饰器函数
 
 
 '''环境变量预加载'''
@@ -84,7 +86,6 @@ def loaddbenv(**kwargs):
             #user
             if args.__contains__('user') and args['user'] is not None:
                 user = args['user']
-
 
             #password
             if args.__contains__('password') and args['password'] is not None:

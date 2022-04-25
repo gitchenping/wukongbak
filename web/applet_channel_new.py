@@ -13,7 +13,7 @@ from multiprocessing import Manager
 
 
 #logger
-report = log.set_logger('applet_new.txt')
+report = log.get_logger('applet_new.txt')
 
 # hive连接
 hive_cursor= db.connect_hive()

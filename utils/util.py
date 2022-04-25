@@ -2,34 +2,9 @@ import os
 import requests
 import json
 import re
-import threading
 
 
-#数据格式转换，便于比较、计算
-def data_change(data):
-    '''
-    格式转换
-    :param data:
-    :return:
-    '''
-    temp = dict(data)
-
-    for key,value in temp.items():
-        if value is None or value == 'inf':
-            temp[key] = '-'
-        elif isinstance(value,str):
-            try:
-               value_new = round(eval(value.strip('%')),2)
-            except Exception :
-                value_new = value
-            temp[key] = value_new
-        elif isinstance(value, float):
-            temp[key] = round(value,2)
-        else:
-            continue
-    return temp
-
-
+#判断一个对象是否是数字
 def is_number(s):
     if isinstance(s,str) and s.lower()=='nan':
         return False
@@ -48,56 +23,50 @@ def is_number(s):
 
     return False
 
-'''数值(精度)转换'''
-def format_precision(data,selfdefine=0):
+#格式化为数值型或原样保留
+def data_format(data,rstrip_suffix = '%',default_value = '-'):
     '''
-
+    将str、int、float 类型转换为数值型
     :param data: str、int、float
-    :param selfdefine:
+    :param rstrip_suffix: 后缀删除->'%|亿|万|元|$|*'
     :return:
     '''
-    newdata=None
-
-    if data is None:
-        return 0
+    if data is None or data == 'inf':
+        format_data = default_value
+    elif isinstance(data, float) or isinstance(data, int):
+        format_data = round(data, 2)
     else:
-        tempdata=str(data).rstrip('%|亿|万|元')
-        pattern = re.compile("-?[0-9]+(\.?[0-9]+)?$")         #由数字构成
-        try:
-            if pattern.match(tempdata):
-                newdata=round(float(tempdata),2)
-            else:
-                if selfdefine=='':
-                    newdata=data
-                else:
-                    newdata=selfdefine
-        except Exception:
-            newdata=data
-    return newdata
+        if isinstance(data, str):
+            try:
+                format_data = round(eval(data.strip(rstrip_suffix)), 2)
+            except Exception:
+                format_data = data
+    return format_data
 
 
-'''字典数据类型数值格式化'''
-def json_format(data,selfdefine):
+#字典value值格式化
+def dict_format(data,rstrip_suffix = '%',default_value = 0):
     '''
-
-    :param data: 嵌套字典
+    字典value值格式转换
+    :param data: (嵌套)字典
     :return:
     '''
-    newdata={}
+    # temp_data = deepcopy(data)
+    newdata = {}
     if not isinstance(data,dict):
-       return format_precision(data,selfdefine)
-    for key in data.keys():
-            value = data[key]
-            if isinstance(value, dict):
-                newdata[key] = json_format(value,selfdefine)
-            else:
-                #
-                newdata[key]=format_precision(value,selfdefine)
+       return data_format(data,rstrip_suffix,default_value)
+    for key,value in data.items():
+        if isinstance(value, dict):
+            newdata[key] = dict_format(value,rstrip_suffix,default_value)
+        else:
+            #
+            newdata[key] = data_format(value,rstrip_suffix,default_value)
     return newdata
+
 
 
 '''两个字典的简单比较（固定一个字典为基准）'''
-def simplediff(data1,data2):
+def diff(data1,data2):
     '''
 
     :param data1: test result,作为参照
@@ -116,7 +85,7 @@ def simplediff(data1,data2):
                 diff_key_value[key] = 'dev table 中此键值不存在'
                 continue
             if isinstance(data1_value,dict):
-                diff_key_value[key] = simplediff(data1_value,data2_value)
+                diff_key_value[key] = diff(data1_value,data2_value)
                 if diff_key_value[key] == {}:
                     diff_key_value.pop(key)
             else:
@@ -245,29 +214,7 @@ def  find_same_id_list(i,data,totalnum=1):
 
     return result
 
-'''自定义线程类，实例化时传入一个函数及其参数'''
-class myThread(threading.Thread):
-    def __init__(self,func,*arg,**kwargs):
-        '''
 
-        :param func: task 函数
-        :param arg:  task 包裹位置参数
-        :param kwargs: task 包裹关键字参数
-        '''
-        threading.Thread.__init__(self)
-        self.arg = arg
-        self.kw = kwargs
-        self.func = func
-
-    def run(self):
-        self.result= self.func(*self.arg,**self.kw)
-
-    #返回值
-    def get_result(self):
-        try:
-            return self.result
-        except Exception:
-            return None
 
 
 

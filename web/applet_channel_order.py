@@ -13,7 +13,7 @@ from db.dao.applet_channel_order import wechat_order_detail_create_sql,wechat_or
 
 
 #logger
-report = log.set_logger('applet_order.txt')
+report = log.get_logger('applet_order.txt')
 # hive连接
 if os.name == 'posix':
     hive_cursor= db.connect_hive()

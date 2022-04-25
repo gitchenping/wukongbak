@@ -78,39 +78,7 @@ def connect_hbase(host=None, port=None, user=None, password=None, database=None,
     return conn
 
 
-# davinci
-def login_davinci():
-    user_name = "chenping"
-    passwd = "Ddmymm4321"
-    s = requests.Session()
-    flag, token = do_log(s, user_name, passwd)
-    return s, token
 
-
-def do_log(s, user_name, passwd):
-    """
-    进行登录
-    :param s:
-    :return:
-    """
-    # login_url = "http://10.4.32.223:80/api/v3/login"
-    login_url = "http://newwk.dangdang.com/api/v3/login"
-    headers = {"Content-Type": "application/json"}
-    data = {"username": user_name, "password": passwd}
-    r = s.post(url=login_url, json=data, headers=headers)
-    req = json.loads(r.content)
-    code = req['header']['code']
-    token = req['header']['token']
-    if code == 200:
-        return True, token
-    else:
-        return False, ''
-
-
-def readini(path):
-    cf = configparser.ConfigParser()
-    cf.read(path, encoding='utf-8')
-    return cf
 
 #通过跳板机进行远程连接
 def connect_mysql_from_jump_server(mysql_ip, db_port, db_user, db_passwd, db,

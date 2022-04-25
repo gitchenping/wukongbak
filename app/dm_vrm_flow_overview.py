@@ -7,7 +7,7 @@ import sys
 from sys import path
 import json,math,random
 import logging
-from utils.util import simplediff
+from utils.util import diff
 from utils.decorate import logrecord
 from utils.db import PyHive
 
@@ -282,7 +282,7 @@ def do_job(date):
                     else:
                         dev_item_hive = {}  # dev table miss
 
-                    diffvalue = simplediff(test_item_hive, dev_item_hive)
+                    diffvalue = diff(test_item_hive, dev_item_hive)
                     print(where)
                     yield where,diffvalue
     hive_db.close_db()

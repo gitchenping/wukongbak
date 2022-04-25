@@ -31,7 +31,7 @@ UV订单转化率：指当前查询的模块，带来的订单行数占推荐商
 '''
 
 #日志设置
-reco = log.set_logger('reco.txt')
+reco = log.get_logger('reco.txt')
 #推荐conn
 conn_ck = db.connect_clickhouse(host='10.7.30.177')
 

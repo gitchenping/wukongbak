@@ -7,7 +7,7 @@ import json,math,random
 
 
 from db.dao.search_word_analysis import get_sql_data
-from utils.util import simplediff
+from utils.util import diff
 import json
 
 
