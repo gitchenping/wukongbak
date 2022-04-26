@@ -80,42 +80,6 @@ def connect_hbase(host=None, port=None, user=None, password=None, database=None,
 
 
 
-#通过跳板机进行远程连接
-def connect_mysql_from_jump_server(mysql_ip, db_port, db_user, db_passwd, db,
-                                   ip='10.255.254.49',
-                                   username='root',
-                                   passwd='dell1950'):
-    """
-    使用跳板机连接远程服务器
-    :param ip: 跳板机地址
-    :param username:跳板机用户名
-    :param passwd: 跳板机密码
-    :param mysql_ip: 目标数据库服务器地址
-    :param db_user:
-    :param db_passwd:
-    :param db:
-    :return:
-    """
-    server = SSHTunnelForwarder(
-        ssh_address_or_host=(ip, 22),
-        ssh_username=username,
-        ssh_password=passwd,
-        remote_bind_address=(mysql_ip, db_port)
-    )
-    server.start()
-    db = pymysql.connect(
-        host='127.0.0.1',
-        port=server.local_bind_port,
-        user=db_user,
-        passwd=db_passwd,
-        db=db
-    )
-    cursor = db.cursor()
-    return server, cursor
-
-
-
-
 class CK():
     def __init__(self,ck_db=None):
         if ck_db is not None and isinstance(ck_db,dict):
@@ -199,6 +163,9 @@ class PyDB():
         if self.conn is not None:
             self.conn.close()
 
+    def get_cursor(self):
+        return self.cursor
+
     def get_result_from_db(self,sql):
 
         self.cursor.execute(sql)
@@ -230,7 +197,7 @@ class PyCK(PyDB):
     '''
 
     @loaddbenv(db='db_ck')
-    def __init__(self,host=None, port=None, user=None, password=None, database=None, collection=None):
+    def __init__(self,host=None, port=None, user=None, password=None, database=None):
         self.conn = connect(host=host, port=port, user=user, password=password, database=database)
         self.cursor = self.conn.cursor()
 
@@ -241,16 +208,44 @@ class PyMysql(PyDB):
     mysql 访问
     '''
     @loaddbenv(db='db_mysql')
-    def __init__(self, host=None, port=None, user=None, password=None, database=None, collection=None):
+    def __init__(self, host=None, port=None, user=None, password: str = None, database=None,
+                 ssh_ip='10.255.254.49', #跳板机地址
+                 ssh_username='root', #跳板机用户名
+                 ssh_passwd='dell1950', #跳板机密码
+                 need_jump = False
+                 ):
+
+        if need_jump :
+            server = SSHTunnelForwarder(
+                ssh_address_or_host=(ssh_ip, 22),
+                ssh_username=ssh_username,
+                ssh_password=ssh_passwd,
+                remote_bind_address=(host, port)
+            )
+            server.start()
+            host = '127.0.0.1'
+            port = server.local_bind_port
+
         self.conn = pymysql.connect(host=host, port=port, user=user, password=password, db=database)
         self.cursor = self.conn.cursor()
+
+class PyMssql(PyDB):
+    '''
+    sql server 访问
+    '''
+
+    @loaddbenv(db='db_ck')
+    def __init__(self, host=None, port=None, user=None, password=None, database=None):
+        self.conn = pymssql.connect(host=host, port=port, user=user, password=password, database=database)
+        self.cursor = self.conn.cursor()
+
 
 class PyHive(PyDB):
     '''
     hive 访问
     '''
     @loaddbenv(db='db_hive')
-    def __init__(self,host=None, port=None, user=None, password=None, database=None, collection=None):
+    def __init__(self,host=None, port=None, user=None, password=None, database=None):
         # Password should be set if and only if in LDAP or CUSTOM mode; Remove password or use one of those modes
         self.conn = hive.Connection(host=host, port=port, username=user, database=database)
         self.cursor = self.conn.cursor()

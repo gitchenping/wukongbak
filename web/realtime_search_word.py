@@ -13,11 +13,12 @@ parent = os.path.dirname(cwd)
 father_path = os.path.abspath(parent + os.path.sep + "..")
 sys.path.append(father_path)
 
-import json
+import json,math
 import requests,datetime
-import logging.config
 from itertools import combinations, chain
-
+from utils.db import CK
+from utils.log import get_logger
+from utils.util import diff
 
 
 ck_table = "bi_mdata.realtime_search_word_all"
@@ -27,32 +28,8 @@ ck_db = {
     'headers': {'X-ClickHouse-User': 'membersbi', 'X-ClickHouse-Key': 'dangdangbi'}
 }
 
-
-class CK():
-    def __init__(self, ck_db=None):
-        if ck_db is not None and isinstance(ck_db, dict):
-            if ck_db.__contains__('headers'):
-                self.host = ck_db['host']
-                self.headers = ck_db['headers']
-            else:
-                self.dbinfo = ck_db
-        else:
-            self.dbinfo = None
-
-    def ck_get(self, sql):
-        url = self.host
-        headers = self.headers
-
-        r = requests.get(url=url, params={'query': sql}, headers=headers)
-        rawdata = []
-        if r.status_code == 200 and len(r.text) > 0:
-            rtext = r.text.strip('\n')
-            rawdata = [ele.split('\t') for ele in rtext.split('\n')]
-
-        return rawdata
-
-
 ck_conn = CK(ck_db)
+real_search_logger = get_logger(filename = 'realtime_search_word')
 
 main_table = {
     'clickPv': '点击PV',
@@ -481,7 +458,7 @@ def do_job(date, starttime, endtime, s):
                 message = '-Success-'
                 diffvalue = ''
 
-                diff_value = simplediff(sqlresult, apiresult)
+                diff_value = diff(sqlresult, apiresult)
 
                 filter_output = dict(data)
                 filter_output['searchWord'] = searchWord
@@ -598,7 +575,7 @@ def do_wordline_job(date, starttime, endtime, s):
             message = '-Success-'
             diffvalue = ''
 
-            diff_value = simplediff(sql_data_dict, api_data_dict)
+            diff_value = diff(sql_data_dict, api_data_dict)
 
             filter_output = dict(data)
             print(filter_output)

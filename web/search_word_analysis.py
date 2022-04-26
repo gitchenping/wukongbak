@@ -5,11 +5,14 @@ import sys,os,requests
 import copy
 import json,math,random
 
-
 from db.dao.search_word_analysis import get_sql_data
 from utils.util import diff
-import json
+from utils.decorate import logrecord
+from utils import log
 
+
+#logger
+reporter = log.set_logger(filename = 'search_word')
 
 def get_api_data(s,url,data):
     '''
@@ -31,7 +34,7 @@ def get_api_data(s,url,data):
 
     pass
 
-
+@logrecord()
 def do_job(starttime,endtime,s,url):
 
     data = {
@@ -115,20 +118,12 @@ def do_job(starttime,endtime,s,url):
                         sqlresult_match = sqlresult_match.where(sqlresult_match.notnull(),None)
                         sql_data  = dict(zip(sqlresult_match.columns, sqlresult_match.values.tolist()[0]))
 
-                        diffvalue = simplediff(sql_data,api_data)
+                        diffvalue = diff(sql_data,api_data)
                         filter_where['search_word'] = keyword
                         filter_where['date_str'] = date_str
-                        if diffvalue != {}:
 
-                            if os.name == 'posix':
-                                search_view_logger.info('筛选条件：'+str(filter_where)+" -Fail")
-                                search_view_logger.info(diffvalue)
-                                search_view_logger.info('')
-                            else:
-                                print(filter_where)
-                                print(diffvalue)
-                        else:
-                            search_view_logger.info('筛选条件：' + str(filter_where) + " -Pass")
+                        yield filter_where,diffvalue
+
                     pageno += dev_total_page // 10 + 1  # 翻页
                     temp_data['pageNo'] = pageno
 

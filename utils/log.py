@@ -17,13 +17,13 @@ def log(*args,**kwargs):
 '''
 
 
-'''自定义日志配置字典'''
-'''
+'''自定义日志配置字典
+
 #使用示例
 config.dictConfig(log_config)
-crawler = logging.getLogger('crawler')
+crawler = logging.getLogger('file')
 '''
-log_config = {
+LogConfig = {
     'version': 1.0,
     'loggers': {
         'debug': {
@@ -40,14 +40,18 @@ log_config = {
         }
     },
     'formatters': {
+        'only_msg':{
+            'format': '%(message)s'
+        },
+        'simple': {
+            'format': '%(name)s - %(levelname)s - %(message)s',
+        },
         'detail': {
             # 'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             'format': '%(asctime)s - %(message)s',
             'datefmt': "%Y-%m-%d %H:%M:%S"      #如果不加这个会显示到毫秒
-        },
-        'simple': {
-            'format': '%(name)s - %(levelname)s - %(message)s',
         }
+
     },
     'handlers': {
         'console': {
@@ -59,9 +63,9 @@ log_config = {
             'class': 'logging.handlers.RotatingFileHandler',#日志打印到文件的类
             'maxBytes': 1024 * 1024 * 10,             #单个文件最大内存
             'backupCount': 10,                       #备份的文件个数
-            'filename': "logs/logger_test.txt",      #默认日志文件名(相对于主程序所在位置）
+            'filename': "unknown.txt",         #默认日志文件名(主程序所在目录）
             'level': 'INFO',                # 日志等级
-            'formatter': 'detail',       #调用formatters的哪个格式
+            'formatter': 'only_msg',       #调用formatters的哪个格式
             'encoding': 'utf-8',        #编码
         }
     }
@@ -69,31 +73,38 @@ log_config = {
 }
 
 
-'''获取日志logger'''
-def get_logger(logpath = ''):
+'''设置日志logger'''
+def set_logger(filename = '',formatter = ''):
     '''
 
-    :param logpath: 日志路径
+    :param log_name: 日志文件名字,默认run.py同级目录log下
     :return:
     '''
-    if logpath != '':
-        log_config['handlers']['file']['filename'] = './logs/'+logpath
-    config.dictConfig(log_config)
+    if filename != '':
+        LogConfig['handlers']['file']['filename'] = './logs/'+filename
+    if formatter !='':
+        LogConfig['handlers']['file']['formatter'] = formatter
+
+
+    config.dictConfig(LogConfig)
     report = logging.getLogger('file')
     return report
 
 
 
-'''自定义设置logger,每个进程可以声明一次'''
-def set_logger(filename = '',formatter = '%(message)s'):
+'''获取一个logger,每个进程可以声明一次'''
+def get_logger(_logger = None,filename = '',formatter = '%(message)s'):
    '''
 
+   :param _logger: 全局或局部logger,使用全局logger时，应删除前面创建的handler
+   调用remove函数去除上一次使用的handler：_logger.removeHandler(logger.handlers[0])
    :param filename:
    :param formatter:
    :return: logger对象
    '''
-   _logger = logging.getLogger()
-   _logger.setLevel(level=logging.INFO)
+   if _logger is None:      #否则使用外部全局logger
+       _logger = logging.getLogger('')
+       _logger.setLevel(level=logging.INFO)
 
    # formatter
    formatter = logging.Formatter(formatter)
@@ -107,29 +118,6 @@ def set_logger(filename = '',formatter = '%(message)s'):
    _logger.addHandler(handler)
 
    return _logger
-
-
-
-'''改变logger,改变输出日志目的地'''
-'''
-#使用示例后
-使用新logger前，调用remove函数去除上一次使用的handler
-_logger.removeHandler(logger.handlers[0])
-'''
-def setLogName(_logger,filename):
-    '''
-
-    :param _logger: 全局logger
-    :param filename:
-    :return:
-    '''
-    _logger.setLevel(level=logging.INFO)
-
-    handler = logging.FileHandler(filename, mode='w')
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(message)s')
-    handler.setFormatter(formatter)
-    _logger.addHandler(handler)
 
 
 

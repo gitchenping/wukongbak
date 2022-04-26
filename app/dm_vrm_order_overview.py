@@ -8,7 +8,7 @@ from os import path
 import logging
 import json,math,random,datetime
 from utils.decorate import logrecord
-from utils.util import simplediff
+from utils.util import diff
 from utils.db import PyHive
 
 #logger
@@ -241,7 +241,7 @@ def do_job(date):
                     else:
                         dev_item_hive = {}  # dev table miss
 
-                    diffvalue:dict = simplediff(test_item_hive, dev_item_hive)
+                    diffvalue:dict = diff(test_item_hive, dev_item_hive)
                     print(where)
                     # if diffvalue != {}:
                     #     where = where+" "+date_type+"-Fail-"

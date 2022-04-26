@@ -3,7 +3,7 @@ from utils import util
 from utils import log
 from db.map.crm import product_dict,mayang_yunying_dict,warehouse_dict
 from db.dao.crm import get_crm_sql_data,get_crm_product_month_year_top_sql
-from utils.util import connect_mysql_from_jump_server
+from utils.db import connect_mysql_from_jump_server,connect_mysql
 
 #mysql 信息字典
 sql_db_info={
@@ -43,7 +43,8 @@ def hive_mysql_diff(logger,hive_sql,mysql_table,tableinfo_key,date,month):
         hive_data.append(a)
 
     if os.name == 'posix':
-        mysql_cursor = util.connect_mysql(**sql_db_info)
+
+        mysql_cursor = connect_mysql(**sql_db_info)
     else:
         server, mysql_cursor = connect_mysql_from_jump_server(*sql_db_info.values())
     # 分批次查询

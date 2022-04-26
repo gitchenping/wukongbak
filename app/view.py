@@ -1,9 +1,9 @@
 import logging.config
 from utils import util
 from utils.db import connect_mongodb
+from utils.log import set_logger
 
-logging.config.fileConfig("logging.conf")
-viewlogger=logging.getLogger('view')
+viewlogger = set_logger(log_name='view.txt')
 
 offline_sql='''
 select 

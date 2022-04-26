@@ -5,8 +5,9 @@ import os
 import sys
 import logging.config
 from utils.db import connect_hive,client_ck
-from utils.util import simplediff
+from utils.util import diff
 from os import path
+from utils.db import PyHive,PyCK
 
 #logger
 filepath=path.join(path.dirname(path.dirname(__file__)),"conf","logging.conf")
@@ -86,16 +87,14 @@ left join (
 '''
 
 def do_job():
-    hive_data = []
+
     column_keys =['bd_id','bd_name','category_path','path_name']
 
-    databasename = 'ods'
-    _,hive_cursor = connect_hive(database = databasename)
+    database = 'ods'
+    hive_handle = PyHive(database = database)
+    hive_data = hive_handle.get_result_from_db(sql)
 
-    hive_cursor.execute(sql)
-    hive_data = hive_cursor.fetchall()
-
-    ck_cursor = client_ck()
+    ck_handle = PyCK()
 
     ck_sql ="select * from iocTest1.realtime_search_word_bd2cat_all where category_path = '{}'"
 
@@ -107,12 +106,12 @@ def do_job():
 
         ck_sql_format = ck_sql.format(hive_dict['category_path'])
 
-        ck_data = ck_cursor.execute(ck_sql_format)
+        ck_data = ck_handle.get_result_from_db(ck_sql_format)
         ck_dict = {}
         if len(ck_data) >0:
             c_data = ck_data[0]
             ck_dict = dict(zip(column_keys,c_data))
-        diffvalue = simplediff(hive_dict,ck_dict)
+        diffvalue = diff(hive_dict,ck_dict)
         if diffvalue != {}:
             fail_num += 1
             real_search_logger.info('filters:' +str(hive_dict))

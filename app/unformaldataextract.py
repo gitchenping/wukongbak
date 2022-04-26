@@ -1,25 +1,20 @@
+'''
+异常数据提取
+'''
 import configparser
 import logging
 from utils import util
 from utils import log
+from utils.load import readconfini
 
-
-
-def readini(path):
-    cf=configparser.ConfigParser()
-    cf.read(path,encoding='utf-8')
-    return cf
-
-cf=readini('./config.ini')
-
-url_host=cf.get('api','api_host')
+url_host = readconfini().get('api','api_host')
 
 #经营分析API
-jingying_analysis_api_path=cf.get('api','jingying_analysis_api')
+jingying_analysis_api_path=readconfini().get('api','jingying_analysis_api')
 jingying_analysis_api_url=url_host+jingying_analysis_api_path
 
 #用户分析API
-user_analysis_api_path=cf.get('api','user_analysis_api')
+user_analysis_api_path=readconfini().get('api','user_analysis_api')
 user_analysis_api_url=url_host+user_analysis_api_path
 
 
@@ -103,8 +98,6 @@ def user_analysis(datetype,date):
 
             pass
 
-logger = logging.getLogger('')
-logger.setLevel(level=logging.INFO)
 
 
 def jingying_request(final_url, data=None, jingyinglogger=None):
@@ -165,6 +158,11 @@ def jingying_request(final_url, data=None, jingyinglogger=None):
                 suburl += "&" + key + "=" + value
             jingyinglogger.info("api:" + final_url + suburl)
             jingyinglogger.info(' ')
+
+
+
+logger = logging.getLogger('')
+
 
 def data_extract():
     start_date = '2019-01-01'

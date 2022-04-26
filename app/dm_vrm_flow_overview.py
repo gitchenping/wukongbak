@@ -14,7 +14,7 @@ from utils.db import PyHive
 #logger
 filepath=path.join(path.dirname(path.dirname(__file__)),"conf","logging.conf")
 logging.config.fileConfig(filepath)
-supplier_logger=logging.getLogger('jingying_overview')
+supplier_logger = logging.getLogger('jingying_overview')
 
 #目标表结构
 flow_source ={
