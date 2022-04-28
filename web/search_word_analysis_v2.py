@@ -2,17 +2,26 @@
 #实时搜索词-接口校验
 '''
 import os
-import sys
+import sys,json
+import datetime,re
 import random,copy
 import pandas as pd
 import numpy as np
 from db.map.search_word_map import *
 from itertools import combinations,chain
-import requests
+from utils.util import diff
+from utils.apihandle import ApiHandle
+from utils.log import set_logger
+from utils.util import dict_format
+from utils.db import PyCK
+from utils.date import get_lastdate_d_w_m_q
 
 ck_table = "bi_mdata.realtime_search_word_all"
 ck_path_table = "iocTest1.realtime_search_word_bd2cat_all"
 
+
+#logger
+real_search_logger = set_logger(logclass='file',filename='real_search')
 
 #异动筛选条件中只能有一个同环比、但可以有多个值
 def get_abnomal_filter():
@@ -60,75 +69,13 @@ def get_abnomal_filter():
 
 
 
-def data_change(data):
-    '''
-    格式转换
-    :param data:
-    :return:
-    '''
-    temp = dict(data)
-    for key,value in temp.items():
-        if value is None or value == 'inf':
-            temp[key] = '-'
-        elif isinstance(value,str):
-            try:
-               value_new = round(float(value.strip('%')),2)
-            except Exception :
-                value_new = value
-            temp[key] = value_new
-        elif isinstance(value, float):
-            temp[key] = round(value,2)
-        else:
-            continue
-    return temp
-
-
-
-def get_api_data(url,data,s):
-    '''
-
-    :param data:
-    :return:
-    '''
-
-    searchword_api = url
-    temp_data = dict(data)
-    req = s.post(url=searchword_api, json=temp_data)
-
-    apiresult_list = []
-    total_num = 0
-
-    req_status_code = req.status_code
-
-    if req_status_code == 200:
-        apiresult_raw = json.loads(req.content.decode('utf-8'))
-        # print(apiresult_raw)
-        if url.endswith('searchwordLine'):
-            apiresult_list = apiresult_raw['payload']
-            total_num = None
-        else:
-            apiresult_list = apiresult_raw['payload']['modelList']  # 无返回数据 apiresult_list =[]
-            total_num = int(apiresult_raw['payload']['total'])
-    elif req_status_code == 403:
-        print('token invalid')
-        sys.exit(-1)
-        # print(total_num)
-    elif req_status_code == 500:
-        print('internal error')
-        sys.exit(-2)
-    else:
-        print('other error')
-        sys.exit(-3)
-    return apiresult_list, total_num
-
-    pass
-
-def get_sql_data(data,date_dict,date_show,ciyun=False,wordline=False,ck=None):
+def get_sql_data(data,date_dict,date_show,ciyun=False,wordline=False,):
     '''
     查数据库
     :param data:
     :return:
     '''
+    ck_db = PyCK()
     tempdata = dict(data)
 
     searchword = tempdata['searchword']
@@ -203,7 +150,8 @@ def get_sql_data(data,date_dict,date_show,ciyun=False,wordline=False,ck=None):
     if inner_join_pathname_sql !='':
         sql = "select a.* from ("+sql+") a inner join ("+inner_join_pathname_sql+") b on a.path2_name = b.path_name"
 
-    sql_result = ck_connect_new().execute(sql)
+    sql_result = ck_db.get_result_from_db(sql)
+    ck_db.close_db()
     #转为df
     df = pd.DataFrame(sql_result,columns = item_key_list)
 
@@ -293,7 +241,7 @@ def abnomal_check(abnomaly_value,sqlresult):
     return is_abnomal
     pass
 
-def do_job(date,starttime,endtime,s):
+def do_job(date,starttime,endtime,token):
     url ="http://test.newwk.dangdang.com/api/v3/reportForm/realtime/searchword"
     #遍历前端筛选条件
     filter_list = get_all_filters(date,starttime,endtime)
@@ -320,12 +268,12 @@ def do_job(date,starttime,endtime,s):
     date_str = date
     date_dict = {
         'value': date_str,
-        'LinkRelative': get_interval_day(date_str, 1).strftime('%Y-%m-%d'),
-        'WoW': get_interval_day(date_str, 7).strftime('%Y-%m-%d'),
-        'YoY': get_last_year_date(date_str)
+        'LinkRelative': get_lastdate_d_w_m_q(date_str,'d').strftime('%Y-%m-%d'),
+        'WoW': get_lastdate_d_w_m_q(date_str, 'w').strftime('%Y-%m-%d'),
+        'YoY': get_lastdate_d_w_m_q(date_str,'y')
     }
 
-
+    api_requst = ApiHandle(token)
     for filter in filter_list[0:]:
         #获取api结果
         data = dict(filter)
@@ -412,7 +360,7 @@ def do_job(date,starttime,endtime,s):
                     tbhb_dict_copy.update(dict(zip(rwy, temp_df)))
                 # 合并值
                 sqlresult = sqlresult_match.iloc[0].to_dict()
-                sqlresult = data_change(sqlresult)
+                sqlresult = dict_format(sqlresult)
                 sqlresult.update(tbhb_dict_copy)
                 sqlresult['hour_str'] = hour_str
 
@@ -425,7 +373,12 @@ def do_job(date,starttime,endtime,s):
 
                 #
                 data['searchword'] = word
-                api_data_list, api_data_total_num = get_api_data(url, data, s)
+
+                req = api_requst.post(url= url,data = data)
+                api_result = json.loads(req.content.decode('utf-8'))
+                api_data_list = api_result['payload']['modelList']  # 无返回数据 =[]
+                total_num = int(api_result['payload']['total'])
+
                 length_api_data = len(api_data_list)
                 # 检查test-bug
                 if sqlresult == {} and length_api_data != 0:
@@ -442,7 +395,7 @@ def do_job(date,starttime,endtime,s):
 
                     apiresult = {key: '-' if data['compareType'] == '[]' and key.endswith('Relative') else value for
                                  key, value in api_item.items()}
-                    apiresult = data_change(apiresult)
+                    apiresult = dict_format(apiresult)
                     apiresult['date_str'] = date_str
                     apiresult['hour_str'] = hour_str
 
@@ -481,9 +434,9 @@ def get_sql_ciyun_data(data):
 
     date_dict = {
         'value': date_str,
-        'LinkRelative': get_interval_day(date_str, 1).strftime('%Y-%m-%d'),
-        'WoW': get_interval_day(date_str, 7).strftime('%Y-%m-%d'),
-        'YoY': get_last_year_date(date_str)
+        'LinkRelative': get_lastdate_d_w_m_q(date_str, 'd').strftime('%Y-%m-%d'),
+        'WoW': get_lastdate_d_w_m_q(date_str, 'w').strftime('%Y-%m-%d'),
+        'YoY': get_lastdate_d_w_m_q(date_str,'y')
     }
 
     tempdata = dict(data)
@@ -622,9 +575,9 @@ def get_sql_wordline_data(data):
 
     date_dict = {
         'value': date_str,
-        'LinkRelative': get_interval_day(date_str, 1).strftime('%Y-%m-%d'),
-        'WoW': get_interval_day(date_str, 7).strftime('%Y-%m-%d'),
-        'YoY': get_last_year_date(date_str)
+        'LinkRelative': get_lastdate_d_w_m_q(date_str, 'd',1).strftime('%Y-%m-%d'),
+        'WoW': get_lastdate_d_w_m_q(date_str, 'w').strftime('%Y-%m-%d'),
+        'YoY': get_lastdate_d_w_m_q(date_str,'y')
     }
 
     tempdata = dict(data)
@@ -747,7 +700,9 @@ def get_sql_wordline_data(data):
     sum_columns =','.join(["sum("+ele+")" for ele in findy_column_upper if not ele.endswith('Rate')])
 
     sum_sql = " select "+sum_columns +" from ("+sql+") t"
-    sql_result = ck_connect_new().execute(sum_sql)
+    ck_db = PyCK()
+    sql_result = ck_db.get_result_from_db(sum_sql)
+
 
     if set(sql_result[0]) == {0}:
         sql_result = []
@@ -769,7 +724,7 @@ def do_ciyun(date,starttime,endtime,s):
 
     len1 = len(filter_list)
     print(len1)
-
+    api_request = ApiHandle(token)
 
     for filter in filter_list:
         data = copy.deepcopy(filter)
@@ -792,7 +747,12 @@ def do_ciyun(date,starttime,endtime,s):
             #
             # item = data['orderBy']
 
-            api_data_list, api_data_total_num = get_api_data(url, data, s)
+            req = api_request.post(url=url, data=data)
+            api_data_dict = json.loads(req.decode('utf-8'))
+            api_data_list = api_data_dict['payload']['modelList']  # 无返回数据 apiresult_list =[]
+            total_num = int(api_data_dict['payload']['total'])
+
+
             api_data = {ele['searchWord']:eval(ele[item]) for ele in api_data_list}
 
             #sql 结果
@@ -808,7 +768,7 @@ def do_ciyun(date,starttime,endtime,s):
             real_search_logger.info(' ')
 
 
-def do_wordline_job(date,starttime,endtime,s):
+def do_wordline_job(date,starttime,endtime,token):
     '''
     折线图
     :param date:
@@ -821,7 +781,7 @@ def do_wordline_job(date,starttime,endtime,s):
 
     findby_list = ['search_pv', 'search_uv', 'click_pv', 'click_uv', 'search_click_rate', 'search_cust_rate']
 
-    date_list = [datetime.strftime(datetime.strptime(date,'%Y-%m-%d') -timedelta(days=i),'%Y-%m-%d')  for i in range(8)][0:]
+    date_list = [datetime.strftime(datetime.strptime(date,'%Y-%m-%d') - datetime.timedelta(days=i),'%Y-%m-%d')  for i in range(8)][0:]
     # 遍历前端筛选条件
     filter_list = get_all_filters(date, starttime, endtime)
 
@@ -831,6 +791,8 @@ def do_wordline_job(date,starttime,endtime,s):
     #
     all_com = [list(combinations(findby_list, i)) for i in range(1, 5)]
     findby_iter = list(chain.from_iterable(all_com))
+
+    api_request = ApiHandle(token)
 
     for filter in filter_list:
         data = dict(filter)
@@ -848,7 +810,10 @@ def do_wordline_job(date,starttime,endtime,s):
             print(data)
             #api
 
-            api_data_dict, api_data_total_num = get_api_data(url, data, s)
+            req = api_request.post(url = url, data = data)
+            api_data_dict = json.loads(req.decode('utf-8'))
+            apiresult_list = api_data_dict['payload']['modelList']  # 无返回数据 apiresult_list =[]
+            total_num = int(api_data_dict['payload']['total'])
 
             for key,value in api_data_dict.items():
                 if isinstance(value,list):
@@ -917,11 +882,7 @@ if __name__ == '__main__':
 
     token=""
 
-    s = requests.Session()
-    s.headers["Content-Type"] = "application/json"
-    s.headers['Authorization'] = "Bearer " + token
-
     #
-    # do_job(date,starttime,endtime,s)
-    # do_ciyun(date,starttime,endtime,s)
-    do_wordline_job(date, starttime, endtime, s)
+    do_job(date,starttime,endtime,token)
+    do_ciyun(date,starttime,endtime,token)
+    do_wordline_job(date, starttime, endtime, token)

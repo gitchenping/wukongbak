@@ -212,7 +212,7 @@ def do_job(date):
 
         if date_type == 'wtd':
             date_strp = datetime.strptime(date, '%Y-%m-%d')
-            date_begin = datetime.strftime(date_strp-timedelta(date_strp.weekday()),'%Y-%m-%d')
+            date_begin = datetime.strftime(date_strp-datetime.timedelta(date_strp.weekday()),'%Y-%m-%d')
         elif date_type == 'mtd':
             date_begin = date[0:-2]+"01"
 

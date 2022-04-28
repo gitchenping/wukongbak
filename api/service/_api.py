@@ -1,20 +1,9 @@
 import requests
 from utils import util
 import json
+from utils.decorate import retry
 
 
-'''请求重试'''
-def retry(maxretry=3):
-    def decorator(func):
-        def wrapper(*args, **kw):
-            att = 0
-            while att < maxretry:
-                try:
-                    return func(*args, **kw)
-                except Exception as e:
-                    att += 1
-        return wrapper
-    return decorator
 
 @retry(2)
 def request(url,data=None,token=None):

@@ -4,6 +4,7 @@
 
 import configparser
 import os
+import logging
 from utils.load import readconfini
 
 
@@ -131,18 +132,39 @@ def logrecord(logger = None):
     def decorator(func):
         def wrapper(*args, **kw):
             where_result_ge = func(*args, **kw)  #原函数是一个生成器
-            if logger is not None :
+            if logger is not None:
+                color_start = '';
+                color_end = ''
+                if not isinstance(logger.handlers[0],logging.FileHandler):
+                    color_start ='\033[1;31m' ;color_end ='\033[0m'
                 for ge in where_result_ge:
-                    msg = '筛选条件: '+ge[0]
-                    if ge[1] != {}:
-                        logger.info(msg + " -*-Fail-*-")
-                        logger.info(ge[1])
+                    msg = '筛选条件: ' + ge[0]
+                    diffvalue = ge[1]
+
+                    if diffvalue != {}:
+                        logger.warning(msg +"1;"+color_start+ " -*-Fail-*-"+color_end)
+                        logger.info(diffvalue)
                     else:
                         logger.info(msg + " -*-Pass-*-")
                     logger.info(' ')
+            else:
+                print("no logger !!!")
         return wrapper
     return decorator
 
+
+#api请求重试
+def retry(maxretry=3):
+    def decorator(func):
+        def wrapper(*args, **kw):
+            att = 0
+            while att < maxretry:
+                try:
+                    return func(*args, **kw)
+                except Exception as e:
+                    att += 1
+        return wrapper
+    return decorator
 
 
 import functools

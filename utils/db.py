@@ -8,7 +8,6 @@ import pymysql
 import redis
 import happybase
 from .decorate import loadenv,loaddbenv
-import configparser
 from sshtunnel import SSHTunnelForwarder
 from utils.load import readconfini
 
@@ -153,7 +152,7 @@ class PyDB():
 
     def __init__(self):
         self.conn = None
-        self.cusor = None
+        self.cursor = None
         pass
 
     def close_db(self):
@@ -212,10 +211,10 @@ class PyMysql(PyDB):
                  ssh_ip='10.255.254.49', #跳板机地址
                  ssh_username='root', #跳板机用户名
                  ssh_passwd='dell1950', #跳板机密码
-                 need_jump = False
+                 need_jumpserver = False
                  ):
 
-        if need_jump :
+        if need_jumpserver :
             server = SSHTunnelForwarder(
                 ssh_address_or_host=(ssh_ip, 22),
                 ssh_username=ssh_username,

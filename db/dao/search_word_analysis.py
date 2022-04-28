@@ -1,7 +1,8 @@
 '''
 搜索词分析 sql
 '''
-from bi.search_report.util.util import *
+from utils import db
+
 import pandas as pd
 
 #sql
@@ -289,6 +290,7 @@ def get_sql_data(data):
     :param data: 筛选入参
     :return:
     '''
+    ck_db = db.PyCK()
     filters = data ['filters']
     params = data['params']
 
@@ -300,8 +302,8 @@ def get_sql_data(data):
     params_dict.update({'search_word':searchword})
 
     sql = get_sql(params_dict)
-    ck_conn = get_ck_conn()
-    sql_data_list = ck_conn.execute(sql)
+    sql_data_list = ck_db.get_result_from_db(sql)
+
 
     #表头
     table_column = ['date_str','平台','搜索来源','search_word']+["sum("+ele['column']+")" for ele in data['aggregators']]

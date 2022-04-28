@@ -2,6 +2,7 @@ import time
 import datetime
 import math
 import calendar
+from dateutil.relativedelta import relativedelta
 
 #返回实时时间，精确到小时
 def get_realtime():
@@ -43,49 +44,45 @@ def get_startdate_in_w_m_q(date,datetype):
     # datetype=data['date_type']
 
     templist=date.split('-')
-    year=templist[0]
-    m=templist[1]
+    year = templist[0]
+    m = int(templist[1])
 
-    startdate=None
+    startdate = None
     _date = datetime.datetime.strptime(date, '%Y-%m-%d')
 
     if datetype.startswith('d') or datetype.startswith('h'):                            #datetype='day' or 'd'
         startdate = date
     elif datetype.startswith('w'):
         a=_date.weekday()
-        startdate=datetime.datetime.strftime(_date - datetime.timedelta(days=a),'%Y-%m-%d')
+        startdate = datetime.datetime.strftime(_date - datetime.timedelta(days=a),'%Y-%m-%d')
     elif datetype.startswith('m'):
-        startdate=year+"-"+m+"-"+"01"
+        startdate = date[0:-2]+"01"
     else:
-        startdate=str(year)+get_sd_ed_q(m)[0]
+        q_num = (m -1) //3 +1 #季度
+        q_s = str(q_num *3-2)
+        startdate = year +"-"+q_s.zfill(2)+"-01"
+
     return startdate
 
-#获取当前日志的上x周，上x月，上x年
-def get_lastdate_in_w_m_q(date,datetype,delta=1):
-    templist = date.split('-')
+#获取当前日期的前一天、上x周，上x月，上x年
+def get_lastdate_d_w_m_q(date,datetype,delta=1):
+    _date = datetime.datetime.strptime(date, '%Y-%m-%d')
 
-    monthint = int(templist[1])
-    yearint = int(templist[0])
-
-    if datetype.startswith('m') :                          #datetype='day' or 'd'
-        new_month = monthint - delta
-        new_year = yearint
-        if new_month <0:
-            new_month = new_month + 12
-            new_year = yearint -1
-
-        templist[0] = str(new_year)
-        templist[1] = len(str(new_month))<2 and '0'+str(new_month) or str(new_month)
-
+    if datetype.startswith('d'):      # datetype='day' or 'd'
+        start_date = (_date + relativedelta(days= -1)).strftime("%Y-%m-%d")
+    elif  datetype.startswith('w') :
+        start_date = (_date + relativedelta(weeks=-1)).strftime("%Y-%m-%d")
+    elif datetype.startswith('m') :       #若两个月天数不相等，前者取最后一天，如2月28天，则3月29号对应2月28号
+        start_date = (_date + relativedelta(months=-1)).strftime("%Y-%m-%d")
     elif datetype.startswith('y'):
-        templist[0] = str(yearint - delta)
+        start_date = (_date + relativedelta(years=-1)).strftime("%Y-%m-%d")
 
-    newdate= '-'.join(templist)
-
-    return newdate
+    return start_date
 
 
-'''返回月末最后一天'''
+
+
+'''返回日期所在月末最后一天'''
 def get_month_end_day(date):
     a=datetime.datetime.strptime(date, '%Y-%m-%d')
     this_month_end = datetime.datetime(a.year, a.month, calendar.monthrange(a.year, a.month)[1])
